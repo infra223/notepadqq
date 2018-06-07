@@ -5,4 +5,6 @@
 - Font isn't monospace
 + Tab width is completely messed up
 - LanguageFromContent doesn't exist anymore
-- Find&Replace doesnt' play well with newlines
+- Find&Replace doesn't play well with newlines
+
+-> Test new TrimWhitespace and ConvertWhitespace functions
