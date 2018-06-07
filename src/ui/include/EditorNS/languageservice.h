@@ -6,6 +6,9 @@
 #include <QStringList>
 #include <QVector>
 
+#include <ote/Highlighter/repository.h>
+#include <ote/Highlighter/definition.h>
+
 /**
  * @brief Fast and efficient language cache/lookup for Notepadqq
  */

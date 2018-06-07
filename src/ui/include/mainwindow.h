@@ -12,11 +12,8 @@
 #include <QCloseEvent>
 #include <QLabel>
 #include <QMainWindow>
-#include <QtPromise>
 
 #include <functional>
-
-using namespace QtPromise;
 
 namespace Ui {
 class MainWindow;
@@ -80,7 +77,7 @@ public:
     void generateRunMenu();
 public slots:
     void refreshEditorUiInfo(Editor *editor);
-    void refreshEditorUiCursorInfo(QMap<QString, QVariant> data);
+    void refreshEditorUiCursorInfo();
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -108,7 +105,7 @@ private slots:
     void on_actionBegin_End_Select_triggered();
     void on_currentEditorChanged(EditorTabWidget* tabWidget, int tab);
     void on_editorAdded(EditorTabWidget* tabWidget, int tab);
-    void on_cursorActivity(QMap<QString, QVariant> data);
+    void on_cursorActivity();
     void on_actionDelete_triggered();
     void on_actionSelect_All_triggered();
     void on_actionAbout_Notepadqq_triggered();
@@ -158,7 +155,6 @@ private slots:
     void on_actionInterpret_as_UTF_8_without_BOM_triggered();
     void on_actionInterpret_as_UTF_16BE_UCS_2_Big_Endian_triggered();
     void on_actionInterpret_as_UTF_16LE_UCS_2_Little_Endian_triggered();
-    void on_actionShow_Tabs_triggered(bool on);
     void on_actionConvert_to_triggered();
     void on_actionIndentation_Default_Settings_triggered();
     void on_actionIndentation_Custom_triggered();
@@ -190,7 +186,6 @@ private slots:
     void on_actionFull_Screen_toggled(bool on);
     void on_actionShow_End_of_Line_triggered(bool on);
     void on_actionShow_All_Characters_toggled(bool on);
-    void on_actionShow_Spaces_triggered(bool on);
     void on_actionToggle_Smart_Indent_toggled(bool on);
     void on_actionLoad_Session_triggered();
     void on_actionSave_Session_triggered();
@@ -198,6 +193,8 @@ private slots:
     void on_actionShow_Toolbar_toggled(bool arg1);
     void on_actionMath_Rendering_toggled(bool on);
     void on_actionToggle_To_Former_Tab_triggered();
+
+    void on_actionShow_Whitespace_triggered(bool checked);
 
 private:
     static QList<MainWindow*> m_instances;
@@ -277,8 +274,8 @@ private:
     void                convertEditorEncoding(Editor *editor, QTextCodec *codec, bool bom);
     void                toggleOverwrite();
     void                checkIndentationMode(Editor *editor);
-    QPromise<QStringList> currentWordOrSelections();
-    QPromise<QString>     currentWordOrSelection();
+    QStringList         currentWordOrSelections();
+    QString             currentWordOrSelection();
     void                currentWordOnlineSearch(const QString &searchUrl);
 
     /**

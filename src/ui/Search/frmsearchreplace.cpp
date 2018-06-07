@@ -6,6 +6,7 @@
 #include "ui_frmsearchreplace.h"
 
 #include <QCompleter>
+#include <QDebug>
 #include <QFileDialog>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -137,7 +138,8 @@ void frmSearchReplace::search(QString string, SearchHelpers::SearchMode searchMo
         data.append(rawSearch);
         data.append(regexModifiersFromSearchOptions(searchOptions));
         data.append(forward);
-        editor->sendMessage("C_FUN_SEARCH", QVariant::fromValue(data));
+        // FIXME
+        // editor->sendMessage("C_FUN_SEARCH", QVariant::fromValue(data));
     }
 }
 
@@ -160,12 +162,14 @@ void frmSearchReplace::replace(QString string, QString replacement, SearchHelper
         data.append(forward);
         data.append(replacement);
 				data.append(QString::number(static_cast<int>(searchMode)));
-        editor->sendMessage("C_FUN_REPLACE", QVariant::fromValue(data));
+
+                                // FIXME
+                                // editor->sendMessage("C_FUN_REPLACE", QVariant::fromValue(data));
     }
 }
 
 int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelpers::SearchMode searchMode, SearchHelpers::SearchOptions searchOptions) {
-    QString rawSearch = SearchString::format(string, searchMode, searchOptions);
+    /*QString rawSearch = SearchString::format(string, searchMode, searchOptions);
     if (searchMode == SearchHelpers::SearchMode::SpecialChars) {
             replacement = SearchString::unescape(replacement);
     }
@@ -174,19 +178,48 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
     data.append(rawSearch);
     data.append(regexModifiersFromSearchOptions(searchOptions));
     data.append(replacement);
-		data.append(QString::number(static_cast<int>(searchMode)));
-    QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_REPLACE_ALL", QVariant::fromValue(data)).get();
-    return count.toInt();
+                data.append(QString::number(static_cast<int>(searchMode)));
+    // FIXME
+    //QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_REPLACE_ALL",
+    QVariant::fromValue(data)).get(); return 0; //count.toInt();*/
+
+    auto& te = currentEditor()->textEditor();
+
+    QString term = ui->cmbSearch->currentText();
+    QTextDocument::FindFlags flags;
+    flags.setFlag(QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
+    flags.setFlag(QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
+
+    term = SearchString::format(term, searchMode, searchOptions);
+
+    if (searchMode == SearchHelpers::SearchMode::SpecialChars) {
+        replacement = SearchString::unescape(replacement);
+    }
+
+    te.setAbsoluteCursorPosition(0);
+
+    int n = 0;
+    int pos = 0;
+    while (te.find(term, pos, -1, flags, false)) {
+        pos = te.getAbsoluteCursorPosition();
+        te.setTextInSelection(replacement);
+        ++n;
+    }
+
+    return n;
 }
 
 int frmSearchReplace::selectAll(QString string, SearchHelpers::SearchMode searchMode, SearchHelpers::SearchOptions searchOptions) {
-    QString rawSearch = SearchString::format(string, searchMode, searchOptions);
+    /*QString rawSearch = SearchString::format(string, searchMode, searchOptions);
 
     QList<QVariant> data = QList<QVariant>();
     data.append(rawSearch);
-    data.append(regexModifiersFromSearchOptions(searchOptions));
-    QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_SEARCH_SELECT_ALL", QVariant::fromValue(data)).get();
-    return count.toInt();
+    data.append(regexModifiersFromSearchOptions(searchOptions));*/
+
+    // FIXME
+    /*QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_SEARCH_SELECT_ALL",
+    QVariant::fromValue(data)).get(); return count.toInt();*/
+    return 0;
 }
 
 SearchHelpers::SearchMode frmSearchReplace::searchModeFromUI()
@@ -216,27 +249,33 @@ SearchHelpers::SearchOptions frmSearchReplace::searchOptionsFromUI()
     return searchOptions;
 }
 
-void frmSearchReplace::findFromUI(bool forward, bool searchFromStart)
+void frmSearchReplace::findFromUI(bool forward)
 {
-    SearchHelpers::SearchOptions sOpts = searchOptionsFromUI();
-    sOpts.SearchFromStart = searchFromStart;
+    auto& te = currentEditor()->textEditor();
 
-    this->search(ui->cmbSearch->currentText(),
-                 searchModeFromUI(),
-                 forward,
-                 sOpts);
+    QString term = ui->cmbSearch->currentText();
+    QTextDocument::FindFlags flags;
+    flags.setFlag(QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
+    flags.setFlag(QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
+    flags.setFlag(QTextDocument::FindBackward, !forward);
+
+    term = SearchString::format(term, searchModeFromUI(), searchOptionsFromUI());
+    te.find(term, flags);
 }
 
-void frmSearchReplace::replaceFromUI(bool forward, bool searchFromStart)
+void frmSearchReplace::replaceFromUI(bool forward)
 {
-    SearchHelpers::SearchOptions sOpts = searchOptionsFromUI();
-    sOpts.SearchFromStart = searchFromStart;
+    auto& te = currentEditor()->textEditor();
+    QString replacement = ui->cmbReplace->currentText();
 
-    this->replace(ui->cmbSearch->currentText(),
-                  ui->cmbReplace->currentText(),
-                  searchModeFromUI(),
-                  forward,
-                  sOpts);
+    if (searchModeFromUI() != SearchHelpers::SearchMode::PlainText) {
+        replacement = SearchString::unescape(replacement);
+    }
+
+    if (te.isSearchTermSelected())
+        te.setTextInSelection(replacement);
+
+    findFromUI(forward);
 }
 
 void frmSearchReplace::on_btnFindNext_clicked()

@@ -38,12 +38,12 @@ public:
     * @brief Runs a "find next" or "find prev", taking the options from the UI.
     * @param `forward`: Direction in which to iterate.
     */
-    void findFromUI(bool forward, bool searchFromStart = false);
+    void findFromUI(bool forward);
    /**
     * @brief Runs a "replace next" or "replace prev", taking the options from the UI.
     * @param `forward`: Direction in which to iterate.
     */
-    void replaceFromUI(bool forward, bool searchFromStart = false);
+    void replaceFromUI(bool forward);
 protected:
     void keyPressEvent(QKeyEvent *evt);
 

@@ -40,8 +40,6 @@ public:
      */
     QString tabTextFromEditor(Editor* editor);
 
-    qreal zoomFactor() const;
-    void setZoomFactor(const qreal &zoomFactor);
 
     /**
      * @brief deleteIfEmpty Deletes the TabWidget if it has no tabs.
@@ -68,6 +66,10 @@ public:
 
     int formerTabIndex();
 
+    int getZoomLevel() const;
+    void setZoomLevel(int zoomLevel);
+    void zoomIn();
+    void zoomOut();
 private:
 
     // Smart pointers to the editors within this TabWidget
@@ -108,6 +110,9 @@ public slots:
 protected:
     void mouseReleaseEvent(QMouseEvent *ev);
     void tabRemoved(int);
+
+private:
+    int m_zoomLevel = 0;
 };
 
 #endif // EDITORTABWIDGET_H

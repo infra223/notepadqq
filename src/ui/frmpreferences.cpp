@@ -152,14 +152,10 @@ void frmPreferences::loadLanguages()
     };
     m_tempLangSettings.push_back(lang);
 
-    for (const auto& l : LanguageService::getInstance().languages()) {
-        ui->cmbLanguages->addItem(l.name.isEmpty() ? "?" : l.name, l.id);
+    for (const auto& l : ote::TextEdit::getRepository().definitions()) {
+        ui->cmbLanguages->addItem(l.name().isEmpty() ? "?" : l.name(), l.name());
         LanguageSettings lang = {
-            l.id,
-            ls.getTabSize(l.id),
-            ls.getIndentWithSpaces(l.id),
-            ls.getUseDefaultSettings(l.id)
-        };
+            l.name(), ls.getTabSize(l.name()), ls.getIndentWithSpaces(l.name()), ls.getUseDefaultSettings(l.name())};
 
         m_tempLangSettings.push_back(lang);
     }

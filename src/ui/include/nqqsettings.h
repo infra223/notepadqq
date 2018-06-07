@@ -72,11 +72,10 @@ public:
         NQQ_SETTING(StatisticsDialogShown,          int,        0)
 
         NQQ_SETTING(WordWrap,                       bool,       false)
-        NQQ_SETTING(Zoom,                           qreal,      1.0)
+        NQQ_SETTING(ZoomLevel,                      int,        0)
 
         NQQ_SETTING(ShowAllSymbols,                 bool,       false)
-        NQQ_SETTING(TabsVisible,                    bool,       false)
-        NQQ_SETTING(SpacesVisisble,                 bool,       false)
+        NQQ_SETTING(WhitespaceVisible,              bool,       false)
         NQQ_SETTING(ShowEOL,                        bool,       false)
 
         NQQ_SETTING(RememberTabsOnExit,             bool,       true)

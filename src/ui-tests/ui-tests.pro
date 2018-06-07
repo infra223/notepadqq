@@ -3,13 +3,11 @@
 ######################################################################
 
 QT += testlib
-QT += core gui svg widgets printsupport network webenginewidgets webchannel websockets
+QT += core gui svg widgets printsupport network
 CONFIG += c++11
 TEMPLATE = app
 TARGET = ui-tests
 INCLUDEPATH += ../ui/
-
-include(../ui/libs/qtpromise/qtpromise.pri)
 
 # Input
 SOURCES += tst_notepadqqtest.cpp

@@ -29,7 +29,7 @@ QString SearchString::unescape(const QString &data)
 
     for (int i = 0; i < dataLength; i++) {
         QChar c = data[i];
-        if (c == '\\' && i != dataLength) {
+        if (c == '\\' && i + 1 < dataLength) {
             i++;
             if (data[i] == 'a') c = '\a';
             else if (data[i] == 'b') c = '\b';

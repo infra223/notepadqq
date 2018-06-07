@@ -41,7 +41,14 @@ LanguageService::LanguageService()
         m_languages.append(std::move(newMode));
     }
 
-    Q_ASSERT(hasPlainText);
+    // FIXME
+    Language l;
+    l.name = "plaintext";
+    l.id = "plaintext";
+    m_languages.append(l);
+
+    // FIXME
+    // Q_ASSERT(hasPlainText);
 }
 
 const Language* LanguageService::lookupById(const QString& id)

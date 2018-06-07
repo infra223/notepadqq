@@ -19,6 +19,8 @@
 
 #include <unistd.h> // For getuid
 
+#include <ote/textedit.h>
+
 #ifdef QT_DEBUG
 #include <QElapsedTimer>
 #endif
@@ -105,6 +107,8 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
+    ote::TextEdit::initRepository();
+
     // Arguments received from another instance
     QObject::connect(&a, &SingleApplication::receivedArguments, &a, [=](const QString &workingDirectory, const QStringList &arguments) {
         QSharedPointer<QCommandLineParser> parser = Notepadqq::getCommandLineArgumentsParser(arguments);
@@ -131,11 +135,21 @@ int main(int argc, char *argv[])
     // There are no other instances: start a new server.
     a.startServer();
 
+<<<<<<< HEAD
     QFileInfo finfo(Notepadqq::editorPath());
     if (!finfo.isReadable()) {
         qCritical() << "Can't open file: " + finfo.filePath();
         return EXIT_FAILURE;
     }
+=======
+    // FIXME?
+    /*QFile file(Notepadqq::editorPath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Can't open file: " + file.fileName();
+        return EXIT_FAILURE;
+    }
+    file.close();*/
+>>>>>>> Clang syntax.
 
     if (Extensions::ExtensionsLoader::extensionRuntimePresent()) {
         Extensions::ExtensionsLoader::startExtensionsServer();

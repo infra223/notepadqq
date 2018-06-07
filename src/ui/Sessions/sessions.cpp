@@ -320,8 +320,8 @@ bool saveSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
             td.scrollX = scrollPos.first;
             td.scrollY = scrollPos.second;
             td.active = tabWidget->currentEditor() == editor;
-            td.language = editor->getLanguage()->id;
-            
+            td.language = editor->getLanguage().name();
+
             // Cache the custom indentation state of the file
             if (editor->isUsingCustomIndentationMode()) {
                 td.customIndent = true;
@@ -402,13 +402,28 @@ void loadSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
             if (!fileExists && !cacheFileExists)
                 continue;
 
-            docEngine->getDocumentLoader()
-                .setUrl(loadUrl)
-                .setTabWidget(tabW)
-                .setRememberLastDir(false)
-                .setFileSizeWarning(DocEngine::FileSizeActionYesToAll)
-                .execute()
-                .wait(); // FIXME Transform to async
+ 
+        auto name = QFileInfo(filePath).fileName();
+
+        auto& cache = LanguageService::getInstance();
+        auto lang = cache.lookupByFileName(name);
+=======
+        /*auto& cache = LanguageService::getInstance();
+        auto lang = cache.lookupByFileName(fileName);
+>>>>>>> Clang syntax.
+        if (lang != nullptr) {
+            setLanguage(lang);
+            return;
+        }
+        lang = cache.lookupByExtension(name);
+        if (lang != nullptr) {
+            setLanguage(lang);
+        }*/
+        setLanguage(m_textEditor.getRepository().definitionForFileName(fileName));
+    }
+
+    void Editor::setLanguageFromFilePath()
+    {           docEngine->getDocumentLoader().setUrl(loadUrl).setTabWidget(tabW).setRememberLastDir(false).execute();
 
             int idx = tabW->findOpenEditorByUrl(loadUrl);
 
@@ -487,7 +502,7 @@ void loadSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
 
     // We need to trigger a final call to MainWindow::refreshEditorUiInfo to display the correct info
     // on start-up. The easiest way is to emit a cleanChanged() event.
-    currEd->isCleanP().then([=](bool isClean){ emit currEd->cleanChanged(isClean); });
+    emit currEd->cleanChanged(currEd->isClean());
 
     // If the last tabwidget still has no tabs in it at this point, we'll have to delete it.
     EditorTabWidget* lastTabW = editorContainer->tabWidget( editorContainer->count() -1);

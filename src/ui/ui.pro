@@ -4,9 +4,11 @@
 #
 #-------------------------------------------------
 
-QT       += core gui svg widgets printsupport network webenginewidgets webchannel websockets dbus
+
+QT += core gui svg widgets printsupport network dbus
 CONFIG += c++14 link_pkgconfig
 PKGCONFIG += uchardet
+
 
 !macx: TARGET = notepadqq-bin
 macx: TARGET = notepadqq
@@ -60,7 +62,7 @@ INSTALLFILESDIR = ../../support_files
 
 CURRFILE = $$PWD/ui.pro
 
-include(libs/qtpromise/qtpromise.pri)
+include(ote/OpenTextEdit.pri)
 
 SOURCES += main.cpp\
     mainwindow.cpp \
@@ -75,8 +77,8 @@ SOURCES += main.cpp\
     EditorNS/bannerfilechanged.cpp \
     EditorNS/bannerbasicmessage.cpp \
     EditorNS/bannerfileremoved.cpp \
-    EditorNS/customqwebview.cpp \
-    EditorNS/languageservice.cpp \
+    #EditorNS/customqwebview.cpp \
+    #EditorNS/languageservice.cpp \
     clickablelabel.cpp \
     frmencodingchooser.cpp \
     EditorNS/bannerindentationdetected.cpp \
@@ -122,11 +124,11 @@ HEADERS  += include/mainwindow.h \
     include/EditorNS/bannerfilechanged.h \
     include/EditorNS/bannerbasicmessage.h \
     include/EditorNS/bannerfileremoved.h \
-    include/EditorNS/customqwebview.h \
+    #include/EditorNS/customqwebview.h \
     include/clickablelabel.h \
     include/frmencodingchooser.h \
     include/EditorNS/bannerindentationdetected.h \
-    include/EditorNS/languageservice.h \
+    #include/EditorNS/languageservice.h \
     include/frmindentationmode.h \
     include/singleapplication.h \
     include/localcommunication.h \
@@ -227,8 +229,8 @@ extensionToolsTarget.commands = (cd \"$$PWD\" && \
 translationsTarget.target = make_translations
 translationsTarget.commands = ($${LRELEASE} \"$${CURRFILE}\")
 
-QMAKE_EXTRA_TARGETS += editorTarget extensionToolsTarget translationsTarget
-PRE_TARGETDEPS += make_editor make_extensionTools make_translations
+QMAKE_EXTRA_TARGETS += extensionToolsTarget translationsTarget
+PRE_TARGETDEPS += make_extensionTools make_translations
 
 unix:!macx {
     launchTarget.target = make_launch

@@ -201,9 +201,10 @@ void TopEditorContainer::forEachEditor(bool backwardIndexes,
         }
     }
 }
-
+/*
 QPromise<void> TopEditorContainer::forEachEditorAsync(bool backwardIndices,
-                                                    std::function<void (const int tabWidgetId, const int editorId, EditorTabWidget *tabWidget, Editor *editor, std::function<void()> goOn, std::function<void()> stop)> callback)
+                                                    std::function<void (const int tabWidgetId, const int editorId,
+EditorTabWidget *tabWidget, Editor *editor, std::function<void()> goOn, std::function<void()> stop)> callback)
 {
     return QPromise<void>([=](const auto& resolve, const auto&) {
 
@@ -250,7 +251,8 @@ QPromise<void> TopEditorContainer::forEachEditorAsync(bool backwardIndices,
     });
 }
 
-QPromise<void> TopEditorContainer::forEachEditorConcurrent(std::function<void (const int tabWidgetId, const int editorId, EditorTabWidget *tabWidget, Editor *editor, std::function<void()> done)> callback)
+QPromise<void> TopEditorContainer::forEachEditorConcurrent(std::function<void (const int tabWidgetId, const int
+editorId, EditorTabWidget *tabWidget, Editor *editor, std::function<void()> done)> callback)
 {
     return QPromise<void>([=](const auto& resolve, const auto&) {
 
@@ -278,4 +280,4 @@ QPromise<void> TopEditorContainer::forEachEditorConcurrent(std::function<void (c
         }
 
     });
-}
+}*/

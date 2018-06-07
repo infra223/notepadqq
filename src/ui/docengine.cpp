@@ -1,7 +1,6 @@
 #include "include/docengine.h"
 
 #include "include/Sessions/persistentcache.h"
-#include "include/globals.h"
 #include "include/iconprovider.h"
 #include "include/mainwindow.h"
 #include "include/notepadqq.h"
@@ -68,20 +67,20 @@ DocEngine::DecodedText DocEngine::readToString(QFile *file, QTextCodec *codec, b
     return decoded;
 }
 
-QPromise<void> DocEngine::read(QFile *file, Editor *editor)
+bool DocEngine::read(QFile* file, Editor* editor)
 {
     return read(file, editor, nullptr, false);
 }
 
-QPromise<void> DocEngine::read(QFile *file, Editor* editor, QTextCodec *codec, bool bom)
+bool DocEngine::read(QFile* file, Editor* editor, QTextCodec* codec, bool bom)
 {
     if(!editor)
-        return QPromise<void>::reject(0);
+        return false;
 
     DecodedText decoded = readToString(file, codec, bom);
 
     if (decoded.error)
-        return QPromise<void>::reject(0);
+        return false;
 
     editor->setCodec(decoded.codec);
     editor->setBom(decoded.bom);
@@ -93,10 +92,12 @@ QPromise<void> DocEngine::read(QFile *file, Editor* editor, QTextCodec *codec, b
     else if (decoded.text.indexOf("\r") != -1)
         editor->setEndOfLineSequence("\r");
 
-    return editor->setValue(decoded.text)
-            .then([=](){ return editor->asyncSendMessageWithResultP("C_CMD_CLEAR_HISTORY"); })
-            .then([=](){ return editor->markClean(); })
-            .then([=](){});
+    editor->setValue(decoded.text);
+    // FIXME
+    // editor->sendMessage("C_CMD_CLEAR_HISTORY");
+    editor->markClean();
+
+    return true;
 }
 
 int showFileSizeDialog(const QString docName, long long fileSize, bool multipleFiles) {
@@ -136,37 +137,38 @@ int showReloadDialog(const QString docName) {
     return msgBox.exec();
 }
 
-QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
+void DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
 {
     const auto& fileNames = docLoader.urls;
     const auto& rememberLastSelectedDir = docLoader.rememberLastDir;
     const auto& reloadAction = docLoader.reloadAction;
+    auto* tabWidget = docLoader.tabWidget;
     const auto& codec = docLoader.textCodec;
     const auto& bom = docLoader.bom;
-    auto fileSizeAction = std::make_shared<FileSizeAction>(docLoader.fileSizeAction);
+    auto fileSizeAction = docLoader.fileSizeAction;
 
     if (fileNames.empty())
-        return QPromise<void>::resolve();
+        return;
 
     if (rememberLastSelectedDir)
         NqqSettings::getInstance().General.setLastSelectedDir(QFileInfo(fileNames[0].toLocalFile()).absolutePath());
 
     // Used to know if the document that we're loading is
     // the first one in the list.
-    auto isFirstDocument = std::make_shared<bool>(true);
+    bool isFirstDocument = true;
 
-    return pFor(0, fileNames.count(), [=](int i, auto _break, auto _continue){
+    for (int i = 0; i < fileNames.count(); i++) {
         const QUrl& url = fileNames[i];
 
         if (url.isEmpty())
-            return _continue;
+            continue;
 
         if (!url.isLocalFile()) {
             QMessageBox msgBox;
             msgBox.setWindowTitle(QCoreApplication::applicationName());
             msgBox.setText(tr("Protocol not supported for file \"%1\".").arg(url.toDisplayString()));
             msgBox.exec();
-            return _continue;
+            continue;
         }
 
         QString localFileName = url.toLocalFile();
@@ -179,184 +181,13 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
             EditorTabWidget *tabW = static_cast<EditorTabWidget *>
                                     (m_topEditorContainer->widget(openPos.first));
 
-            if (*isFirstDocument) {
-                *isFirstDocument = false;
-                tabW->setCurrentIndex(openPos.second);
-            }
-
-            emit this->documentLoaded(tabW, openPos.second, true, rememberLastSelectedDir);
-            return _continue;
-        }
-
-        const int warnAtSize = NqqSettings::getInstance().General.getWarnIfFileLargerThan() * 1024 * 1024;
-        const auto fileSize = fi.size();
-
-        // Only warn if warnAtSize is at least 1. Otherwise the warning is disabled.
-        const bool fileTooLarge = warnAtSize > 0 && fileSize > warnAtSize;
-        if (*fileSizeAction!=FileSizeActionYesToAll && fileTooLarge) {
-            if (*fileSizeAction==FileSizeActionNoToAll)
-                return _continue;
-
-            int ret = showFileSizeDialog(fi.fileName(), fileSize, fileNames.size() > 1);
-
-            switch(ret) {
-            case QMessageBox::YesToAll:
-                *fileSizeAction = FileSizeActionYesToAll;
-                break;
-            case QMessageBox::Yes:
-                break;
-            case QMessageBox::NoToAll:
-                *fileSizeAction = FileSizeActionNoToAll;
-                return _continue;
-            case QMessageBox::No:
-                return _continue;
-            }
-        }
-
-        auto* tabWidget = docLoader.tabWidget;
-        int tabIndex;
-        if (isAlreadyOpen) {
-            tabWidget = m_topEditorContainer->tabWidget(openPos.first);
-            tabIndex = openPos.second;
-        } else {
-            tabIndex = tabWidget->addEditorTab(false, fi.fileName());
-        }
-
-        Editor* editor = tabWidget->editor(tabIndex);
-
-        // In case of a reload, save cursor, scroll position, language
-        QPair<int, int> scrollPosition;
-        QPair<int, int> cursorPosition;
-        const EditorNS::Language* language;
-        if (isAlreadyOpen) {
-            scrollPosition = editor->scrollPosition();
-            cursorPosition = editor->cursorPosition();
-            language = editor->getLanguage();
-        }
-
-        if (isAlreadyOpen && reloadAction == DocEngine::ReloadActionAsk && !editor->isClean()) {
-            EditorTabWidget *tabW = static_cast<EditorTabWidget *>
-                                    (m_topEditorContainer->widget(openPos.first));
-            tabW->setCurrentIndex(openPos.second);
-
-            int retVal = showReloadDialog(fi.fileName());
-            if (retVal == QMessageBox::Cancel)
-                return _continue;
-        }
-
-        QFile file(localFileName);
-        if (file.exists()) {
-            QPromise<void> readResult = this->read(&file, editor, codec, bom).wait(); // FIXME To async!
-
-            while (readResult.isRejected()) {
-                // Handle error
-                QMessageBox msgBox;
-                msgBox.setWindowTitle(QCoreApplication::applicationName());
-                msgBox.setText(tr("Error trying to open \"%1\"").arg(fi.fileName()));
-                msgBox.setDetailedText(file.errorString());
-                msgBox.setStandardButtons(QMessageBox::Abort | QMessageBox::Retry | QMessageBox::Ignore);
-                msgBox.setDefaultButton(QMessageBox::Retry);
-                msgBox.setIcon(QMessageBox::Critical);
-                int ret = msgBox.exec();
-                if(ret == QMessageBox::Abort) {
-                    tabWidget->removeTab(tabIndex);
-                    return _break;
-                } else if(ret == QMessageBox::Retry) {
-                    // Retry
-                } else if(ret == QMessageBox::Ignore) {
-                    tabWidget->removeTab(tabIndex);
-                    return _continue;
-                }
-            }
-        }
-
-        // In case of reload, restore cursor, scroll position, language
-        if (isAlreadyOpen) {
-            editor->setScrollPosition(scrollPosition);
-            editor->setCursorPosition(cursorPosition);
-            editor->setLanguage(language);
-        }
-
-        if (!file.exists()) {
-            // If it's a file that doesn't exists,
-            // set it as if it has changed. This way, if someone
-            // creates that file from outside of notepadqq,
-            // when the user tries to save over it he gets a warning.
-            editor->setFileOnDiskChanged(true);
-            editor->markDirty();
-        }
-
-        // If there was only a new empty tab opened, remove it
-        if (tabWidget->count() == 2) {
-            Editor *victim = tabWidget->editor(0);
-            if (victim->filePath().isEmpty() && victim->isClean()) {
-                tabWidget->removeTab(0);
-                tabIndex--;
-            }
-        }
-
-        file.close();
-        if (isAlreadyOpen) {
-            editor->setFileOnDiskChanged(false);
-        } else {
-            editor->setFilePath(url);
-            tabWidget->setTabToolTip(tabIndex, fi.absoluteFilePath());
-            editor->setLanguageFromFilePath();
-        }
-
-        this->monitorDocument(editor);
-
-        if (*isFirstDocument) {
-            *isFirstDocument = false;
-            tabWidget->setCurrentIndex(tabIndex);
-            tabWidget->editor(tabIndex)->setFocus();
-        }
-
-        if (isAlreadyOpen) {
-            emit this->documentReloaded(tabWidget, tabIndex);
-        } else {
-            emit this->documentLoaded(tabWidget, tabIndex, false, rememberLastSelectedDir);
-        }
-
-        return _continue;
-
-    }).then([](){});
-
-
-
-
-
-    /*for (int i = 0; i < fileNames.count(); i++) {
-        const QUrl& url = fileNames[i];
-
-        if (url.isEmpty())
-            continue;
-
-        if (!url.isLocalFile()) {
-            QMessageBox msgBox;
-            msgBox.setWindowTitle(QCoreApplication::applicationName());
-            msgBox.setText(tr("Protocol not supported for file \"%1\".").arg(url.toDisplayString()));
-            msgBox.exec();
-            continue;
-        }
-
-        QString localFileName = url.toLocalFile();
-        QFileInfo fi(localFileName);
-
-        const QPair<int, int> openPos = findOpenEditorByUrl(url);
-        const bool isAlreadyOpen = openPos.first > -1; //'true' when we're reloading a tab
-
-        if(isAlreadyOpen && reloadAction == ReloadActionDont) {
-            EditorTabWidget *tabW = static_cast<EditorTabWidget *>
-                                    (m_topEditorContainer->widget(openPos.first));
-
             if (isFirstDocument) {
                 isFirstDocument = false;
                 tabW->setCurrentIndex(openPos.second);
             }
 
-            emit documentLoaded(tabW, openPos.second, true, rememberLastSelectedDir);
-            continue;
+            emit this->documentLoaded(tabW, openPos.second, true, rememberLastSelectedDir);
+            return _continue;
         }
 
         const int warnAtSize = NqqSettings::getInstance().General.getWarnIfFileLargerThan() * 1024 * 1024;
@@ -394,12 +225,14 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
 
         Editor* editor = tabWidget->editor(tabIndex);
 
-        // In case of a reload, save cursor and scroll position
+        // In case of a reload, save cursor, scroll position, language
         QPair<int, int> scrollPosition;
         QPair<int, int> cursorPosition;
+        const EditorNS::Language* language;
         if (isAlreadyOpen) {
             scrollPosition = editor->scrollPosition();
             cursorPosition = editor->cursorPosition();
+            language = editor->getLanguage();
         }
 
         if (isAlreadyOpen && reloadAction == DocEngine::ReloadActionAsk && !editor->isClean()) {
@@ -414,7 +247,9 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
 
         QFile file(localFileName);
         if (file.exists()) {
-            if (!read(&file, editor, codec, bom)) {
+            QPromise<void> readResult = this->read(&file, editor, codec, bom).wait(); // FIXME To async!
+
+            while (readResult.isRejected()) {
                 // Handle error
                 QMessageBox msgBox;
                 msgBox.setWindowTitle(QCoreApplication::applicationName());
@@ -438,10 +273,11 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
             }
         }
 
-        // In case of reload, restore cursor and scroll position
+        // In case of reload, restore cursor, scroll position, language
         if (isAlreadyOpen) {
             editor->setScrollPosition(scrollPosition);
             editor->setCursorPosition(cursorPosition);
+            editor->setLanguage(language);
         }
 
         if (!file.exists()) {
@@ -471,10 +307,10 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
             editor->setLanguageFromFileName();
         }
 
-        monitorDocument(editor);
+        this->monitorDocument(editor);
 
-        if (isFirstDocument) {
-            isFirstDocument = false;
+        if (*isFirstDocument) {
+            *isFirstDocument = false;
             tabWidget->setCurrentIndex(tabIndex);
             tabWidget->editor(tabIndex)->setFocus();
         }
@@ -484,7 +320,7 @@ QPromise<void> DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoad
         } else {
             emit documentLoaded(tabWidget, tabIndex, false, rememberLastSelectedDir);
         }
-    }*/
+    }
 }
 
 QPair<int, int> DocEngine::findOpenEditorByUrl(const QUrl &filename) const
@@ -609,7 +445,6 @@ void DocEngine::monitorDocument(const QString &fileName)
     if(m_fsWatcher &&
             !fileName.isEmpty() &&
             !m_fsWatcher->files().contains(fileName)) {
-
         m_fsWatcher->addPath(fileName);
     }
 }
@@ -620,7 +455,6 @@ void DocEngine::unmonitorDocument(const QString &fileName)
         m_fsWatcher->removePath(fileName);
     }
 }
-
 
 QString DocEngine::getAvailableSudoProgram() const
 {
@@ -684,7 +518,7 @@ bool DocEngine::trySudoSave(QString sudoProgram, QUrl outFileName, Editor* edito
 
 int DocEngine::saveDocument(EditorTabWidget *tabWidget, int tab, QUrl outFileName, bool copy)
 {
-    QSharedPointer<Editor> editor = tabWidget->editorSharedPtr(tabWidget->editor(tab));
+    Editor* editor = tabWidget->editor(tab);
 
     if (!copy)
         unmonitorDocument(editor);
@@ -697,7 +531,7 @@ int DocEngine::saveDocument(EditorTabWidget *tabWidget, int tab, QUrl outFileNam
 
         do
         {
-            if (write(&file, editor.data())) {
+            if (write(&file, editor)) {
                 break;
             } else {
                 QString sudoProgram = getAvailableSudoProgram();
@@ -721,7 +555,7 @@ int DocEngine::saveDocument(EditorTabWidget *tabWidget, int tab, QUrl outFileNam
                 } else if (clicked == retry) {
                     continue;
                 } else if (clicked == retryRoot) {
-                    if (trySudoSave(sudoProgram, outFileName, editor.data()))
+                    if (trySudoSave(sudoProgram, outFileName, editor))
                         break;
                     else {
                         continue;
@@ -743,13 +577,7 @@ int DocEngine::saveDocument(EditorTabWidget *tabWidget, int tab, QUrl outFileNam
 
         file.close();
 
-#ifdef Q_OS_MACX
-        // On macOS we need to give it a little bit of time, otherwise we get the
-        // "document changed" banner as soon as the document is saved.
-        QTimer::singleShot(100, [=](){ monitorDocument(editor); });
-#else
         monitorDocument(editor);
-#endif
 
         if (!copy) {
             emit documentSaved(tabWidget, tab);
@@ -801,15 +629,6 @@ void DocEngine::unmonitorDocument(Editor *editor)
     unmonitorDocument(editor->filePath().toLocalFile());
 }
 
-void DocEngine::monitorDocument(QSharedPointer<Editor> editor)
-{
-    monitorDocument(editor->filePath().toLocalFile());
-}
-
-void DocEngine::unmonitorDocument(QSharedPointer<Editor> editor)
-{
-    unmonitorDocument(editor->filePath().toLocalFile());
-}
 
 bool DocEngine::isMonitored(Editor *editor)
 {

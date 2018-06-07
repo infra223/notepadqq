@@ -175,8 +175,7 @@
      <property name="title">
       <string>&amp;Show Symbol</string>
      </property>
-     <addaction name="actionShow_Tabs"/>
-     <addaction name="actionShow_Spaces"/>
+     <addaction name="actionShow_Whitespace"/>
      <addaction name="actionShow_End_of_Line"/>
      <addaction name="actionShow_All_Characters"/>
      <addaction name="separator"/>
@@ -566,7 +565,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Math Rendering</string>
+    <string>Math &amp;Rendering</string>
    </property>
   </action>
   <action name="actionCurrent_Full_File_Path_to_Clipboard">
@@ -999,15 +998,18 @@
     <string>F11</string>
    </property>
   </action>
-  <action name="actionShow_Spaces">
+  <action name="actionShow_Whitespace">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>S&amp;how Spaces</string>
+    <string>S&amp;how Whitespace</string>
+   </property>
+   <property name="iconText">
+    <string>S&amp;how Whitespace</string>
    </property>
    <property name="toolTip">
-    <string>Show Spaces</string>
+    <string>S&amp;how Whitespace</string>
    </property>
   </action>
   <action name="actionToggle_Smart_Indent">

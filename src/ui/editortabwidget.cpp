@@ -7,6 +7,7 @@
 #include <QTabBar>
 
 #ifdef QT_DEBUG
+#include <QDebug>
 #include <QElapsedTimer>
 #endif
 
@@ -170,7 +171,7 @@ int EditorTabWidget::rawAddEditorTab(const bool setFocus, const QString &title, 
     }
 
     // Common setup
-    editor->setZoomFactor(m_zoomFactor);
+    editor->setZoomLevel(m_zoomLevel);
 
     this->setUpdatesEnabled(true);
 
@@ -252,17 +253,31 @@ QString EditorTabWidget::tabTextFromEditor(Editor* ed)
     return QString();
 }
 
-qreal EditorTabWidget::zoomFactor() const
+int EditorTabWidget::getZoomLevel() const
 {
-    return m_zoomFactor;
+    return m_zoomLevel;
 }
 
-void EditorTabWidget::setZoomFactor(const qreal &zoomFactor)
+void EditorTabWidget::setZoomLevel(int zoomLevel)
 {
-    m_zoomFactor = zoomFactor;
+    m_zoomLevel = zoomLevel;
 
     for (int i = 0; i < count(); i++) {
-        editor(i)->setZoomFactor(zoomFactor);
+        editor(i)->setZoomLevel(zoomLevel);
+    }
+}
+
+void EditorTabWidget::zoomIn()
+{
+    for (int i = 0; i < count(); i++) {
+        editor(i)->zoomIn();
+    }
+}
+
+void EditorTabWidget::zoomOut()
+{
+    for (int i = 0; i < count(); i++) {
+        editor(i)->zoomOut();
     }
 }
 

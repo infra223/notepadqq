@@ -72,7 +72,7 @@ public:
         /**
          * @brief execute Runs the load operation.
          */
-        QPromise<void> execute() {
+        void execute() {
             Q_ASSERT(tabWidget != nullptr);
             return docEngine.loadDocuments(*this);
         }
@@ -164,15 +164,15 @@ private:
      * @param editor
      * @return fulfilled if successful, rejected otherwise
      */
-    QPromise<void> read(QFile *file, Editor *editor);
-    QPromise<void> read(QFile *file, Editor *editor, QTextCodec *codec, bool bom);
+    bool read(QFile *file, Editor *editor);
+    bool read(QFile *file, Editor *editor, QTextCodec *codec, bool bom);
     // FIXME Separate from reload
 
     /**
      * @brief loadDocuments Responsible for loading or reloading a number of text files.
      * @param docLoader Contains parameters for document loading. See DocumentLoader class for info.
      */
-    QPromise<void> loadDocuments(const DocumentLoader& docLoader);
+    void loadDocuments(const DocumentLoader& docLoader);
 
     void monitorDocument(const QString &fileName);
     void unmonitorDocument(const QString &fileName);
