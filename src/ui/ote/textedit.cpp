@@ -517,18 +517,20 @@ void TextEdit::deleteSelectedBlocks()
 
 void TextEdit::convertLeadingWhitespaceToTabs()
 {
-    auto lines = toPlainText().split('\n');
+    // TODO: Might be more efficient using a block-based approach?
+    auto lines = toPlainText().splitRef('\n');
     QString final;
 
-    QRegularExpression regex = QRegularExpression("\\S");
+    //QRegularExpression regex = QRegularExpression("\\S");
 
     for (auto& line : lines) {
-        auto firstNonWS = line.indexOf(regex);
+        //auto firstNonWS = line.indexOf(regex);
         auto ws = 0;
-        for (int i = 0; i < firstNonWS; ++i)
-            ws += (line[i] == '\t' ? m_tabWidth : 1);
+        auto index = 0;
+        //for (int i = 0; i < firstNonWS; ++i)
+        //    ws += (line[i] == '\t' ? m_tabWidth : 1);
 
-        QString newBegin;
+        /*QString newBegin;
         while (ws >= 4) {
             newBegin += '\t';
             ws -= 4;
@@ -537,7 +539,20 @@ void TextEdit::convertLeadingWhitespaceToTabs()
             newBegin += ' ';
 
         line = newBegin + line.mid(firstNonWS);
-        final += line + '\n';
+        final += line + '\n';*/
+        
+        for (const auto& c : line) {
+            switch(c) {
+                case ' ': ws += 1;
+                case '\t' ws += m_tabWidth;
+                default: break;
+            }
+            index += 1;
+        }
+    
+        //line = QString(ws, ' ') + line.mid(index);
+        final += QString(ws/m_tabWidth, '\t') + QString(ws%m_tabWidth, ' ') + line.mid(index) + '\n';
+        
     }
 
     if (!final.isEmpty())
@@ -551,19 +566,29 @@ void TextEdit::convertLeadingWhitespaceToTabs()
 
 void TextEdit::convertLeadingWhitespaceToSpaces()
 {
-    auto lines = toPlainText().split('\n');
+    auto lines = toPlainText().splitRef('\n');
     QString final;
 
-    QRegularExpression regex = QRegularExpression("\\S");
+    //QRegularExpression regex = QRegularExpression("\\S");
 
     for (auto& line : lines) {
-        auto firstNonWS = line.indexOf(regex);
-        auto ws = 0;
-        for (int i = 0; i < firstNonWS; ++i)
-            ws += (line[i] == '\t' ? m_tabWidth : 1);
-
-        line = QString(ws, ' ') + line.mid(firstNonWS);
-        final += line + '\n';
+        //auto firstNonWS = line.indexOf(regex);
+        int ws = 0;
+        int index = 0;
+        //for (int i = 0; i < firstNonWS; ++i)
+        //    ws += (line[i] == '\t' ? m_tabWidth : 1);
+        
+        for (const auto& c : line) {
+            switch(c) {
+                case ' ': ws += 1;
+                case '\t' ws += m_tabWidth;
+                default: break;
+            }
+            index += 1;
+        }
+    
+        //line = QString(ws, ' ') + line.mid(index);
+        final += QString(ws, ' ') + line.mid(index) + '\n';
     }
 
     if (!final.isEmpty())
@@ -580,17 +605,22 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
     if (!leading && !trailing)
         return;
 
-    auto lines = toPlainText().split('\n');
+    const QString& original = toPlainText();
+    const auto lines = original.splitRef('\n');
     QString final;
+    final.reserve(original.length());
 
-    QRegularExpression regex = QRegularExpression("\\S");
+    //QRegularExpression regex = QRegularExpression("\\S");
 
     for (auto& line : lines) {
-        int start = leading ? line.indexOf(regex) : 0;
-        int end = trailing ? line.lastIndexOf(regex) : -1;
+        const int start = !leading ? 0 : std::distance(line.begin(), std::find_first_of(line.begin(), line.end(), "\t "));
+        const int end = !trailing ? -1 : std::distance(line.rbegin(), std::find_first_of(line.rbegin(), line.rend(), "\t "));
+        
+        //int start = leading ? line.indexOf(regex) : 0;
+        //int end = trailing ? line.lastIndexOf(regex) : -1;
 
-        line = line.mid(start, end - start + 1);
-        final += line + '\n';
+        ///line = line.mid(start, end - start + 1);
+        final += line.mid(start, end - start + 1) + '\n';
     }
 
     if (!final.isEmpty())
@@ -872,7 +902,7 @@ void TextEdit::paintSearchBlock(QPainter& painter, const QRect& /*eventRect*/, c
     painter.setPen(pen);
 */
 
-    /*	auto er = eventRect;
+    /*  auto er = eventRect;
 
     if (!m_findActive) {
         QTextBlock blockFS = block;
