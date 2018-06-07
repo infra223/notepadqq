@@ -20,6 +20,9 @@
 
 #include "definitionref_p.h"
 
+#include "keywordlist_p.h"
+#include "format.h"
+
 #include <QHash>
 #include <QString>
 #include <QVector>
@@ -33,6 +36,7 @@ namespace KSyntaxHighlighting {
 
 class Definition;
 class Repository;
+class Context;
 
 class DefinitionData
 {

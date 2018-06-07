@@ -103,22 +103,22 @@ void TextEdit::highlightCurrentLine()
     eslh << selection;
 }
 
-void TextEdit::initRepository()
+KSyntaxHighlighting::Repository* TextEdit::s_repository = nullptr;
+
+void TextEdit::initRepository(const QString& path)
 {
     QElapsedTimer t;
     t.start();
-    getRepository().addCustomSearchPath("/home/s3rius/Downloads/syntax-highlighting/data/"); // FIXME
+    s_repository = new KSyntaxHighlighting::Repository(path);
 
     qint64 __aet_elapsed = t.nsecsElapsed();
-    qDebug() << QString("Reloaded in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec").toStdString().c_str();
-
-    // for(auto d : m_repository.definitions())
-    //    qDebug() << d.name();
+    qDebug() << QString("Repository directory loaded in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec")
+                    .toStdString()
+                    .c_str();
 }
 
 void TextEdit::setDefinition(const KSyntaxHighlighting::Definition& d)
 {
-    // m_currentSyntaxDefinition = d;
     QElapsedTimer t;
     t.start();
 
@@ -515,89 +515,98 @@ void TextEdit::deleteSelectedBlocks()
     ce.removeSelectedText();
 }
 
+QPair<int, int> getLeadingWSLength(const QStringRef& ref, int tabWidth)
+{
+    auto ws = 0;
+
+    for (int i = 0; i < ref.size(); ++i) {
+        switch (ref[i].toLatin1()) {
+        case ' ':
+            ws += 1;
+            break;
+        case '\t': {
+            const auto distToNextCol = tabWidth - (ws % tabWidth);
+            ws += distToNextCol;
+            break;
+        }
+        default:
+            return {i, ws};
+        }
+    }
+
+    return {ref.size(), ws};
+}
+
 void TextEdit::convertLeadingWhitespaceToTabs()
 {
     // TODO: Might be more efficient using a block-based approach?
-    auto lines = toPlainText().splitRef('\n');
+    QString plaintext = toPlainText();
+    auto lines = plaintext.splitRef('\n');
     QString final;
 
-    //QRegularExpression regex = QRegularExpression("\\S");
-
     for (auto& line : lines) {
-        //auto firstNonWS = line.indexOf(regex);
-        auto ws = 0;
-        auto index = 0;
-        //for (int i = 0; i < firstNonWS; ++i)
-        //    ws += (line[i] == '\t' ? m_tabWidth : 1);
+        auto pair = getLeadingWSLength(line, m_tabWidth);
+        auto idx = pair.first;
+        auto ws = pair.second;
 
-        /*QString newBegin;
-        while (ws >= 4) {
-            newBegin += '\t';
-            ws -= 4;
-        }
-        while (ws-- > 0)
-            newBegin += ' ';
-
-        line = newBegin + line.mid(firstNonWS);
-        final += line + '\n';*/
-        
-        for (const auto& c : line) {
-            switch(c) {
-                case ' ': ws += 1;
-                case '\t' ws += m_tabWidth;
-                default: break;
-            }
-            index += 1;
-        }
-    
-        //line = QString(ws, ' ') + line.mid(index);
-        final += QString(ws/m_tabWidth, '\t') + QString(ws%m_tabWidth, ' ') + line.mid(index) + '\n';
-        
+        final += QString(ws / m_tabWidth, '\t') + QString(ws % m_tabWidth, ' ') + line.mid(idx) + '\n';
     }
 
     if (!final.isEmpty())
         final.chop(1); // Remove last '\n' since it creates an extra line at the end
 
     auto c = textCursor();
+    auto p = getCursorPosition();
+    c.beginEditBlock();
     c.select(QTextCursor::Document);
-
     c.insertText(final);
+    setCursorPosition(p);
+    c.endEditBlock();
 }
 
 void TextEdit::convertLeadingWhitespaceToSpaces()
 {
-    auto lines = toPlainText().splitRef('\n');
+    // TODO: Might be more efficient using a block-based approach?
+    QString plaintext = toPlainText();
+    auto lines = plaintext.splitRef('\n');
     QString final;
 
-    //QRegularExpression regex = QRegularExpression("\\S");
-
     for (auto& line : lines) {
-        //auto firstNonWS = line.indexOf(regex);
-        int ws = 0;
-        int index = 0;
-        //for (int i = 0; i < firstNonWS; ++i)
-        //    ws += (line[i] == '\t' ? m_tabWidth : 1);
-        
-        for (const auto& c : line) {
-            switch(c) {
-                case ' ': ws += 1;
-                case '\t' ws += m_tabWidth;
-                default: break;
-            }
-            index += 1;
-        }
-    
-        //line = QString(ws, ' ') + line.mid(index);
-        final += QString(ws, ' ') + line.mid(index) + '\n';
+        auto pair = getLeadingWSLength(line, m_tabWidth);
+        auto idx = pair.first;
+        auto ws = pair.second;
+
+        final += QString(ws, ' ') + line.mid(idx) + '\n';
     }
 
     if (!final.isEmpty())
         final.chop(1); // Remove last '\n' since it creates an extra line at the end
 
     auto c = textCursor();
+    auto p = getCursorPosition();
+    c.beginEditBlock();
     c.select(QTextCursor::Document);
-
     c.insertText(final);
+    setCursorPosition(p);
+    c.endEditBlock();
+}
+
+int findFirstNonWS(const QStringRef& ref)
+{
+    for (int i = 0; i < ref.size(); ++i)
+        if (!ref[i].isSpace())
+            return i;
+
+    return ref.size();
+}
+
+int findLastNonWS(const QStringRef& ref)
+{
+    for (int i = ref.size() - 1; i >= 0; i--)
+        if (!ref[i].isSpace())
+            return i;
+
+    return 0;
 }
 
 void TextEdit::trimWhitespace(bool leading, bool trailing)
@@ -610,26 +619,23 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
     QString final;
     final.reserve(original.length());
 
-    //QRegularExpression regex = QRegularExpression("\\S");
-
     for (auto& line : lines) {
-        const int start = !leading ? 0 : std::distance(line.begin(), std::find_first_of(line.begin(), line.end(), "\t "));
-        const int end = !trailing ? -1 : std::distance(line.rbegin(), std::find_first_of(line.rbegin(), line.rend(), "\t "));
-        
-        //int start = leading ? line.indexOf(regex) : 0;
-        //int end = trailing ? line.lastIndexOf(regex) : -1;
+        const int start = !leading ? 0 : findFirstNonWS(line);
+        const int end = !trailing ? -1 : findLastNonWS(line) - start + 1;
 
-        ///line = line.mid(start, end - start + 1);
-        final += line.mid(start, end - start + 1) + '\n';
+        final += line.mid(start, end) + '\n';
     }
 
     if (!final.isEmpty())
         final.chop(1); // Remove last '\n' since it creates an extra line at the end
 
     auto c = textCursor();
+    auto p = getCursorPosition();
+    c.beginEditBlock();
     c.select(QTextCursor::Document);
-
     c.insertText(final);
+    setCursorPosition(p);
+    c.endEditBlock();
 }
 
 void TextEdit::updateSidebarGeometry()

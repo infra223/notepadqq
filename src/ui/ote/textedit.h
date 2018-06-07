@@ -207,12 +207,14 @@ private:
 
     void highlightCurrentLine();
 
+    static KSyntaxHighlighting::Repository* s_repository;
+
 public:
+
     static KSyntaxHighlighting::Repository& getRepository() {
-        static KSyntaxHighlighting::Repository repo;
-        return repo;
+        return *s_repository;
     }
-    static void initRepository();
+    static void initRepository(const QString& path);
 
     bool isFoldable(const QTextBlock& block) const;
     bool isFolded(const QTextBlock& block) const;

@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    ote::TextEdit::initRepository();
+    ote::TextEdit::initRepository(Notepadqq::appDataPath("data"));
 
     // Arguments received from another instance
     QObject::connect(&a, &SingleApplication::receivedArguments, &a, [=](const QString &workingDirectory, const QStringList &arguments) {

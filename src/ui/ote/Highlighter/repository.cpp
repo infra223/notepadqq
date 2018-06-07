@@ -52,10 +52,10 @@ RepositoryPrivate* RepositoryPrivate::get(Repository* repo)
     return repo->d.get();
 }
 
-Repository::Repository()
+Repository::Repository(const QString& dataPath)
     : d(new RepositoryPrivate)
 {
-    initResource();
+    d->m_customSearchPaths.append(dataPath);
     d->load(this);
 }
 
@@ -159,7 +159,7 @@ void RepositoryPrivate::load(Repository* repo)
     dirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
         QStringLiteral("org.kde.syntax-highlighting/themes"),
         QStandardPaths::LocateDirectory);
-    qDebug() << QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+
     foreach (const auto& dir, dirs)
         loadThemeFolder(dir);
     loadThemeFolder(QStringLiteral(":/org.kde.syntax-highlighting/themes"));
@@ -264,7 +264,6 @@ quint16 RepositoryPrivate::nextFormatId()
 
 void Repository::reload()
 {
-    qDebug() << "Reloading syntax definitions!";
     foreach (const auto& def, d->m_sortedDefs)
         DefinitionData::get(def)->clear();
     d->m_defs.clear();

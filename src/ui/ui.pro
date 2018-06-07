@@ -211,12 +211,12 @@ system($${LRELEASE} \"$${CURRFILE}\")
 
 ### EXTRA TARGETS ###
 
-# Copy the editor in the "shared" folder
-editorTarget.target = make_editor
-editorTarget.commands = (cd \"$$PWD\" && \
-                         $${CMD_FULLDELETE} \"$$APPDATADIR/editor\" && \
-                         cd \"../editor\" && \
-                         $(MAKE) DESTDIR=\"$$APPDATADIR/editor\")
+# Copy the data in the "shared" folder
+dataTarget.target = make_data
+dataTarget.commands = (cd \"$$PWD\" && \
+                         $${CMD_FULLDELETE} \"$$APPDATADIR/data\" && \
+                         cd \"../data\" && \
+                         $(MAKE) DESTDIR=\"$$APPDATADIR/data\")
 
 # Copy the extension_tools in the "shared" folder
 extensionToolsTarget.target = make_extensionTools
@@ -229,8 +229,8 @@ extensionToolsTarget.commands = (cd \"$$PWD\" && \
 translationsTarget.target = make_translations
 translationsTarget.commands = ($${LRELEASE} \"$${CURRFILE}\")
 
-QMAKE_EXTRA_TARGETS += extensionToolsTarget translationsTarget
-PRE_TARGETDEPS += make_extensionTools make_translations
+QMAKE_EXTRA_TARGETS += dataTarget extensionToolsTarget translationsTarget
+PRE_TARGETDEPS += make_data make_extensionTools make_translations
 
 unix:!macx {
     launchTarget.target = make_launch
@@ -278,11 +278,11 @@ unix:!macx {
     icon_hscalable.files += "$$INSTALLFILESDIR/icons/hicolor/scalable/apps/notepadqq.svg"
 
     # Make sure that the folders exists, otherwise qmake won't create the misc_data install rule
-    system($${QMAKE_MKDIR} \"$$APPDATADIR/editor\")
+    system($${QMAKE_MKDIR} \"$$APPDATADIR/data\")
     system($${QMAKE_MKDIR} \"$$APPDATADIR/extension_tools\")
 
     misc_data.path = "$$INSTALL_ROOT$$PREFIX/share/notepadqq/"
-    misc_data.files += "$$APPDATADIR/editor"
+    misc_data.files += "$$APPDATADIR/data"
     misc_data.files += "$$APPDATADIR/extension_tools"
 
     launch.path = "$$INSTALL_ROOT$$PREFIX/bin/"

@@ -120,7 +120,7 @@ public:
      * recommended to keep a single instance of Repository around as long
      * as you need highlighting in your application.
      */
-    Repository();
+    Repository(const QString& dataPath);
     ~Repository();
 
     /**
