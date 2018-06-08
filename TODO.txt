@@ -1,10 +1,8 @@
 - Regex/Special chars search&replace
 - ShowEOLMarkers only updates after some action
 - TrimWhitespace trims a *little* too much text
-- TabToSpaces doesn't work
++ TabToSpaces doesn't work
 - Font isn't monospace
 + Tab width is completely messed up
 - LanguageFromContent doesn't exist anymore
 - Find&Replace doesn't play well with newlines
-
--> Test new TrimWhitespace and ConvertWhitespace functions

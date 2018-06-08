@@ -287,13 +287,17 @@ namespace EditorNS
     }
 
     void Editor::setValue(const QString& value)
-    {
-        /*auto lang = LanguageService::getInstance().lookupByContent(value); // FIXME: Lookup by content
-        if (lang != nullptr) {
-            setLanguage(lang);
-        }*/
-
-        setLanguageFromFileName();
+    {        
+        // TODO: Test
+        KSyntaxHighlighting::Definition def = m_textEditor.getCurrentDefinition();
+        
+        if (!def.isValid())
+            setLanguageFromFileName();
+                
+        if (!def.isValid())
+            def = m_textEditor.getRepository().definitionForContent(value);
+        
+        setLanguage(def);
 
         m_textEditor.setPlainText(value);
     }

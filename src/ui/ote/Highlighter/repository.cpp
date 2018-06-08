@@ -99,6 +99,20 @@ Definition Repository::definitionForFileName(const QString& fileName) const
     return candidates.at(0);
 }
 
+Definition Repository::definitionForContent(const QString& content) const 
+{
+    QString firstLine = content.mid(0, content.indexOf('\n'));
+    // TODO: Test firstLine corner cases
+    
+    for (const auto& cd : m_contentDetections) {
+        for (const auto& rule : cd) {
+            if( firstLine.contains(rule) )
+                return cd.def;
+        } 
+    }
+    return Definition();
+}
+
 QVector<Definition> Repository::definitions() const
 {
     return d->m_sortedDefs;
@@ -166,6 +180,25 @@ void RepositoryPrivate::load(Repository* repo)
 
     foreach (const auto& path, m_customSearchPaths)
         loadThemeFolder(path + QStringLiteral("/themes"));
+        
+    // load content detection rules. Syntax definitions need to be loaded by this time
+    loadContentDetectionFile(path);
+}
+
+void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
+    m_contentDetections.clear();
+    
+    QFile file(path + QStringLiteral("/contentDetection.json");
+    if (!file.open(QFile::ReadOnly))
+        return;
+
+    const auto jdoc(QJsonDocument::fromBinaryData(indexFile.readAll()));
+    
+    for (const auto& item : jdoc) {
+        const auto& ar = item.toArray();
+        
+        // FIXME: Finish this off
+    }
 }
 
 void RepositoryPrivate::loadSyntaxFolder(Repository* repo, const QString& path)

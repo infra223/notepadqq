@@ -9,4 +9,4 @@ ABSOLUTE_DESTDIR := $(shell mkdir -p $$(dirname "$(DESTDIR)") && cd $$(dirname "
 
 all:
 	mkdir -p "$(DESTDIR)"
-	cp -r syntax themes "$(DESTDIR)"/
+	cp -r syntax themes contentDetection.json "$(DESTDIR)"/

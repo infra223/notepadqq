@@ -146,6 +146,15 @@ public:
      * returns false.
      */
     Definition definitionForFileName(const QString &fileName) const;
+    
+    /**
+     * Returns the best matching Definition for the string @p content.
+     * The match is performed based the first non-empty line of the string.
+     *
+     * If no match is found, Definition::isValid() of the returned instance
+     * returns false.
+     */
+    Definition definitionForContent(const QString& content) const;
 
     /**
      * Returns all available Definition%s.

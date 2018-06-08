@@ -20,6 +20,7 @@
 
 #include <QHash>
 #include <QVector>
+#include <QRegularExpression>
 
 class QString;
 
@@ -32,6 +33,12 @@ class Theme;
 class RepositoryPrivate
 {
 public:
+	
+    struct ContentDetection {
+        Definition def;
+        QVector<QRegularExpression> expressions;
+    };
+    
     RepositoryPrivate();
 
     static RepositoryPrivate* get(Repository *repo);
@@ -43,6 +50,8 @@ public:
 
     void loadThemeFolder(const QString &path);
     void addTheme(const Theme &theme);
+    
+    void loadContentDetectionFile(const QString& path);
 
     quint16 foldingRegionId(const QString &defName, const QString &foldName);
     quint16 nextFormatId();
@@ -51,6 +60,8 @@ public:
 
     QHash<QString, Definition> m_defs;
     QVector<Definition> m_sortedDefs;
+    
+    QVector<ContentDetection> m_contentDetections;
 
     QVector<Theme> m_themes;
 
