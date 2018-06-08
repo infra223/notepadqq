@@ -515,6 +515,7 @@ void TextEdit::deleteSelectedBlocks()
     ce.removeSelectedText();
 }
 
+// pair.first = number of ws characters found, pair.second = number of spaces needed
 QPair<int, int> getLeadingWSLength(const QStringRef& ref, int tabWidth)
 {
     auto ws = 0;
@@ -543,6 +544,7 @@ void TextEdit::convertLeadingWhitespaceToTabs()
     QString plaintext = toPlainText();
     auto lines = plaintext.splitRef('\n');
     QString final;
+    final.reserve(plaintext.length());
 
     for (auto& line : lines) {
         auto pair = getLeadingWSLength(line, m_tabWidth);
@@ -570,7 +572,8 @@ void TextEdit::convertLeadingWhitespaceToSpaces()
     QString plaintext = toPlainText();
     auto lines = plaintext.splitRef('\n');
     QString final;
-
+    final.reserve(plaintext.length());
+	
     for (auto& line : lines) {
         auto pair = getLeadingWSLength(line, m_tabWidth);
         auto idx = pair.first;
