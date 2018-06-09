@@ -326,7 +326,7 @@ namespace EditorNS
              */
         void editorReady();
 
-        void currentLanguageChanged(QString id, QString name);
+        void currentLanguageChanged(QString name);
 
     public slots:
         //void sendMessage(const QString &msg, const QVariant &data);

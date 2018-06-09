@@ -1230,7 +1230,7 @@ void MainWindow::refreshEditorUiCursorInfo()
     m_sbDocumentInfoLabel->setText(msg);
 }
 
-void MainWindow::on_currentLanguageChanged(QString /*id*/, QString /*name*/)
+void MainWindow::on_currentLanguageChanged(QString /*name*/)
 {
     Editor *editor = dynamic_cast<Editor *>(sender());
     if (!editor)

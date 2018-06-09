@@ -165,17 +165,18 @@ namespace EditorNS
         if (!def.isValid()) {
             def = m_textEditor.getRepository().definitionForFileName(".txt");
         }
-        if (m_textEditor.getDefinition() == def) {
+
+        // We use setLanguage() also when changing indentation modes, so this needs to be up here.
+        if (!m_customIndentationMode)
+            setIndentationMode(def);
+
+        if (m_textEditor.getDefinition() == def)
             return;
-        }
-        if (!m_customIndentationMode) {
-            // setIndentationMode(lang); // FIXME
-        }
 
         m_textEditor.setDefinition(def);
 
         // FIXME
-        emit currentLanguageChanged(def.name(), def.name());
+        emit currentLanguageChanged(def.name());
     }
 
     void Editor::setLanguage(const QString& language)
@@ -230,11 +231,15 @@ namespace EditorNS
         const bool useDefaults = s.getUseDefaultSettings(def.name());
         const auto& langId = useDefaults ? "default" : def.name();
 
+        qDebug() << "setting for language " << langId;
+
         return setIndentationMode(!s.getIndentWithSpaces(langId), s.getTabSize(langId));
     }
 
     void Editor::setIndentationMode(const bool useTabs, const int size)
     {
+        qDebug() << "setting " << useTabs << size;
+
         m_textEditor.setTabWidth(size);
         m_textEditor.setTabToSpaces(!useTabs);
     }

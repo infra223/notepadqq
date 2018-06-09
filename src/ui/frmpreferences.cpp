@@ -153,7 +153,7 @@ void frmPreferences::loadLanguages()
     m_tempLangSettings.push_back(lang);
 
     for (const auto& l : ote::TextEdit::getRepository().definitions()) {
-        ui->cmbLanguages->addItem(l.name().isEmpty() ? "?" : l.name(), l.name());
+        ui->cmbLanguages->addItem(l.name());
         LanguageSettings lang = {
             l.name(), ls.getTabSize(l.name()), ls.getIndentWithSpaces(l.name()), ls.getUseDefaultSettings(l.name())};
 
