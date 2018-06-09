@@ -7,3 +7,4 @@
 - CTRL+D (duplicateSelectedBlocks) doesn't work properly.
 - CTRL#L (deleteSelectedBlocks) doesn't work at line beginnings.
 - ShowEOLMarkers only updates after some input action like scrolling.
+- Right now there are performance issues during startup because all the expensive syntax highlighting is done at once.
