@@ -304,7 +304,8 @@ void DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
         } else {
             editor->setFilePath(url);
             tabWidget->setTabToolTip(tabIndex, fi.absoluteFilePath());
-            editor->setLanguageFromFileName();
+            // editor->setLanguageFromFileName();
+            editor->detectAndSetLanguage();
         }
 
         this->monitorDocument(editor);

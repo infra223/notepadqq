@@ -1,15 +1,15 @@
 {
-	"perl":[
+	"Perl":[
       "^#!.*\\/perl($| )",
       "^#!\\/usr\\/bin\\/env perl($| )"
 	],
 	
-	"python":[
+	"Python":[
       "^#!.*\\/python[\\d\\.]*($| )",
       "^#!\\/usr\\/bin\\/env python[\\d\\.]*($| )"
 	],
 	
-	"bash":[
+	"Bash":[
       "^#!.*\\/sh($| )",
       "^#!\\/usr\\/bin\\/env sh($| )",
       "^#!.*\\/bash($| )",
@@ -26,12 +26,7 @@
       "^#!\\/usr\\/bin\\/env fish($| )"
 	],
 	
-	"tcl":[
-      "^#!.*\\/tclsh($| )",
-      "^#!\\/usr\\/bin\\/env tclsh($| )"
-	],
-	
-	"xml":[
+	"XML":[
       "^<\\\\?xml ",
       "^<.+?>"
 	]

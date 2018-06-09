@@ -450,6 +450,9 @@ QList<QAction*> MainWindow::getActions() const
 
 void MainWindow::setupLanguagesMenu()
 {
+    for (auto a : ote::TextEdit::getRepository().definitions())
+        qDebug() << a.name();
+
     std::map<QChar, QMenu*> menuInitials;
     for (const auto& l : ote::TextEdit::getRepository().definitions()) {
         QString id = l.name();

@@ -22,11 +22,13 @@
 #include <QVector>
 #include <QRegularExpression>
 
+#include "definition.h"
+
 class QString;
 
 namespace KSyntaxHighlighting {
 
-class Definition;
+
 class Repository;
 class Theme;
 
@@ -36,7 +38,7 @@ public:
 	
     struct ContentDetection {
         Definition def;
-        QVector<QRegularExpression> expressions;
+        QVector<QRegularExpression> rules;
     };
     
     RepositoryPrivate();

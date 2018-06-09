@@ -28,6 +28,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
@@ -103,9 +104,11 @@ Definition Repository::definitionForContent(const QString& content) const
 {
     QString firstLine = content.mid(0, content.indexOf('\n'));
     // TODO: Test firstLine corner cases
-    
-    for (const auto& cd : m_contentDetections) {
-        for (const auto& rule : cd) {
+
+    qDebug() << firstLine;
+
+    for (const auto& cd : d->m_contentDetections) {
+        for (const auto& rule : cd.rules) {
             if( firstLine.contains(rule) )
                 return cd.def;
         } 
@@ -162,10 +165,11 @@ void RepositoryPrivate::load(Repository* repo)
     m_sortedDefs.reserve(m_defs.size());
     for (auto it = m_defs.constBegin(); it != m_defs.constEnd(); ++it)
         m_sortedDefs.push_back(it.value());
+
     std::sort(m_sortedDefs.begin(), m_sortedDefs.end(), [](const Definition& left, const Definition& right) {
-        auto comparison = left.translatedSection().compare(right.translatedSection(), Qt::CaseInsensitive);
-        if (comparison == 0)
-            comparison = left.translatedName().compare(right.translatedName(), Qt::CaseInsensitive);
+        // auto comparison = left.translatedSection().compare(right.translatedSection(), Qt::CaseInsensitive);
+        // if (comparison == 0)
+        auto comparison = left.translatedName().compare(right.translatedName(), Qt::CaseInsensitive);
         return comparison < 0;
     });
 
@@ -182,23 +186,41 @@ void RepositoryPrivate::load(Repository* repo)
         loadThemeFolder(path + QStringLiteral("/themes"));
         
     // load content detection rules. Syntax definitions need to be loaded by this time
-    loadContentDetectionFile(path);
+    foreach (const auto& path, m_customSearchPaths)
+        loadContentDetectionFile(path);
 }
 
 void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
-    m_contentDetections.clear();
-    
-    QFile file(path + QStringLiteral("/contentDetection.json");
+    QFile file(path + QStringLiteral("/contentDetection.json"));
     if (!file.open(QFile::ReadOnly))
         return;
 
-    const auto jdoc(QJsonDocument::fromBinaryData(indexFile.readAll()));
-    
-    for (const auto& item : jdoc) {
-        const auto& ar = item.toArray();
-        
-        // FIXME: Finish this off
+    const auto jdoc(QJsonDocument::fromJson(file.readAll()));
+    const auto& obj = jdoc.object();
+
+    for (const auto& key : obj.keys()) {
+        const auto& ar = obj[key].toArray();
+
+        const auto& it = m_defs.constFind(key);
+
+        qDebug() << "found " << key;
+
+        if (it == m_defs.constEnd()) {
+            qDebug() << "not in defs";
+            continue;
+        }
+
+        ContentDetection d;
+        d.def = *it;
+
+        for (const auto& rule : ar)
+            d.rules.push_back(QRegularExpression(rule.toString()));
+
+        m_contentDetections.push_back(d);
     }
+
+    for (auto d : m_contentDetections)
+        qDebug() << d.def.name();
 }
 
 void RepositoryPrivate::loadSyntaxFolder(Repository* repo, const QString& path)
@@ -308,6 +330,8 @@ void Repository::reload()
     d->m_foldingRegionIds.clear();
 
     d->m_formatId = 0;
+
+    d->m_contentDetections.clear();
 
     d->load(this);
 }

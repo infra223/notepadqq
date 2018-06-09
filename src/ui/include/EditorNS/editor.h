@@ -169,6 +169,7 @@ namespace EditorNS
 =======
         Q_INVOKABLE void setLanguageFromFileName(const QString& fileName);
         Q_INVOKABLE void setLanguageFromFileName();
+        void detectAndSetLanguage();
         Q_INVOKABLE void setValue(const QString &value);
 >>>>>>> Clang syntax.
         Q_INVOKABLE QString value();
@@ -303,7 +304,7 @@ namespace EditorNS
         void fullConstructor(const Theme &theme);
 
         void setIndentationMode(const bool useTabs, const int size);
-        void setIndentationMode(const Language*);
+        void setIndentationMode(const KSyntaxHighlighting::Definition& def);
 
     signals:
         void messageReceived(QString msg, QVariant data);

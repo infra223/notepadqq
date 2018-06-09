@@ -181,12 +181,6 @@ namespace EditorNS
     void Editor::setLanguage(const QString& language)
     {
         setLanguage(m_textEditor.getRepository().definitionForName(language));
-
-        /*auto& cache = LanguageService::getInstance();
-        auto lang = cache.lookupById(language);
-        if (lang != nullptr) {
-            setLanguage(lang);
-        }*/
     }
 
     void Editor::setLanguageFromFileName(const QString& fileName)
@@ -210,32 +204,46 @@ namespace EditorNS
         setLanguageFromFilePath(filePath().toString());
     }
 
-    void Editor::setIndentationMode(const Language* lang)
+    void EditorNS::Editor::detectAndSetLanguage()
+    {
+        // First try to find a definition for the file's extension
+        // FIXME: Second try to find a definition for the file's name
+        // Third try to find a definition for the content
+        auto def = m_textEditor.getRepository().definitionForFileName(m_filePath.toLocalFile());
+        if (def.isValid()) {
+            setLanguage(def);
+            return;
+        }
+
+        def = m_textEditor.getRepository().definitionForContent(value());
+        if (def.isValid()) {
+            setLanguage(def);
+            return;
+        }
+
+        setLanguage(KSyntaxHighlighting::Definition());
+    }
+
+    void Editor::setIndentationMode(const KSyntaxHighlighting::Definition& def)
     {
         const auto& s = NqqSettings::getInstance().Languages;
-        const bool useDefaults = s.getUseDefaultSettings(lang->id);
-        const auto& langId = useDefaults ? "default" : lang->id;
+        const bool useDefaults = s.getUseDefaultSettings(def.name());
+        const auto& langId = useDefaults ? "default" : def.name();
 
-        // FIXME
-        // return setIndentationMode(!s.getIndentWithSpaces(langId), s.getTabSize(langId));
+        return setIndentationMode(!s.getIndentWithSpaces(langId), s.getTabSize(langId));
     }
 
     void Editor::setIndentationMode(const bool useTabs, const int size)
     {
-        // FIXME
-        // return asyncSendMessageWithResultP("C_CMD_SET_INDENTATION_MODE",
-        //                                   QVariantMap{{"useTabs", useTabs}, {"size", size}}).then([](){});
+        m_textEditor.setTabWidth(size);
+        m_textEditor.setTabToSpaces(!useTabs);
     }
 
     Editor::IndentationMode Editor::indentationMode()
     {
-        // FIXME
-        //        QVariantMap indent = asyncSendMessageWithResult("C_FUN_GET_INDENTATION_MODE").get().toMap();
-        //        IndentationMode out;
-        //        out.useTabs = indent.value("useTabs", true).toBool();
-        //        out.size = indent.value("size", 4).toInt();
-        //        return out;
-        return Editor::IndentationMode{};
+        auto tabWidth = m_textEditor.getTabWidth();
+        auto usingSpaces = m_textEditor.isTabToSpaces();
+        return Editor::IndentationMode{!usingSpaces, tabWidth};
     }
 
     void Editor::setCustomIndentationMode(const bool useTabs, const int size)
@@ -288,17 +296,6 @@ namespace EditorNS
 
     void Editor::setValue(const QString& value)
     {        
-        // TODO: Test
-        KSyntaxHighlighting::Definition def = m_textEditor.getCurrentDefinition();
-        
-        if (!def.isValid())
-            setLanguageFromFileName();
-                
-        if (!def.isValid())
-            def = m_textEditor.getRepository().definitionForContent(value);
-        
-        setLanguage(def);
-
         m_textEditor.setPlainText(value);
     }
 
