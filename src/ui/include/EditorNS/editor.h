@@ -37,16 +37,7 @@ namespace EditorNS
         Q_OBJECT
     public:
 
-        struct Theme {
-            QString name;
-            QString path;
-            Theme(const QString& name = "default", const QString& path = "") {
-                this->name = name;
-                this->path = path;
-            }
-        };
-
-        explicit Editor(const Theme &theme, QWidget *parent = 0);
+        explicit Editor(const KSyntaxHighlighting::Theme& theme, QWidget *parent = 0);
         explicit Editor(QWidget *parent = 0);
 
         /**
@@ -246,9 +237,8 @@ namespace EditorNS
         bool bom() const;
         void setBom(bool bom);
 
-        QList<Theme> themes();
-        void setTheme(Theme theme);
-        static Editor::Theme themeFromName(QString name);
+        void setTheme(const KSyntaxHighlighting::Theme& theme);
+        void setTheme(const QString& themeName);
 
         ote::TextEdit& textEditor() { return m_textEditor; }
 
@@ -301,7 +291,7 @@ namespace EditorNS
         bool m_customIndentationMode = false;
         const Language* m_currentLanguage = nullptr;
 
-        void fullConstructor(const Theme &theme);
+        void fullConstructor(const KSyntaxHighlighting::Theme& theme);
 
         void setIndentationMode(const bool useTabs, const int size);
         void setIndentationMode(const KSyntaxHighlighting::Definition& def);

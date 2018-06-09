@@ -176,16 +176,16 @@ void frmPreferences::saveLanguages()
 
 void frmPreferences::loadAppearanceTab()
 {
-    QList<Editor::Theme> themes = m_topEditorContainer->currentTabWidget()->currentEditor()->themes();
+    const auto& themes = ote::TextEdit::getRepository().themes();
 
-    ui->cmbColorScheme->addItem("Default", "default");
+    // ui->cmbColorScheme->addItem("Default", "default");
 
     QString themeSetting = m_settings.Appearance.getColorScheme();
 
     for (const auto& theme : themes) {
-        ui->cmbColorScheme->addItem(theme.name, theme.name); // First is display text, second is item data.
+        ui->cmbColorScheme->addItem(theme.name(), theme.name()); // First is display text, second is item data.
 
-        if (themeSetting == theme.name) {
+        if (themeSetting == theme.name()) {
             ui->cmbColorScheme->setCurrentIndex(ui->cmbColorScheme->count() - 1);
         }
     }
@@ -396,7 +396,7 @@ bool frmPreferences::applySettings()
     m_settings.Extensions.setRuntimeNodeJS(ui->txtNodejs->text());
     m_settings.Extensions.setRuntimeNpm(ui->txtNpm->text());
 
-    const Editor::Theme& newTheme = Editor::themeFromName(ui->cmbColorScheme->currentData().toString());
+    const auto& newTheme = ui->cmbColorScheme->currentData().toString();
     const QString fontFamily = ui->cmbFontFamilies->isEnabled() ? ui->cmbFontFamilies->currentFont().family() : "";
     const int fontSize = ui->spnFontSize->isEnabled() ? ui->spnFontSize->value() : 0;
     const double lineHeight = ui->spnLineHeight->isEnabled() ? ui->spnLineHeight->value() : 0;
@@ -482,7 +482,7 @@ void frmPreferences::on_chkLanguages_IndentWithSpaces_toggled(bool checked)
 
 void frmPreferences::on_cmbColorScheme_currentIndexChanged(int /*index*/)
 {
-    m_previewEditor->setTheme(Editor::themeFromName(ui->cmbColorScheme->currentData().toString()));
+    m_previewEditor->setTheme(ui->cmbColorScheme->currentData().toString());
 }
 
 void frmPreferences::on_localizationComboBox_activated(int /*index*/)

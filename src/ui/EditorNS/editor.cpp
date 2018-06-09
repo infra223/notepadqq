@@ -22,20 +22,28 @@ namespace EditorNS
         : QWidget(parent)
         , m_textEditor(parent)
     {
+        const auto& repo = ote::TextEdit::getRepository();
 
         QString themeName = NqqSettings::getInstance().Appearance.getColorScheme();
+        auto theme = repo.theme(themeName);
 
-        fullConstructor(themeFromName(themeName));
+        if (!theme.isValid()) {
+            theme = (palette().color(QPalette::Base).lightness() < 128)
+                        ? repo.defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
+                        : repo.defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+        }
+
+        fullConstructor(theme);
     }
 
-    Editor::Editor(const Theme& theme, QWidget* parent)
+    Editor::Editor(const KSyntaxHighlighting::Theme& theme, QWidget* parent)
         : QWidget(parent)
         , m_textEditor(parent)
     {
         fullConstructor(theme);
     }
 
-    void Editor::fullConstructor(const Theme& theme) // FIXME: Should use new Theme
+    void Editor::fullConstructor(const KSyntaxHighlighting::Theme& theme) // FIXME: Should use new Theme
     {
         m_layout = new QVBoxLayout(this);
         m_layout->setContentsMargins(0, 0, 0, 0);
@@ -43,6 +51,7 @@ namespace EditorNS
         m_layout->addWidget(&m_textEditor, 1);
         setLayout(m_layout);
 
+        setTheme(theme);
         setLanguage(nullptr);
 
         connect(&m_textEditor, &ote::TextEdit::textChanged, this, &Editor::contentChanged);
@@ -231,15 +240,11 @@ namespace EditorNS
         const bool useDefaults = s.getUseDefaultSettings(def.name());
         const auto& langId = useDefaults ? "default" : def.name();
 
-        qDebug() << "setting for language " << langId;
-
         return setIndentationMode(!s.getIndentWithSpaces(langId), s.getTabSize(langId));
     }
 
     void Editor::setIndentationMode(const bool useTabs, const int size)
     {
-        qDebug() << "setting " << useTabs << size;
-
         m_textEditor.setTabWidth(size);
         m_textEditor.setTabToSpaces(!useTabs);
     }
@@ -479,36 +484,16 @@ namespace EditorNS
         m_bom = bom;
     }
 
-    Editor::Theme Editor::themeFromName(QString name)
+    void Editor::setTheme(const KSyntaxHighlighting::Theme& theme)
     {
-        if (name == "default" || name.isEmpty())
-            return Theme();
-
-        QFileInfo editorPath(Notepadqq::editorPath());
-        QDir bundledThemesDir(editorPath.absolutePath() + "/libs/codemirror/theme/");
-
-        if (bundledThemesDir.exists(name + ".css"))
-            return Theme(name, bundledThemesDir.filePath(name + ".css"));
-
-        return Theme();
+        qDebug() << "Setting theme to " << theme.name();
+        m_textEditor.setTheme(theme);
     }
 
-    QList<Editor::Theme> Editor::themes()
+    void Editor::setTheme(const QString& themeName)
     {
-        auto editorPath = QFileInfo(Notepadqq::editorPath());
-        QDir bundledThemesDir(editorPath.absolutePath() + "/libs/codemirror/theme/", "*.css");
-
-        QList<Theme> out;
-        for (auto&& theme : bundledThemesDir.entryInfoList()) {
-            out.append(Theme(theme.completeBaseName(), theme.filePath()));
-        }
-        return out;
-    }
-
-    void Editor::setTheme(Theme theme)
-    {
-        // FIXME
-        // sendMessage("C_CMD_SET_THEME", QVariantMap{{"name",theme.name},{"path",theme.path}});
+        const auto& theme = ote::TextEdit::getRepository().theme(themeName);
+        m_textEditor.setTheme(theme);
     }
 
     QList<Editor::Selection> Editor::selections()

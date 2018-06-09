@@ -50,9 +50,10 @@ TextEdit::TextEdit(QWidget* parent)
 
     setFont(getMonospaceFont());
 
-    setTheme((palette().color(QPalette::Base).lightness() < 128)
+    // We probably shouldn't call this here.
+    /*setTheme((palette().color(QPalette::Base).lightness() < 128)
                  ? getRepository().defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-                 : getRepository().defaultTheme(KSyntaxHighlighting::Repository::LightTheme));
+                 : getRepository().defaultTheme(KSyntaxHighlighting::Repository::LightTheme));*/
 
     m_t.start();
 
@@ -201,9 +202,9 @@ void TextEdit::setTabWidth(int tabWidth)
 
 void TextEdit::setFont(QFont font)
 {
-    const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    qDebug() << fixedFont;
-    font = fixedFont;
+    // const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    // qDebug() << fixedFont;
+    // font = fixedFont;
 
     font.setStyleHint(QFont::TypeWriter);
     if (!font.fixedPitch()) {
@@ -1061,6 +1062,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
             QTextBlockFormat blockFormat = block.blockFormat();
 
             QBrush bg = blockFormat.background();
+            // QBrush bg( m_highlighter->theme().editorColor(KSyntaxHighlighting::Theme::BackgroundColor) );
             if (bg != Qt::NoBrush) {
                 QRectF contentsRect = r;
                 contentsRect.setWidth(qMax(r.width(), maximumWidth));

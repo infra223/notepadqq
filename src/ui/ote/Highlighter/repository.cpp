@@ -103,9 +103,7 @@ Definition Repository::definitionForFileName(const QString& fileName) const
 Definition Repository::definitionForContent(const QString& content) const 
 {
     QString firstLine = content.mid(0, content.indexOf('\n'));
-    // TODO: Test firstLine corner cases
-
-    qDebug() << firstLine;
+    // FIXME: Test firstLine corner cases, actually get empty line, etc
 
     for (const auto& cd : d->m_contentDetections) {
         for (const auto& rule : cd.rules) {
@@ -137,7 +135,7 @@ Theme Repository::theme(const QString& themeName) const
     return Theme();
 }
 
-Theme Repository::defaultTheme(Repository::DefaultTheme t)
+Theme Repository::defaultTheme(Repository::DefaultTheme t) const
 {
     if (t == DarkTheme)
         return theme(QLatin1String("Breeze Dark"));
@@ -203,10 +201,8 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
 
         const auto& it = m_defs.constFind(key);
 
-        qDebug() << "found " << key;
-
         if (it == m_defs.constEnd()) {
-            qDebug() << "not in defs";
+            qDebug() << "Found content detection rules for an unknown definition: " << key;
             continue;
         }
 

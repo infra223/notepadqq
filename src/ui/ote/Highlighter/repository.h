@@ -191,7 +191,7 @@ public:
      * Returns a default theme instance of the given type.
      * The returned Theme is guaranteed to be a valid theme.
      */
-    Theme defaultTheme(DefaultTheme t = LightTheme);
+    Theme defaultTheme(DefaultTheme t = LightTheme) const;
 
     /**
      * Reloads the repository.
