@@ -1,6 +1,6 @@
-- Changing themes doesn't work entirely. The preview editor is fine, but the actual editors mess up.
++ Changing themes doesn't work entirely. The preview editor is fine, but the actual editors mess up.
 - Find & Replace might behave differently. Can't search across line boundaries yet.
-- Font overrides don't work yet.
++ Font overrides don't work yet.
 - Language detection based on filename (like "Makefile") doesn't work.
 - Code folding doesn't work.
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.

@@ -20,26 +20,6 @@
 
 namespace ote {
 
-static bool isFixedPitch(const QFont& font)
-{
-    const QFontInfo fi(font);
-    // qDebug() << fi.family() << fi.fixedPitch();
-    return fi.fixedPitch();
-}
-
-static QFont getMonospaceFont()
-{
-    QFont font("");
-    font.setFixedPitch(true);
-    font.setStyleHint(QFont::TypeWriter);
-    /*if (isFixedPitch(font)) return font;
-    font.setStyleHint(QFont::TypeWriter);
-    if (isFixedPitch(font)) return font;
-    font.setFamily("courier");
-    if (isFixedPitch(font)) return font;*/
-    return font;
-}
-
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
@@ -48,7 +28,7 @@ TextEdit::TextEdit(QWidget* parent)
 {
     // m_highlighter->setDefinition( getRepository().definitionForFileName(".cpp") );
 
-    setFont(getMonospaceFont());
+    setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
     // We probably shouldn't call this here.
     /*setTheme((palette().color(QPalette::Base).lightness() < 128)
@@ -204,14 +184,8 @@ void TextEdit::setTabWidth(int tabWidth)
 
 void TextEdit::setFont(QFont font)
 {
-    // const QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    // qDebug() << fixedFont;
-    // font = fixedFont;
-
-    font.setStyleHint(QFont::TypeWriter);
-    if (!font.fixedPitch()) {
-        qWarning() << "Selected font is not fixed pitch: " << font.family() << font.styleHint() << font.style();
-        // return; // FIXME
+    if (!QFontInfo(font).fixedPitch()) {
+        qDebug() << "Selected font is not monospace: " << font.family() << font.style();
     }
 
     QPlainTextEdit::setFont(font); // FIXME: Not happy with setting font here *and* in setTabWidth()
