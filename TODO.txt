@@ -4,7 +4,6 @@
 - Language detection based on filename (like "Makefile") doesn't work.
 - Code folding doesn't work.
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
-- CTRL+D (duplicateSelectedBlocks) doesn't work properly.
-- CTRL#L (deleteSelectedBlocks) doesn't work at line beginnings.
++ CTRL+D (duplicateSelectedBlocks) doesn't work properly.
++ CTRL#L (deleteSelectedBlocks) doesn't work at line beginnings.
 - ShowEOLMarkers only updates after some input action like scrolling.
-- Right now there are performance issues during startup because all the expensive syntax highlighting is done at once.

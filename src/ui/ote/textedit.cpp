@@ -486,14 +486,19 @@ void TextEdit::duplicateSelectedBlocks()
     auto c = textCursor();
     auto blockCursor = c;
 
-    bool success;
     blockCursor.setPosition(c.selectionStart());
-    success = blockCursor.movePosition(QTextCursor::StartOfBlock);
+    blockCursor.movePosition(QTextCursor::StartOfBlock);
     blockCursor.setPosition(c.selectionEnd(), QTextCursor::KeepAnchor);
-    success &= blockCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    auto success = blockCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
 
-    if (!success)
-        return;
+    // The previous call fails when we're at the end of the document. In that case we insert a new
+    // Block and remove it later.
+    if (!success) {
+        auto v = blockCursor;
+        v.movePosition(QTextCursor::EndOfBlock, QTextCursor::MoveAnchor);
+        v.insertBlock();
+        blockCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    }
 
     c.beginEditBlock();
     auto text = blockCursor.selectedText();
@@ -503,6 +508,9 @@ void TextEdit::duplicateSelectedBlocks()
     c.movePosition(QTextCursor::StartOfBlock);
     c.insertText(text);
 
+    if (!success)
+        c.deletePreviousChar();
+
     c.endEditBlock();
 }
 
@@ -511,11 +519,18 @@ void TextEdit::deleteSelectedBlocks()
     auto c = textCursor();
     auto ce = c;
 
+    ce.beginEditBlock();
     ce.setPosition(c.selectionStart());
     ce.movePosition(QTextCursor::StartOfBlock);
     ce.setPosition(c.selectionEnd(), QTextCursor::KeepAnchor);
-    ce.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    auto success = ce.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    if (!success)
+        ce.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+
     ce.removeSelectedText();
+    if (!success)
+        ce.deletePreviousChar();
+    ce.endEditBlock();
 }
 
 // pair.first = number of ws characters found, pair.second = number of spaces needed
