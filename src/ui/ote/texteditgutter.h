@@ -13,6 +13,8 @@ public:
     explicit TextEditGutter(TextEdit *editor);
     QSize sizeHint() const override;
 
+    void updateSizeHint(qreal lineHeight);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;

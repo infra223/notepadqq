@@ -214,9 +214,6 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
 
         m_contentDetections.push_back(d);
     }
-
-    for (auto d : m_contentDetections)
-        qDebug() << d.def.name();
 }
 
 void RepositoryPrivate::loadSyntaxFolder(Repository* repo, const QString& path)

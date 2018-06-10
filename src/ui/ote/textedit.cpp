@@ -16,18 +16,13 @@
 #include <algorithm>
 #include <cmath>
 
-//#include "Highlighting/bracketmatchercomponent.h"
-
 namespace ote {
 
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
     , m_highlighter(new KSyntaxHighlighting::SyntaxHighlighter(document()))
-// m_currentTheme(Theme(""))
 {
-    // m_highlighter->setDefinition( getRepository().definitionForFileName(".cpp") );
-
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
     // We probably shouldn't call this here.
@@ -45,9 +40,6 @@ TextEdit::TextEdit(QWidget* parent)
 
     setWordWrap(false);
     setCenterOnScroll(false);
-
-    // m_highlighter = new CompositeHighlighter();
-    // m_highlighter->setDocument(this->document());
 
     updateSidebarGeometry();
     onCursorPositionChanged();
@@ -351,8 +343,7 @@ bool TextEdit::find(const QString& term, int regionStart, int regionEnd, TextEdi
 
 void TextEdit::resetZoom()
 {
-    QPlainTextEdit::zoomIn(-m_pointZoom);
-    m_pointZoom = 0;
+    setZoomTo(0);
 }
 
 void TextEdit::setZoomTo(int value)
@@ -361,6 +352,8 @@ void TextEdit::setZoomTo(int value)
 
     QPlainTextEdit::zoomIn(diff);
     m_pointZoom = value;
+
+    updateSidebarGeometry();
 }
 
 void TextEdit::zoomIn()
@@ -635,6 +628,7 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
 
 void TextEdit::updateSidebarGeometry()
 {
+    m_sideBar->updateSizeHint(blockBoundingGeometry(firstVisibleBlock()).height());
     auto gutterWidth = m_sideBar->sizeHint().width();
 
     setViewportMargins(gutterWidth, 0, 0, 0);
@@ -1236,7 +1230,9 @@ void TextEdit::resizeEvent(QResizeEvent* event)
 
 QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
 {
-    int depth = 1;
+    return m_highlighter->findFoldingRegionEnd(startBlock);
+
+    /*int depth = 1;
     auto currBlock = startBlock.next();
 
     while (currBlock.isValid()) {
@@ -1251,7 +1247,7 @@ QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
         currBlock = currBlock.next();
     }
 
-    return QTextBlock();
+    return QTextBlock();*/
 }
 
 bool TextEdit::isFoldable(const QTextBlock& block) const

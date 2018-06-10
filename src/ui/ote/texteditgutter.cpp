@@ -29,6 +29,9 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
     if (!block.isValid() || !block.isVisible())
         return;
 
+    // TODO: Moving the mouse over the gutter causes constant full-widget repaints
+    // Either only repaint the hovered block or apply tighter constraints for wantRepaint
+
     const auto blockNum = block.blockNumber();
     const auto wantRepaint = (m_hoverBlockNumber != blockNum);
     m_hoverBlockNumber = blockNum;
@@ -39,6 +42,11 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
 
 QSize TextEditGutter::sizeHint() const
 {
+    return m_gutterSize;
+}
+
+void TextEditGutter::updateSizeHint(qreal lineHeight)
+{
     auto count = m_textEdit->getLineCount();
     int digits = 1;
     while (count >= 10) {
@@ -46,13 +54,15 @@ QSize TextEditGutter::sizeHint() const
         count /= 10;
     }
 
+    qDebug() << lineHeight;
+
     static const QString templateString("9999999999");
     const QStringRef ref(&templateString, 0, digits);
-    const auto leftMargin = 5;
+    const auto leftMargin = lineHeight / 4;
     const auto widthOfString = m_textEdit->fontMetrics().boundingRect(ref.toString()).width();
-    const auto foldingMarkerSize = fontMetrics().lineSpacing();
+    const auto foldingMarkerSize = lineHeight;
 
-    return QSize(leftMargin + widthOfString + foldingMarkerSize, 0);
+    m_gutterSize = QSize(leftMargin + widthOfString + foldingMarkerSize, 0);
 }
 
 void TextEditGutter::paintEvent(QPaintEvent* event)
@@ -77,14 +87,20 @@ void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
 
 void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockList& blockList)
 {
+    if (blockList.empty())
+        return;
+
     // const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->m_highlighter->theme();
-    const auto foldingMarkerSize = fontMetrics().lineSpacing();
+    const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
     for (const auto& blockData : blockList) {
         const auto block = blockData.block;
         const auto geom = blockData.translatedRect;
 
-        if (!block.isVisible() || !block.text().startsWith("{"))
+        if (!block.isVisible())
+            continue;
+
+        if (!m_textEdit->m_highlighter->startsFoldingRegion(block))
             continue;
 
         const auto blockNumber = block.blockNumber();
@@ -111,9 +127,12 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
 
 void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const TextEdit::BlockList& blockList)
 {
+    if (blockList.empty())
+        return;
+
     const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->m_highlighter->theme();
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
-    const auto foldingMarkerSize = fontMetrics().lineSpacing();
+    const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
     // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
     painter.fillRect(event->rect(), currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
@@ -130,12 +149,16 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
                                ? currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber)
                                : currentTheme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
 
+        painter.setFont(m_textEdit->font());
         painter.setPen(color);
+
+        // painter.fillRect(0, geom.top(), width()-foldingMarkerSize, geom.height(), QColor(QColor::colorNames()[rand()
+        // % 10]));
 
         painter.drawText(0,
             geom.top(),
             width() - foldingMarkerSize,
-            fontMetrics().height(),
+            geom.height(),
             Qt::AlignRight,
             QString::number(blockNumber + 1));
     }
@@ -146,9 +169,9 @@ void TextEditGutter::paintFoldingRange(QPainter& painter, const TextEdit::BlockD
     if (m_hoverBlockNumber == -1)
         return;
 
-    const auto foldingMarkerSize = fontMetrics().lineSpacing();
     const auto block = blockData.block;
     const auto geom = blockData.translatedRect;
+    const auto foldingMarkerSize = geom.height();
     auto endBlock = m_textEdit->findClosingBlock(block);
     int topy = m_textEdit->blockBoundingGeometry(endBlock).translated(m_textEdit->contentOffset()).top();
 
