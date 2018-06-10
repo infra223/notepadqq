@@ -146,7 +146,7 @@ void TextEdit::setEndOfLineMarkersVisible(bool enable)
         return;
 
     m_showEndOfLineMarkers = enable;
-    update();
+    viewport()->repaint();
 }
 
 void TextEdit::setWhitespaceVisible(bool show)

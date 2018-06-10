@@ -6,4 +6,4 @@
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
 + CTRL+D (duplicateSelectedBlocks) doesn't work properly.
 + CTRL#L (deleteSelectedBlocks) doesn't work at line beginnings.
-- ShowEOLMarkers only updates after some input action like scrolling.
++ ShowEOLMarkers only updates after some input action like scrolling.
