@@ -77,8 +77,11 @@ void SyntaxHighlighter::setDefinition(const Definition& def)
 {
     const auto needsRehighlight = definition() != def;
     AbstractHighlighter::setDefinition(def);
-    if (needsRehighlight)
-        rehighlight();
+    if (needsRehighlight) {
+        const auto firstBlock = document()->firstBlock();
+        if (firstBlock.isValid())
+            QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
+    }
 }
 
 bool SyntaxHighlighter::startsFoldingRegion(const QTextBlock& startBlock) const
