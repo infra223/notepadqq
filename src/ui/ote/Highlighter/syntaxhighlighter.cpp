@@ -73,14 +73,21 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument* document)
 
 SyntaxHighlighter::~SyntaxHighlighter() {}
 
+void SyntaxHighlighter::setTheme(const Theme& theme)
+{
+    if (theme == this->theme())
+        return;
+
+    AbstractHighlighter::setTheme(theme);
+    startRehighlighting();
+}
+
 void SyntaxHighlighter::setDefinition(const Definition& def)
 {
     const auto needsRehighlight = definition() != def;
     AbstractHighlighter::setDefinition(def);
     if (needsRehighlight) {
-        const auto firstBlock = document()->firstBlock();
-        if (firstBlock.isValid())
-            QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
+        startRehighlighting();
     }
 }
 
@@ -113,6 +120,13 @@ QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock)
     }
 
     return QTextBlock();
+}
+
+void SyntaxHighlighter::startRehighlighting()
+{
+    const auto firstBlock = document()->firstBlock();
+    if (firstBlock.isValid())
+        QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
 }
 
 void SyntaxHighlighter::highlightBlock(const QString& text)

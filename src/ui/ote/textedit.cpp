@@ -75,6 +75,9 @@ TextEdit::TextEdit(QWidget* parent)
 
 void TextEdit::setTheme(const KSyntaxHighlighting::Theme& theme)
 {
+    if (theme == m_highlighter->theme())
+        return;
+
     auto pal = qApp->palette();
     if (theme.isValid()) {
         pal.setColor(QPalette::Base, theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor));
@@ -84,7 +87,6 @@ void TextEdit::setTheme(const KSyntaxHighlighting::Theme& theme)
     setPalette(pal);
 
     m_highlighter->setTheme(theme);
-    m_highlighter->rehighlight();
     highlightCurrentLine();
 
     onCursorPositionChanged();

@@ -44,6 +44,9 @@ public:
     explicit SyntaxHighlighter(QTextDocument *document);
     ~SyntaxHighlighter() override;
 
+
+    void setTheme(const Theme &theme) override;
+
     void setDefinition(const Definition &def) override;
 
     /** Returns whether there is a folding region beginning at @p startBlock.
@@ -67,6 +70,13 @@ public:
      *  @see startsFoldingRegion
      */
     QTextBlock findFoldingRegionEnd(const QTextBlock &startBlock) const;
+
+    /** Rehighlights the entire document. Rather than blocking the main thread
+     *  it will only process one block with each program tick. As a result,
+     *  highlighting large documents won't freeze the program but might take
+     *  a while to fully highlight.
+     */
+    void startRehighlighting();
 
 protected:
     void highlightBlock(const QString & text) override;

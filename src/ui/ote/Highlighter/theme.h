@@ -349,11 +349,14 @@ private:
     friend class ThemeData;
 
 private:
+    friend bool operator==(const Theme& a, const Theme& b);
+
     /**
      * Shared data holder.
      */
     QExplicitlySharedDataPointer<ThemeData> m_data;
 };
+
 
 }
 
