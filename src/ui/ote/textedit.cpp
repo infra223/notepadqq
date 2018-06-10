@@ -85,9 +85,9 @@ void TextEdit::setTheme(const KSyntaxHighlighting::Theme& theme)
         pal.setColor(QPalette::Highlight, theme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
     }
     setPalette(pal);
+    viewport()->setPalette(pal);
 
     m_highlighter->setTheme(theme);
-    highlightCurrentLine();
 
     onCursorPositionChanged();
     onSelectionChanged();
