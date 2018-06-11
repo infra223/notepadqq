@@ -4,9 +4,10 @@
 
 == Folding ==
 + Change cursor when hovering over folding marker.
-- Change folding-range line's width based on gutter size.
-- Change rendering of folding-ranges to per-line rendering to prevent visual glitches
++ Change folding-range line's width based on gutter size.
++ Change rendering of folding-ranges to per-line rendering to prevent visual glitches
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
++ Enable basic code folding.
 
 == Find & Replace ==
 - Find might behave differently for special chars (\t, \n, ..). 

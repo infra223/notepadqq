@@ -151,26 +151,28 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         if (!m_textEdit->m_highlighter->startsFoldingRegion(block))
             continue;
 
+        bool folded = m_textEdit->isFolded(block);
+
         const auto blockNum = block.blockNumber();
 
-        // if (blockNum != m_foldingStartBlock)
-        //    continue;
-
+        // TODO: Bad
         QPolygonF polygon;
         polygon << QPointF(foldingMarkerSize * 0.4, foldingMarkerSize * 0.25);
         polygon << QPointF(foldingMarkerSize * 0.4, foldingMarkerSize * 0.75);
         polygon << QPointF(foldingMarkerSize * 0.8, foldingMarkerSize * 0.5);
+        polygon.translate(-foldingMarkerSize * 0.6, -foldingMarkerSize * 0.5);
 
         painter.save();
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(Qt::NoPen);
-        painter.setBrush(QColor("red"));
+        painter.setBrush(
+            QColor(m_textEdit->m_highlighter->theme().editorColor(KSyntaxHighlighting::Theme::CodeFolding)));
+
         painter.translate(width() - foldingMarkerSize, geom.top());
+        painter.translate(foldingMarkerSize * 0.6, foldingMarkerSize * 0.5);
+        if (folded)
+            painter.rotate(90);
         painter.drawPolygon(polygon);
-
-        if (blockNum == m_foldingStartBlock)
-            paintFoldingRange(painter, blockData);
-
         painter.restore();
     }
 }
@@ -184,8 +186,8 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
     const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
-    // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
     painter.fillRect(event->rect(), currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
+    // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
 
     for (const auto& blockData : blockList) {
         const auto block = blockData.block;
@@ -199,12 +201,11 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
                                ? currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber)
                                : currentTheme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
 
-        painter.setFont(m_textEdit->font());
-        painter.setPen(color);
-
         // painter.fillRect(0, geom.top(), width()-foldingMarkerSize, geom.height(), QColor(QColor::colorNames()[rand()
         // % 10]));
 
+        painter.setFont(m_textEdit->font());
+        painter.setPen(color);
         painter.drawText(0,
             geom.top(),
             width() - foldingMarkerSize,
@@ -212,28 +213,50 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
             Qt::AlignRight,
             QString::number(blockNumber + 1));
     }
-}
 
-void TextEditGutter::paintFoldingRange(QPainter& painter, const TextEdit::BlockData& blockData)
-{
-    if (m_foldingEndBlock == -1)
-        return;
+    // Paint folding range
+    painter.save();
+    QPen p;
+    p.setColor(m_textEdit->m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::Normal));
+    p.setWidth(static_cast<int>(m_foldingBarWidth / 8));
+    painter.setPen(p);
 
-    const auto block = blockData.block;
-    const auto geom = blockData.translatedRect;
-    const auto foldingMarkerSize = geom.height();
-    auto endBlock = m_textEdit->document()->findBlockByNumber(m_foldingEndBlock);
-    int topy = m_textEdit->blockBoundingGeometry(endBlock).translated(m_textEdit->contentOffset()).top();
+    for (const auto& blockData : blockList) {
+        const auto block = blockData.block;
+        const auto geom = blockData.translatedRect;
 
-    if (!endBlock.isValid())
-        return;
+        if (m_foldingStartBlock == -1)
+            break;
 
-    const auto yEnd = topy - geom.top() + foldingMarkerSize * 0.5;
+        if (!block.isVisible())
+            continue;
 
-    painter.setPen(QColor("white"));
-    painter.drawLine(QPoint(foldingMarkerSize * 0.5, foldingMarkerSize * 0.8), QPoint(foldingMarkerSize * 0.5, yEnd));
+        const auto blockNumber = block.blockNumber();
 
-    painter.drawLine(QPoint(foldingMarkerSize * 0.5 + 1, yEnd), QPoint(foldingMarkerSize * 1.0 + 1, yEnd));
+        if (blockNumber < m_foldingStartBlock)
+            continue;
+
+        if (blockNumber > m_foldingEndBlock)
+            break;
+
+        if (blockNumber == m_foldingStartBlock) {
+            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top() + foldingMarkerSize * 0.8);
+            const QPointF end(width() - foldingMarkerSize * 0.5, geom.bottom());
+            painter.drawLine(start, end);
+        } else if (blockNumber == m_foldingEndBlock) {
+            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top());
+            const QPointF mid(width() - foldingMarkerSize * 0.5, geom.top() + foldingMarkerSize * 0.5);
+            const QPointF end(width(), geom.top() + foldingMarkerSize * 0.5);
+            painter.drawLine(start, mid);
+            painter.drawLine(mid, end);
+        } else { // middle piece
+            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top());
+            const QPointF end(width() - foldingMarkerSize * 0.5, geom.bottom());
+            painter.drawLine(start, end);
+        }
+    }
+
+    painter.restore();
 }
 
 void TextEditGutter::leaveEvent(QEvent* /*e*/)

@@ -15,6 +15,9 @@ public:
 
     void updateSizeHint(qreal lineHeight);
 
+signals:
+    void foldingMarkClicked(const QTextBlock& block);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -24,7 +27,6 @@ private:
 
     void paintFoldingMarks(QPainter& painter, const TextEdit::BlockList& blockList);
     void paintGutter(QPaintEvent* event, QPainter& painter, const TextEdit::BlockList& blockList);
-    void paintFoldingRange(QPainter& painter, const TextEdit::BlockData& blockData);
 
     void leaveEvent(QEvent* e) override;
     void mouseMoveEvent(QMouseEvent* event) override;

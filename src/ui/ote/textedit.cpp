@@ -1252,7 +1252,7 @@ QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
 
 bool TextEdit::isFoldable(const QTextBlock& block) const
 {
-    return false; // m_highlighter->startsFoldingRegion(block);
+    return m_highlighter->startsFoldingRegion(block);
 }
 
 bool TextEdit::isFolded(const QTextBlock& block) const
