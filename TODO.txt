@@ -3,7 +3,7 @@
 - Use revision() for history generation.
 
 == Folding ==
-- Change cursor when hovering over folding marker.
++ Change cursor when hovering over folding marker.
 - Change folding-range line's width based on gutter size.
 - Change rendering of folding-ranges to per-line rendering to prevent visual glitches
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.

@@ -4,6 +4,7 @@
 #include "textedit.h"
 
 #include <QApplication>
+#include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QFileDialog>
@@ -29,15 +30,38 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
     if (!block.isValid() || !block.isVisible())
         return;
 
-    // TODO: Moving the mouse over the gutter causes constant full-widget repaints
-    // Either only repaint the hovered block or apply tighter constraints for wantRepaint
-
     const auto blockNum = block.blockNumber();
-    const auto wantRepaint = (m_hoverBlockNumber != blockNum);
-    m_hoverBlockNumber = blockNum;
 
-    if (wantRepaint)
-        repaint();
+    if (blockNum == m_foldingStartBlock)
+        return;
+
+    int hoverBlock = -1;
+
+    if (event->x() < this->geometry().right() - m_foldingBarWidth) {
+        hoverBlock = -1;
+    } else if (m_textEdit->m_highlighter->startsFoldingRegion(block)) {
+        hoverBlock = blockNum;
+    }
+
+    const bool needsRepaint = hoverBlock != m_foldingStartBlock;
+    const bool isHoveringOverFoldingBlock = hoverBlock == blockNum;
+
+    if (isHoveringOverFoldingBlock) {
+        m_foldingStartBlock = blockNum;
+        m_foldingEndBlock = m_textEdit->findClosingBlock(block).blockNumber();
+    } else {
+        m_foldingStartBlock = -1;
+        m_foldingEndBlock = -1;
+    }
+
+    if (needsRepaint) {
+        if (isHoveringOverFoldingBlock)
+            setCursor(QCursor(Qt::PointingHandCursor));
+        else
+            setCursor(QCursor(Qt::ArrowCursor));
+
+        repaint(); // TODO: Only needed to repaint the area between start and endblock
+    }
 }
 
 QSize TextEditGutter::sizeHint() const
@@ -62,6 +86,7 @@ void TextEditGutter::updateSizeHint(qreal lineHeight)
     const auto widthOfString = m_textEdit->fontMetrics().boundingRect(ref.toString()).width();
     const auto foldingMarkerSize = lineHeight;
 
+    m_foldingBarWidth = foldingMarkerSize;
     m_gutterSize = QSize(leftMargin + widthOfString + foldingMarkerSize, 0);
 }
 
@@ -85,6 +110,29 @@ void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
     QWidget::mouseReleaseEvent(event);
 }
 
+/*QPixmap createFoldingMark(qreal size, QColor color, QColor color2) {
+    QPixmap pix = QPixmap(size, size);
+    QPainter *paint = new QPainter(&pix);
+    paint->setPen(color);
+    paint->drawRect(15,15,100,100);
+
+
+    pix.fill(color2);
+
+    QPolygonF polygon;
+    polygon << QPointF(size * 0.4, size * 0.25);
+    polygon << QPointF(size * 0.4, size * 0.75);
+    polygon << QPointF(size * 0.8, size * 0.5);
+
+    paint->setRenderHint(QPainter::Antialiasing);
+    //paint->setPen(Qt::NoPen);
+    paint->setBrush(QColor("red"));
+    paint->drawPolygon(polygon);
+
+    paint->end();
+    return pix;
+}*/
+
 void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockList& blockList)
 {
     if (blockList.empty())
@@ -103,7 +151,10 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         if (!m_textEdit->m_highlighter->startsFoldingRegion(block))
             continue;
 
-        const auto blockNumber = block.blockNumber();
+        const auto blockNum = block.blockNumber();
+
+        // if (blockNum != m_foldingStartBlock)
+        //    continue;
 
         QPolygonF polygon;
         polygon << QPointF(foldingMarkerSize * 0.4, foldingMarkerSize * 0.25);
@@ -117,9 +168,8 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         painter.translate(width() - foldingMarkerSize, geom.top());
         painter.drawPolygon(polygon);
 
-        if (m_hoverBlockNumber == blockNumber) {
+        if (blockNum == m_foldingStartBlock)
             paintFoldingRange(painter, blockData);
-        }
 
         painter.restore();
     }
@@ -166,13 +216,13 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
 
 void TextEditGutter::paintFoldingRange(QPainter& painter, const TextEdit::BlockData& blockData)
 {
-    if (m_hoverBlockNumber == -1)
+    if (m_foldingEndBlock == -1)
         return;
 
     const auto block = blockData.block;
     const auto geom = blockData.translatedRect;
     const auto foldingMarkerSize = geom.height();
-    auto endBlock = m_textEdit->findClosingBlock(block);
+    auto endBlock = m_textEdit->document()->findBlockByNumber(m_foldingEndBlock);
     int topy = m_textEdit->blockBoundingGeometry(endBlock).translated(m_textEdit->contentOffset()).top();
 
     if (!endBlock.isValid())
@@ -188,7 +238,7 @@ void TextEditGutter::paintFoldingRange(QPainter& painter, const TextEdit::BlockD
 
 void TextEditGutter::leaveEvent(QEvent* /*e*/)
 {
-    m_hoverBlockNumber = -1;
+    m_foldingStartBlock = -1;
     m_textEdit->repaint();
 }
 

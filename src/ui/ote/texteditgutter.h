@@ -31,8 +31,11 @@ private:
 
     TextEdit* m_textEdit;
 
-    int m_hoverBlockNumber = -1;
+    int m_foldingStartBlock = -1;
+    int m_foldingEndBlock = -1;
+
     QSize m_gutterSize;
+    qreal m_foldingBarWidth = 0;
 };
 
 } // namespace ote

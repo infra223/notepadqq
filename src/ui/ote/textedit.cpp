@@ -1054,8 +1054,8 @@ void TextEdit::paintEvent(QPaintEvent* e)
                 fillBackground(&painter, contentsRect, bg);
             }
 
-            // Drop the last Selection if the user has selected text. This way we prevent Qt painting all
-            // selected text white. We have to add our own Selection to still have proper selection highlighting.
+            // The last selection is the text selection added by Qt. Since the original one removes
+            // foregroundColor we've got to intercept it.
             if (context.selections.size() > 0 && textCursor().hasSelection()) {
                 auto& s = context.selections.last();
 
