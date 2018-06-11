@@ -822,7 +822,7 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
 
             QRectF rect;
             rect.setTopLeft(QPointF(lineRect.right() + offset, lineRect.top()));
-            rect.setHeight(lineRect.height());
+            rect.setHeight(lineRect.height() - 1); // normal height() is a little taller than the line highlight
             rect.setWidth(constWidth);
 
             // painter.setRenderHint(QPainter::Antialiasing);

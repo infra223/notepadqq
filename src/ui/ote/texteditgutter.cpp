@@ -39,7 +39,7 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
 
     if (event->x() < this->geometry().right() - m_foldingBarWidth) {
         hoverBlock = -1;
-    } else if (m_textEdit->m_highlighter->startsFoldingRegion(block)) {
+    } else if (m_textEdit->isFoldable(block)) { // m_highlighter->startsFoldingRegion(block)
         hoverBlock = blockNum;
     }
 
@@ -103,7 +103,7 @@ void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->x() >= width() - m_textEdit->fontMetrics().lineSpacing()) {
         auto block = m_textEdit->blockAtPosition(event->y());
-        if (!block.isValid() || !m_textEdit->isFoldable(block))
+        if (!block.isValid() || (!m_textEdit->isFoldable(block) && !m_textEdit->isFolded(block)))
             return;
         m_textEdit->toggleFold(block);
     }
@@ -148,12 +148,10 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         if (!block.isVisible())
             continue;
 
-        if (!m_textEdit->m_highlighter->startsFoldingRegion(block))
-            continue;
-
         bool folded = m_textEdit->isFolded(block);
 
-        const auto blockNum = block.blockNumber();
+        if (!m_textEdit->m_highlighter->startsFoldingRegion(block) && !folded)
+            continue;
 
         // TODO: Bad
         QPolygonF polygon;
