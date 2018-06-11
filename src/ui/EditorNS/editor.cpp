@@ -163,8 +163,7 @@ namespace EditorNS
 
     int Editor::getHistoryGeneration()
     {
-        // FIXME
-        return 0;
+        return m_textEditor.document()->revision();
     }
 
     void Editor::setLanguage(KSyntaxHighlighting::Definition def)
