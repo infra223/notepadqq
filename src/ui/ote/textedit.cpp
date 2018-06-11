@@ -558,7 +558,7 @@ void TextEdit::convertLeadingWhitespaceToSpaces()
     auto lines = plaintext.splitRef('\n');
     QString final;
     final.reserve(plaintext.length());
-	
+
     for (auto& line : lines) {
         auto pair = getLeadingWSLength(line, m_tabWidth);
         auto idx = pair.first;
@@ -778,26 +778,63 @@ void TextEdit::contextMenuEvent(QContextMenuEvent* event)
     delete menu;*/
 }
 
-void TextEdit::paintEndOfLineMarkers(QPainter& painter, const BlockList& blockList) const
+void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) const
 {
-    if (!m_showEndOfLineMarkers)
-        return;
-
+    // Paints EOL symbols and the '((...))' labels for folded regions.
+    const QFontMetrics& metrics = fontMetrics();
     const QChar visualArrow = ushort(0x21A4);
+    const qreal arrowWidth = metrics.width(visualArrow);
+    const QChar cont[]{0x2E28, 0x22EF, 0x22EF, 0x2E29, 0}; // ((...))
+    const QString contStr(cont);
+    const qreal constWidth = metrics.width(contStr);
+    const qreal spaceWidth = metrics.width(' ') * 2;
+
+    const QColor textColor(m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::Normal));
+    const QBrush regionBrush(m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::RegionMarker));
 
     painter.save();
-    painter.setPen(m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::Normal));
+    painter.setPen(textColor);
 
     for (const auto& blockData : blockList) {
         const auto block = blockData.block;
         const auto geom = blockData.translatedRect;
+
+        if (!block.isVisible())
+            continue;
+
+        const bool folded = isFolded(block);
+
+        if (!m_showEndOfLineMarkers && !folded)
+            continue;
 
         const QTextLayout* layout = block.layout();
         const int lineCount = layout->lineCount();
         const QTextLine line = layout->lineAt(lineCount - 1);
         const QRectF lineRect = line.naturalTextRect().translated(contentOffset().x(), geom.top());
 
-        painter.drawText(QPointF(lineRect.right() + 2, lineRect.top() + line.ascent()), visualArrow);
+        if (m_showEndOfLineMarkers)
+            painter.drawText(QPointF(lineRect.right() + 2, lineRect.top() + line.ascent()), visualArrow);
+
+        if (folded) {
+            qreal offset = spaceWidth + (m_showEndOfLineMarkers ? arrowWidth : 0);
+            painter.save();
+            painter.setPen(m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::RegionMarker));
+
+            QRectF rect;
+            rect.setTopLeft(QPointF(lineRect.right() + offset, lineRect.top()));
+            rect.setHeight(lineRect.height());
+            rect.setWidth(constWidth);
+
+            // painter.setRenderHint(QPainter::Antialiasing);
+            QPainterPath path;
+            path.addRoundedRect(rect, 3.0, 3.0);
+            painter.fillPath(path, regionBrush);
+            painter.drawPath(path);
+
+            painter.setPen(textColor);
+            painter.drawText(QPointF(lineRect.right() + offset, lineRect.top() + line.ascent()), contStr);
+            painter.restore();
+        }
     }
 
     painter.restore();
@@ -1163,7 +1200,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
     auto bl = getBlocksInRect(e->rect());
     paintLineBreaks(painter, bl);
-    paintEndOfLineMarkers(painter, bl);
+    paintLineSuffixes(painter, bl);
 }
 
 TextEdit::BlockList TextEdit::getBlocksInViewport() const

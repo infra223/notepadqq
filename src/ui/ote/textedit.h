@@ -174,7 +174,7 @@ private:
     QTextBlock findClosingBlock(const QTextBlock& startBlock) const;
     void paintLineBreaks(QPainter& painter, const BlockList& blockList) const;
     void paintSearchBlock(QPainter& painter, const QRect& eventRect, const QTextBlock& block);
-    void paintEndOfLineMarkers(QPainter& painter, const BlockList& blockList) const;
+    void paintLineSuffixes(QPainter& painter, const BlockList& blockList) const;
     void compositeExtraSelections();
 
     bool m_showEndOfLineMarkers = false;

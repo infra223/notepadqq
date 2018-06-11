@@ -1,6 +1,6 @@
 - Language detection based on filename (like "Makefile") doesn't work.
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
-- Use revision() for history generation.
++ Use revision() for history generation.
 
 == Folding ==
 + Change cursor when hovering over folding marker.
@@ -8,7 +8,8 @@
 + Change rendering of folding-ranges to per-line rendering to prevent visual glitches
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
 + Enable basic code folding.
++ Show folding markers after text blocks.
 
 == Find & Replace ==
-- Find might behave differently for special chars (\t, \n, ..). 
+- Find might behave differently for special chars (\t, \n, ..).
 - Can't search across line boundaries yet.
