@@ -155,9 +155,9 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
 
         // TODO: Bad
         QPolygonF polygon;
-        polygon << QPointF(foldingMarkerSize * 0.4, foldingMarkerSize * 0.25);
-        polygon << QPointF(foldingMarkerSize * 0.4, foldingMarkerSize * 0.75);
-        polygon << QPointF(foldingMarkerSize * 0.8, foldingMarkerSize * 0.5);
+        polygon << QPointF(foldingMarkerSize * 0.3, foldingMarkerSize * 0.20);
+        polygon << QPointF(foldingMarkerSize * 0.3, foldingMarkerSize * 0.80);
+        polygon << QPointF(foldingMarkerSize * 0.9, foldingMarkerSize * 0.5);
         polygon.translate(-foldingMarkerSize * 0.6, -foldingMarkerSize * 0.5);
 
         painter.save();
