@@ -89,15 +89,20 @@ Definition Repository::definitionForFileName(const QString& fileName) const
         }
     }
 
-    if (candidates.isEmpty())
-        return Definition();
-
-    std::partial_sort(
+    std::partial_sort( // TODO: std::max
         candidates.begin(), candidates.begin() + 1, candidates.end(), [](const Definition& lhs, const Definition& rhs) {
             return lhs.priority() > rhs.priority();
         });
 
-    return candidates.at(0);
+    if (!candidates.isEmpty())
+        return candidates.at(0);
+        
+    for (const auto& det : m_fileNameDetections) {
+        if (det.fileNames.contains(name))
+            return det.def;
+    }
+    
+    return Definition();
 }
 
 Definition Repository::definitionForContent(const QString& content) const 
@@ -194,10 +199,10 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
         return;
 
     const auto jdoc(QJsonDocument::fromJson(file.readAll()));
-    const auto& obj = jdoc.object();
+    const auto& base = jdoc.object();
 
-    for (const auto& key : obj.keys()) {
-        const auto& ar = obj[key].toArray();
+    for (const auto& key : base.keys()) {
+        const auto& obj = base[key].toObject();
 
         const auto& it = m_defs.constFind(key);
 
@@ -205,14 +210,28 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
             qDebug() << "Found content detection rules for an unknown definition: " << key;
             continue;
         }
+        
+        const auto& content = obj["content"];
+        if (content.exists()) {
+            ContentDetection d;
+            d.def = *it;
 
-        ContentDetection d;
-        d.def = *it;
+            for (const auto& rule : content.toArray())
+                d.rules.push_back(QRegularExpression(rule.toString()));
 
-        for (const auto& rule : ar)
-            d.rules.push_back(QRegularExpression(rule.toString()));
+            m_contentDetections.push_back(d);
+        }
 
-        m_contentDetections.push_back(d);
+        const auto& fileNames = obj["fileNames"];
+        if (fileNames.exists()) {
+            FileNameDetection fd;
+            fd.def = *it;
+
+            for (const auto& name : fileNames.toArray())
+                d.rules.push_back(name.toString());
+
+            m_fileNameDetections.push_back(fd);
+        }
     }
 }
 

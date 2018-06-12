@@ -1,33 +1,77 @@
 {
-	"Perl":[
-      "^#!.*\\/perl($| )",
-      "^#!\\/usr\\/bin\\/env perl($| )"
-	],
+    "Asterisk":{
+        "fileNames": [
+          "extensions.conf",
+          "extensions_custom.conf",
+          "extensions_general.conf",
+          "extensions_globals.conf"
+        ]
+    },
+    "Coffeescript":{
+        "fileNames": [
+            "Cakefile"
+        ]
+    },
+    
+    "Dockerfile":{
+        "fileNames": [
+            "Dockerfile"
+        ]
+    },
+    
+    "GNU M4":{
+        "fileNames": [
+            "configure.ac"
+        ]
+    },    
+    
+    "Makefile":{
+        "fileNames": [
+            "Makefile",
+            "Makefile.in",
+            "GNUmakefile",
+            "rules"
+        ]
+    }, 
+    
+    "Ruby":{
+            "fileNames": [
+            "Gemfile",
+            "Rakefile",
+            "Guardfile"
+        ]
+    }, 
+
+	"Perl": {
+        "content": [
+          "^#!.*\\/perl($| )",
+          "^#!\\/usr\\/bin\\/env perl($| )"
+        ]
+    },
 	
-	"Python":[
-      "^#!.*\\/python[\\d\\.]*($| )",
-      "^#!\\/usr\\/bin\\/env python[\\d\\.]*($| )"
-	],
-	
-	"Bash":[
-      "^#!.*\\/sh($| )",
-      "^#!\\/usr\\/bin\\/env sh($| )",
-      "^#!.*\\/bash($| )",
-      "^#!\\/usr\\/bin\\/env bash($| )",
-      "^#!.*\\/ksh($| )",
-      "^#!\\/usr\\/bin\\/env ksh($| )",
-      "^#!.*\\/csh($| )",
-      "^#!\\/usr\\/bin\\/env csh($| )",
-      "^#!.*\\/tcsh($| )",
-      "^#!\\/usr\\/bin\\/env tcsh($| )",
-      "^#!.*\\/zsh($| )",
-      "^#!\\/usr\\/bin\\/env zsh($| )",
-      "^#!.*\\/fish($| )",
-      "^#!\\/usr\\/bin\\/env fish($| )"
-	],
-	
-	"XML":[
-      "^<\\\\?xml ",
-      "^<.+?>"
-	]
+	"Python": {
+        "content" : [
+            "^#!.*\\/sh($| )",
+            "^#!\\/usr\\/bin\\/env sh($| )",
+            "^#!.*\\/bash($| )",
+            "^#!\\/usr\\/bin\\/env bash($| )",
+            "^#!.*\\/ksh($| )",
+            "^#!\\/usr\\/bin\\/env ksh($| )",
+            "^#!.*\\/csh($| )",
+            "^#!\\/usr\\/bin\\/env csh($| )",
+            "^#!.*\\/tcsh($| )",
+            "^#!\\/usr\\/bin\\/env tcsh($| )",
+            "^#!.*\\/zsh($| )",
+            "^#!\\/usr\\/bin\\/env zsh($| )",
+            "^#!.*\\/fish($| )",
+            "^#!\\/usr\\/bin\\/env fish($| )"
+        ]
+    },
+    
+    "XML": {
+        "content": [
+            "^<\\\\?xml ",
+            "^<.+?>"
+        ]
+    }
 }

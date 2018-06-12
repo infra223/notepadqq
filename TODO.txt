@@ -1,4 +1,4 @@
-- Language detection based on filename (like "Makefile") doesn't work.
++ Language detection based on filename (like "Makefile") doesn't work.
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
 + Use revision() for history generation.
 

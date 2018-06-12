@@ -41,6 +41,11 @@ public:
         QVector<QRegularExpression> rules;
     };
     
+    struct FileNameDetection {
+        Definition def;
+        QVector<QString> fileNames;
+    };
+    
     RepositoryPrivate();
 
     static RepositoryPrivate* get(Repository *repo);
@@ -64,6 +69,7 @@ public:
     QVector<Definition> m_sortedDefs;
     
     QVector<ContentDetection> m_contentDetections;
+    QVector<FileNameDetection> m_fileNameDetections;
 
     QVector<Theme> m_themes;
 

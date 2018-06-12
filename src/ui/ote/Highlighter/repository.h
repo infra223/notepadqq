@@ -139,8 +139,9 @@ public:
     /**
      * Returns the best matching Definition for the file named @p fileName.
      * The match is performed based on the \e extensions and @e mimetype of
-     * the definition files. If multiple matches are found, the one with the
-     * highest priority is returned.
+     * the definition files, as well as a number of known common file names.
+     * If multiple matches are found, the one with the highest priority
+     * is returned.
      *
      * If no match is found, Definition::isValid() of the returned instance
      * returns false.
