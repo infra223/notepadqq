@@ -96,8 +96,8 @@ Definition Repository::definitionForFileName(const QString& fileName) const
 
     if (!candidates.isEmpty())
         return candidates.at(0);
-        
-    for (const auto& det : m_fileNameDetections) {
+
+    for (const auto& det : d->m_fileNameDetections) {
         if (det.fileNames.contains(name))
             return det.def;
     }
@@ -212,7 +212,7 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
         }
         
         const auto& content = obj["content"];
-        if (content.exists()) {
+        if (content.isArray()) {
             ContentDetection d;
             d.def = *it;
 
@@ -223,12 +223,12 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
         }
 
         const auto& fileNames = obj["fileNames"];
-        if (fileNames.exists()) {
+        if (fileNames.isArray()) {
             FileNameDetection fd;
             fd.def = *it;
 
             for (const auto& name : fileNames.toArray())
-                d.rules.push_back(name.toString());
+                fd.fileNames.push_back(name.toString());
 
             m_fileNameDetections.push_back(fd);
         }

@@ -47,7 +47,7 @@
             "bold" : true
         },
         "Preprocessor" : {
-            "text-color" : "#ffcfaf ",
+            "text-color" : "#ffcfaf",
             "bold" : true,
             "selected-text-color" : "#006e28"
         },
@@ -56,7 +56,7 @@
             "selected-text-color" : "#00316e"
         },
         "Char" : {
-            "text-color" : "#dca3a3 ",
+            "text-color" : "#dca3a3",
             "bold" : true,
             "selected-text-color" : "#6c2477"
         },
@@ -83,7 +83,7 @@
             "selected-text-color" : "#ff5500"
         },
         "DataType" : {
-            "text-color" : "#dfdfbf ",
+            "text-color" : "#dfdfbf",
             "bold" : true,
             "selected-text-color" : "#00316e"
         },
@@ -105,22 +105,22 @@
             "selected-text-color" : "#5e2f00"
         },
         "Comment" : {
-            "text-color" : "#7f9f7f ",
+            "text-color" : "#7f9f7f",
             "italic" : true,
             "selected-text-color" : "#5e5d5d"
         },
         "Documentation" : {
-            "text-color" : "#7f9f7f ",
+            "text-color" : "#7f9f7f",
             "italic" : true,
             "selected-text-color" : "#46585e"
         },
         "Annotation" : {
-            "text-color" : "#7f9f7f ",
+            "text-color" : "#7f9f7f",
             "italic" : true,
             "selected-text-color" : "#a44ea4"
         },
         "CommentVar" : {
-            "text-color" : "#7f9f7f ",
+            "text-color" : "#7f9f7f",
             "italic" : true,
             "selected-text-color" : "#ffffff"
         },
@@ -144,7 +144,7 @@
             "bold" : true
         },
         "Error" : {
-            "text-color" : "#80d4aa ",
+            "text-color" : "#80d4aa",
             "selected-text-color" : "#9c0e0e",
             "bold" : true
         },
@@ -154,10 +154,10 @@
         }
    },
     "editor-colors": {
-        "background-color" : "#dcdccc ",
-        "code-folding" : "#161616",
+        "background-color" : "#404040",
+        "code-folding" : "#bcadad",
         "bracket-matching" : "#ffffff",
-        "current-line" : "#434443 ",
+        "current-line" : "#505050",
         "icon-border" : "#f0f0f0",
         "indentation-line" : "#d0d0b8",
         "line-numbers" : "#9fafaf",

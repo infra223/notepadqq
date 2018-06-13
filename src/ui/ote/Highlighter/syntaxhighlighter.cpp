@@ -35,6 +35,7 @@ class TextBlockUserData : public QTextBlockUserData {
 public:
     State state;
     QVector<FoldingRegion> foldingRegions;
+    bool forceRehighlight = false;
 };
 
 class SyntaxHighlighterPrivate : public AbstractHighlighterPrivate {
@@ -125,6 +126,10 @@ QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock)
 void SyntaxHighlighter::startRehighlighting()
 {
     const auto firstBlock = document()->firstBlock();
+    auto data = dynamic_cast<TextBlockUserData*>(firstBlock.userData());
+    if (data)
+        data->forceRehighlight = true;
+
     if (firstBlock.isValid())
         QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
 }
@@ -134,6 +139,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     Q_D(SyntaxHighlighter);
 
     State state;
+
     if (currentBlock().position() > 0) {
         const auto prevBlock = currentBlock().previous();
         const auto prevData = dynamic_cast<TextBlockUserData*>(prevBlock.userData());
@@ -152,15 +158,28 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
         return;
     }
 
-    if (data->state == state &&
+    bool forceRehighlighting = data->forceRehighlight;
+
+    if (!forceRehighlighting && data->state == state &&
         data->foldingRegions == d->foldingRegions) // we ended up in the same state, so we are done here
         return;
+
     data->state = state;
     data->foldingRegions = d->foldingRegions;
+    data->forceRehighlight = false;
 
     const auto nextBlock = currentBlock().next();
-    if (nextBlock.isValid())
-        QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
+    if (!nextBlock.isValid())
+        return;
+
+    if (forceRehighlighting) {
+        auto nextData = dynamic_cast<TextBlockUserData*>(nextBlock.userData());
+        if (!nextData)
+            nextData = new TextBlockUserData;
+        nextData->forceRehighlight = true;
+    }
+
+    QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
 }
 
 void SyntaxHighlighter::applyFormat(int offset, int length, const KSyntaxHighlighting::Format& format)
