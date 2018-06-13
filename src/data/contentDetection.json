@@ -7,7 +7,8 @@
           "extensions_globals.conf"
         ]
     },
-    "Coffeescript":{
+    
+    "CoffeeScript":{
         "fileNames": [
             "Cakefile"
         ]
@@ -49,7 +50,7 @@
         ]
     },
 	
-	"Python": {
+	"Bash": {
         "content" : [
             "^#!.*\\/sh($| )",
             "^#!\\/usr\\/bin\\/env sh($| )",
@@ -65,6 +66,13 @@
             "^#!\\/usr\\/bin\\/env zsh($| )",
             "^#!.*\\/fish($| )",
             "^#!\\/usr\\/bin\\/env fish($| )"
+        ]
+    },
+
+	"Python": {
+        "content" : [
+            "^#!.*\\/python[\\d\\.]*($| )",
+			"^#!\\/usr\\/bin\\/env python[\\d\\.]*($| )"
         ]
     },
     
