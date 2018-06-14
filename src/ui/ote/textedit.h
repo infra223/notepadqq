@@ -43,7 +43,6 @@ public:
     void setSmartIndent(bool enable);
     void setTabToSpaces(bool enable);
     void setWordWrap(bool enable);
-    void setTabWidth(int tabWidth);
     
     void setFont(QFont font);
     QFont getFont() const;
@@ -141,7 +140,7 @@ protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
 private:
     friend class TextEditGutter;
-
+    
     QTextBlock blockAtPosition(int y) const;
     void updateSidebarGeometry();
     void updateSidebarArea(const QRect& rect, int dy);

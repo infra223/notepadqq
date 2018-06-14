@@ -155,33 +155,25 @@ void TextEdit::setWordWrap(bool enable)
     enable ? setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere) : setWordWrapMode(QTextOption::NoWrap);
 }
 
-void TextEdit::setTabWidth(int tabWidth)
-{
-    // Calculating letter width using QFrontMetrics isn't 100% accurate. Small inaccuracies
-    // can accumulate over time. Instead, we can calculate a good letter spacing value and
-    // make the font use it.
-    // https://stackoverflow.com/a/42071875/1038629
-    m_tabWidth = tabWidth;
-
-    auto font = this->font();
-    QFontMetricsF fm(font);
-    auto stopWidth = tabWidth * fm.horizontalAdvance(' ');
-    auto letterSpacing = (ceil(stopWidth) - stopWidth) / tabWidth;
-
-    font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
-    QPlainTextEdit::setFont(font);
-
-    setTabStopDistance(ceil(stopWidth));
-}
-
 void TextEdit::setFont(QFont font)
 {
     if (!QFontInfo(font).fixedPitch()) {
         qDebug() << "Selected font is not monospace: " << font.family() << font.style();
     }
 
-    QPlainTextEdit::setFont(font); // FIXME: Not happy with setting font here *and* in setTabWidth()
-    setTabWidth(m_tabWidth);
+    font.setPointSize(font.pointSize() + m_zoomLevel);
+    
+    // Calculating letter width using QFrontMetrics isn't 100% accurate. Small inaccuracies
+    // can accumulate over time. Instead, we can calculate a good letter spacing value and
+    // make the font use it.
+    // https://stackoverflow.com/a/42071875/1038629
+    QFontMetricsF fm(font);
+    auto stopWidth = m_tabWidth * fm.horizontalAdvance(' ');
+    auto letterSpacing = (ceil(stopWidth) - stopWidth) / m_tabWidth;
+
+    font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
+    QPlainTextEdit::setFont(font);
+    setTabStopDistance(ceil(stopWidth));
 }
 
 QFont TextEdit::getFont() const {
@@ -355,8 +347,10 @@ void TextEdit::resetZoom()
 void TextEdit::setZoomTo(int value)
 {
     // Clamp maximum font size to [4,40]. That should be sensible.
-    value = std::max(m_fontSize - value, 4);
-    value = std::min(value, 40);
+    if (m_fontSize + value < 4)
+        value = m_fontSize - 4;
+    else if (m_fontSize + value > 40)
+        value = 40 - m_fontSize;
     
     m_zoomLevel = value;
     
