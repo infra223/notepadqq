@@ -1188,7 +1188,7 @@ void MainWindow::on_editorAdded(EditorTabWidget *tabWidget, int tab)
     editor->setFont(f);
 
     editor->setSmartIndent(m_settings.General.getSmartIndentation());
-    editor->setMathEnabled(ui->actionMath_Rendering->isChecked());
+    // editor->setMathEnabled(ui->actionMath_Rendering->isChecked());
 }
 
 void MainWindow::on_cursorActivity()
