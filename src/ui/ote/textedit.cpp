@@ -744,6 +744,7 @@ void TextEdit::keyPressEvent(QKeyEvent* e)
     if (e->key() == Qt::Key_Backspace && m_tabToSpaces) {
         auto txt = textCursor().block().text();
 
+        // FIXME: Make sure this doesn't accidentally delete text with lines like "hi      "
         if (txt.endsWith(QString(m_tabWidth, ' ')) && txt.length() % m_tabWidth == 0) {
             auto c = textCursor();
             c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, m_tabWidth);
