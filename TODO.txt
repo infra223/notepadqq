@@ -1,6 +1,10 @@
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
 - One Whitespace function not implemented.
 - Make sure indentation works. Custom indentation specifically. E.g. when indentation detection kicks in.
+- setTabWidth on <Qt5.10 doesn't seem to work yet.
+- Add documentation to code.
+- Remove KSyntaxHighlighting namespace.
+- Add light themes.
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
