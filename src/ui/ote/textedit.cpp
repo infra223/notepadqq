@@ -346,11 +346,14 @@ void TextEdit::resetZoom()
 
 void TextEdit::setZoomTo(int value)
 {
-    // Clamp maximum font size to [4,40]. That should be sensible.
-    if (m_fontSize + value < 4)
-        value = m_fontSize - 4;
-    else if (m_fontSize + value > 40)
-        value = 40 - m_fontSize;
+    // Clamp maximum font size to [4,60]. That should be sensible.
+    const int MIN_FONT_SIZE = 4;
+    const int MAX_FONT_SIZE = 60;
+    
+    if (m_fontSize + value < MIN_FONT_SIZE)
+        value = m_fontSize - MIN_FONT_SIZE;
+    else if (m_fontSize + value > MAX_FONT_SIZE)
+        value = MAX_FONT_SIZE - m_fontSize;
     
     m_zoomLevel = value;
     
