@@ -87,9 +87,7 @@ void TextEdit::initRepository(const QString& path)
     s_repository = new KSyntaxHighlighting::Repository(path);
 
     qint64 __aet_elapsed = t.nsecsElapsed();
-    qDebug() << QString("Repository directory loaded in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec")
-                    .toStdString()
-                    .c_str();
+    qDebug() << "Repository directory loaded in " << QString::number(__aet_elapsed / 1000 / 1000) << "msec";
 }
 
 void TextEdit::setDefinition(const KSyntaxHighlighting::Definition& d)
@@ -100,8 +98,8 @@ void TextEdit::setDefinition(const KSyntaxHighlighting::Definition& d)
     m_highlighter->setDefinition(d);
 
     qint64 __aet_elapsed = t.nsecsElapsed();
-    qDebug()
-        << QString("Highlighted in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec").toStdString().c_str();
+    /*qDebug()
+        << QString("Highlighted in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec").toStdString().c_str();*/
 }
 
 void TextEdit::setSyntaxHighlightingEnabled(bool enabled)
@@ -1235,7 +1233,7 @@ TextEdit::BlockList TextEdit::getBlocksInRect(QRect rect) const
         block = block.next();
     }
 
-    m_blockListCounter += bl.size();
+    // m_blockListCounter += bl.size();
     // qDebug() << m_blockListCounter << bl.size(); // << rect << contentOff << viewport()->height();
     return bl;
 }

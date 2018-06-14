@@ -78,8 +78,6 @@ void TextEditGutter::updateSizeHint(qreal lineHeight)
         count /= 10;
     }
 
-    qDebug() << lineHeight;
-
     static const QString templateString("9999999999");
     const QStringRef ref(&templateString, 0, digits);
     const auto leftMargin = lineHeight / 4;
@@ -138,7 +136,7 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
     if (blockList.empty())
         return;
 
-    // const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->m_highlighter->theme();
+    // const KSyntaxHighlighting::Theme& currentTheme = m_textedit->getTheme();
     const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
     for (const auto& blockData : blockList) {
@@ -164,7 +162,7 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(Qt::NoPen);
         painter.setBrush(
-            QColor(m_textEdit->m_highlighter->theme().editorColor(KSyntaxHighlighting::Theme::CodeFolding)));
+            QColor(m_textedit->getTheme().editorColor(KSyntaxHighlighting::Theme::CodeFolding)));
 
         painter.translate(width() - foldingMarkerSize, geom.top());
         painter.translate(foldingMarkerSize * 0.6, foldingMarkerSize * 0.5);
@@ -180,7 +178,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     if (blockList.empty())
         return;
 
-    const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->m_highlighter->theme();
+    const KSyntaxHighlighting::Theme& currentTheme = m_textedit->getTheme();
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
     const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
@@ -215,7 +213,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     // Paint folding range
     painter.save();
     QPen p;
-    p.setColor(m_textEdit->m_highlighter->theme().textColor(KSyntaxHighlighting::Theme::Normal));
+    p.setColor(m_textEdit->getTheme().textColor(KSyntaxHighlighting::Theme::Normal));
     p.setWidth(static_cast<int>(m_foldingBarWidth / 8));
     painter.setPen(p);
 

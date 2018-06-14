@@ -164,7 +164,7 @@ private:
     typedef QList<QTextEdit::ExtraSelection> ExtraSelectionList;
     typedef QMap<ESType, ExtraSelectionList> ExtraSelectionMap;
 
-    mutable int m_blockListCounter = 0;
+    // mutable int m_blockListCounter = 0;
 
     BlockList getBlocksInViewport() const;
     BlockList getBlocksInRect(QRect rect) const;
@@ -195,14 +195,7 @@ private:
 
     ExtraSelectionMap m_extraSelections;
 
-    //CompositeHighlighter* m_highlighter;
     TextEditGutter* m_sideBar;
-
-    //Theme m_currentTheme;
-    //SyntaxDefinition m_currentSyntaxDefinition;
-
-
-    //static KSyntaxHighlighting::Repository m_repository;
     KSyntaxHighlighting::SyntaxHighlighter* m_highlighter;
 
     void createParenthesisSelection(int pos);
