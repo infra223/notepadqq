@@ -86,20 +86,12 @@ void TextEdit::initRepository(const QString& path)
     t.start();
     s_repository = new KSyntaxHighlighting::Repository(path);
 
-    qint64 __aet_elapsed = t.nsecsElapsed();
-    qDebug() << "Repository directory loaded in " << QString::number(__aet_elapsed / 1000 / 1000) << "msec";
+    qDebug() << "Repository directory loaded in " << t.elapsed() / 1000 / 1000 << "msec";
 }
 
 void TextEdit::setDefinition(const KSyntaxHighlighting::Definition& d)
 {
-    QElapsedTimer t;
-    t.start();
-
     m_highlighter->setDefinition(d);
-
-    qint64 __aet_elapsed = t.nsecsElapsed();
-    /*qDebug()
-        << QString("Highlighted in " + QString::number(__aet_elapsed / 1000 / 1000) + "msec").toStdString().c_str();*/
 }
 
 void TextEdit::setSyntaxHighlightingEnabled(bool enabled)

@@ -2,7 +2,6 @@
 - One Whitespace function not implemented.
 - Math Rendering QAction still inside.
 - Printing not yet implemented.
-- Set default theme in main::ensureDefaultSettings.
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.

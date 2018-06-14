@@ -1804,8 +1804,6 @@ void MainWindow::checkIndentationMode(Editor *editor)
     bool differentTabSpaces = detected.useTabs != curr.useTabs;
     bool differentSpaceSize = detected.useTabs == false && curr.useTabs == false && detected.size != curr.size;
 
-    qDebug() << differentSpaceSize << differentTabSpaces;
-
     if (!differentTabSpaces && !differentSpaceSize)
         return;
 
