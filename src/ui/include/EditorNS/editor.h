@@ -192,7 +192,9 @@ namespace EditorNS
         Q_INVOKABLE void setLineWrap(const bool wrap);
         Q_INVOKABLE void setEOLVisible(const bool showeol);
         Q_INVOKABLE void setWhitespaceVisible(const bool showspace);
-        Q_INVOKABLE void setMathEnabled(const bool enabled);
+        //Q_INVOKABLE void setMathEnabled(const bool enabled);
+
+        void setFont(const QFont& font);
 
         /**
          * @brief Get the current cursor position
@@ -213,14 +215,6 @@ namespace EditorNS
         void setScrollPosition(const QPair<int, int> &position);
         QString endOfLineSequence() const;
         void setEndOfLineSequence(const QString &endOfLineSequence);
-
-        /**
-         * @brief Applies a font family/size to the Editor.
-         * @param fontFamily the family to be applied. An empty string or
-         *                   nullptr denote no override.
-         * @param fontSize the size to be applied. 0 denotes no override.
-         */
-        void setFont(QString fontFamily, int fontSize);
 
         QTextCodec *codec() const;
 
@@ -267,7 +261,7 @@ namespace EditorNS
         int lineCount();
 
         int characterCount() const;
-        void setFont(const QFont& font);
+
     private:
         friend class ::EditorTabWidget;
 

@@ -137,12 +137,7 @@ namespace EditorNS
 
     bool Editor::isClean()
     {
-<<<<<<< HEAD
-        QVariant data(0); // avoid crash on Mac OS X, see issue #702
-        return asyncSendMessageWithResult("C_FUN_IS_CLEAN", data).get().toBool();
-=======
         return !m_textEditor.isModified();
->>>>>>> Clang syntax.
     }
 
     void Editor::markClean()
@@ -188,23 +183,12 @@ namespace EditorNS
 
     void Editor::setLanguageFromFileName(const QString& fileName)
     {
-  /*auto& cache = LanguageService::getInstance();
-        auto lang = cache.lookupByFileName(fileName);
-        if (lang != nullptr) {
-            setLanguage(lang);
-            return;
-        }
-        lang = cache.lookupByExtension(fileName);
-        if (lang != nullptr) {
-            setLanguage(lang);
-        }*/
         setLanguage(m_textEditor.getRepository().definitionForFileName(fileName));
     }
 
     void Editor::setLanguageFromFileName()
     {
         setLanguageFromFileName(filePath().toString());
-        setLanguageFromFilePath(filePath().toString());
     }
 
     void EditorNS::Editor::detectAndSetLanguage()
@@ -360,27 +344,23 @@ namespace EditorNS
     void Editor::setLineWrap(const bool wrap)
     {
         m_textEditor.setWordWrap(wrap);
-        // m_textEditor.setLineWrapMode(wrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
-        // asyncSendMessageWithResultP("C_CMD_SET_LINE_WRAP", wrap);
     }
 
     void Editor::setEOLVisible(const bool showeol)
     {
         m_textEditor.setEndOfLineMarkersVisible(showeol);
-        // asyncSendMessageWithResultP("C_CMD_SHOW_END_OF_LINE", showeol);
     }
 
     void Editor::setWhitespaceVisible(const bool showspace)
     {
         m_textEditor.setWhitespaceVisible(showspace);
-        // asyncSendMessageWithResultP("C_CMD_SHOW_WHITESPACE", showspace);
     }
 
-    void Editor::setMathEnabled(const bool enabled)
+    /*void Editor::setMathEnabled(const bool enabled)
     {
         // FIXME - Math functionality unfixable at the moment
         // asyncSendMessageWithResultP("C_CMD_ENABLE_MATH", enabled);
-    }
+    }*/
 
     QPair<int, int> Editor::cursorPosition()
     {
@@ -446,21 +426,6 @@ namespace EditorNS
         m_textEditor.setFont(font);
     }
 
-    void Editor::setFont(QString fontFamily, int fontSize)
-    {
-        QFont f = font();
-
-        if (!fontFamily.isEmpty())
-            f.setFamily(fontFamily);
-        else
-            f.setFamily("Monospace");
-
-        if (fontSize > 0)
-            f.setPointSize(fontSize);
-
-        m_textEditor.setFont(f);
-    }
-
     QTextCodec *Editor::codec() const
     {
         return m_codec;
@@ -483,7 +448,8 @@ namespace EditorNS
 
     void Editor::setTheme(const KSyntaxHighlighting::Theme& theme)
     {
-        qDebug() << "Setting theme to " << theme.name();
+        // TODO: This is called way too often
+        // qDebug() << "Setting theme to " << theme.name();
         m_textEditor.setTheme(theme);
     }
 
@@ -547,80 +513,16 @@ namespace EditorNS
 
     void Editor::print(std::shared_ptr<QPrinter> printer)
     {
-        // 1. Set theme to default because dark themes would force the printer to color the entire
-        //    document in the background color. Default theme has white background.
-        // 2. Set WebView's bg-color to white to prevent visual artifacts when printing less than one page.
-        // 3. Set C_CMD_DISPLAY_PRINT_STYLE to hide UI elements like the gutter.
+        const auto& theme = m_textEditor.getTheme();
 
-#if QT_VERSION >= QT_VERSION_CHECK(5,8,0)
-        QColor prevBackgroundColor = m_webView->page()->backgroundColor();
-        QString prevStylesheet = m_webView->styleSheet();
-
-        this->setLineWrap(true);
-        setTheme(themeFromName("default"));
-        m_webView->page()->setBackgroundColor(Qt::transparent);
-        m_webView->setStyleSheet("background-color: white");
-        sendMessage("C_CMD_DISPLAY_PRINT_STYLE");
-        m_webView->page()->print(printer.get(), [=](bool /*success*/) {
-            // Note: it is important to capture "printer" in order to keep the shared_ptr alive.
-            sendMessage("C_CMD_DISPLAY_NORMAL_STYLE");
-            m_webView->setStyleSheet(prevStylesheet);
-            m_webView->page()->setBackgroundColor(prevBackgroundColor);
-            setTheme(themeFromName(NqqSettings::getInstance().Appearance.getColorScheme()));
-            this->setLineWrap(NqqSettings::getInstance().General.getWordWrap());
-        });
-#endif
-    }
-
-    QPromise<QByteArray> Editor::printToPdf(const QPageLayout& pageLayout)
-    {
-        // 1. Set theme to default because dark themes would force the printer to color the entire
-        //    document in the background color. Default theme has white background.
-        // 2. Set WebView's bg-color to white to prevent visual artifacts when printing less than one page.
-        // 3. Set C_CMD_DISPLAY_PRINT_STYLE to hide UI elements like the gutter.
-
-        return QPromise<QByteArray>(
-            [&](const QPromiseResolve<QByteArray>& resolve, const QPromiseReject<QByteArray>& reject) {
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
-                QColor prevBackgroundColor = m_webView->page()->backgroundColor();
-                QString prevStylesheet = m_webView->styleSheet();
-
-                this->setLineWrap(true);
-                setTheme(themeFromName("default"));
-                m_webView->page()->setBackgroundColor(Qt::transparent);
-                m_webView->setStyleSheet("background-color: white");
-                asyncSendMessageWithResultP("C_CMD_DISPLAY_PRINT_STYLE").wait();
-
-                m_webView->page()->printToPdf(
-                    [=](const QByteArray& data) {
-                        QTimer::singleShot(0, [=]() {
-                            asyncSendMessageWithResultP("C_CMD_DISPLAY_NORMAL_STYLE").wait();
-                            m_webView->setStyleSheet(prevStylesheet);
-                            m_webView->page()->setBackgroundColor(prevBackgroundColor);
-                            setTheme(themeFromName(NqqSettings::getInstance().Appearance.getColorScheme()));
-                            this->setLineWrap(NqqSettings::getInstance().General.getWordWrap());
-                        });
-
-                        if (data.isEmpty() || data.isNull()) {
-                            reject(QByteArray());
-                        } else {
-                            resolve(data);
-                        }
-                    },
-                    pageLayout);
-
-#else
-                reject(QByteArray());
-#endif
-            });
+        m_textEditor.setTheme(ote::TextEdit::getRepository().theme("Printing"));
+        m_textEditor.print(printer.get());
+        m_textEditor.setTheme(theme);
     }
 
     QString Editor::getCurrentWord()
     {
         return m_textEditor.getCurrentWord();
-        // return asyncSendMessageWithResultP("C_FUN_GET_CURRENT_WORD")
-        //        .then([](QVariant v){ return v.toString(); });
     }
 
     int Editor::characterCount() const
@@ -631,7 +533,5 @@ namespace EditorNS
     int Editor::lineCount()
     {
         return m_textEditor.getLineCount();
-        // return asyncSendMessageWithResultP("C_FUN_GET_LINE_COUNT")
-        //        .then([](QVariant v){ return v.toInt(); });
     }
 }
