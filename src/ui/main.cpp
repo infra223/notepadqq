@@ -105,9 +105,9 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
+    ote::TextEdit::initRepository(Notepadqq::appDataPath("data"));
     enforceDefaultSettings();
 
-    ote::TextEdit::initRepository(Notepadqq::appDataPath("data"));
 
     // Arguments received from another instance
     QObject::connect(&a, &SingleApplication::receivedArguments, &a, [=](const QString &workingDirectory, const QStringList &arguments) {
@@ -202,6 +202,15 @@ void enforceDefaultSettings()
 
     NqqSettings& s = NqqSettings::getInstance();
     QFont defaultFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    const auto& repo = ote::TextEdit::getRepository();
+
+    if (!repo.theme(s.Appearance.getColorScheme()).isValid()) {
+        const auto theme = (qApp->palette().color(QPalette::Base).lightness() < 128)
+                               ? repo.defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
+                               : repo.defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+
+        s.Appearance.setColorScheme(theme.name());
+    }
 
     if (s.Appearance.getFontFamily().isEmpty())
         s.Appearance.setFontFamily(defaultFont.family());

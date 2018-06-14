@@ -27,12 +27,6 @@ namespace EditorNS
         QString themeName = NqqSettings::getInstance().Appearance.getColorScheme();
         auto theme = repo.theme(themeName);
 
-        if (!theme.isValid()) {
-            theme = (palette().color(QPalette::Base).lightness() < 128)
-                        ? repo.defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-                        : repo.defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
-        }
-
         fullConstructor(theme);
     }
 
