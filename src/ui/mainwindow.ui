@@ -567,6 +567,9 @@
    <property name="text">
     <string>Math &amp;Rendering</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionCurrent_Full_File_Path_to_Clipboard">
    <property name="text">

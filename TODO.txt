@@ -1,20 +1,9 @@
-+ Language detection based on filename (like "Makefile") doesn't work.
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
-+ Use revision() for history generation.
-+ Scroll positions aren't saved.
-- Can't set Line Height.
 - One Whitespace function not implemented.
 - Math Rendering QAction still inside.
-+ Reset Zoom sometimes chokes up.
 
 == Folding ==
-+ Change cursor when hovering over folding marker.
-+ Change folding-range line's width based on gutter size.
-+ Change rendering of folding-ranges to per-line rendering to prevent visual glitches
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
-+ Enable basic code folding.
-+ Show folding markers after text blocks.
-+ Don't show folding range when region is folded.
 
 == Find & Replace ==
 - Find might behave differently for special chars (\t, \n, ..).
