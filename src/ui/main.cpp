@@ -25,7 +25,7 @@
 #include <QElapsedTimer>
 #endif
 
-void forceDefaultSettings();
+void enforceDefaultSettings();
 void loadExtensions();
 
 int main(int argc, char *argv[])
@@ -62,8 +62,6 @@ int main(int argc, char *argv[])
     NqqSettings::ensureBackwardsCompatibility();
     NqqSettings& settings = NqqSettings::getInstance();
     settings.General.setNotepadqqVersion(POINTVERSION);
-
-    forceDefaultSettings();
 
     // Initialize from system locale on first run, if no system locale is
     // set, our default will be used instead.
@@ -106,6 +104,8 @@ int main(int argc, char *argv[])
     if (a.attachToOtherInstance()) {
         return EXIT_SUCCESS;
     }
+
+    enforceDefaultSettings();
 
     ote::TextEdit::initRepository(Notepadqq::appDataPath("data"));
 
@@ -196,21 +196,41 @@ int main(int argc, char *argv[])
     return retVal;
 }
 
-void forceDefaultSettings()
+void enforceDefaultSettings()
 {
+    // Make sure some important settings have correct values.
+
     NqqSettings& s = NqqSettings::getInstance();
+    QFont defaultFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+
+    if (s.Appearance.getFontFamily().isEmpty())
+        s.Appearance.setFontFamily(defaultFont.family());
+
+    if (s.Appearance.getFontStyle().isEmpty()) {
+        // Nearly all fonts have a Regular or Normal font style.
+        auto styles = QFontDatabase().styles(defaultFont.family());
+        QString style;
+        if (styles.contains("Regular"))
+            style = "Regular";
+        if (styles.contains("Normal"))
+            style = "Normal";
+        s.Appearance.setFontStyle(style);
+    }
+
+    if (s.Appearance.getFontSize() == 0)
+        s.Appearance.setFontSize(defaultFont.pointSize());
 
     // Use tabs to indent makefile by default
-    if(!s.Languages.hasUseDefaultSettings("makefile")) {
-        s.Languages.setUseDefaultSettings("makefile", false);
-        s.Languages.setIndentWithSpaces("makefile", false);
+    if (!s.Languages.hasUseDefaultSettings("Makefile")) {
+        s.Languages.setUseDefaultSettings("Makefile", false);
+        s.Languages.setIndentWithSpaces("Makefile", false);
     }
 
     // Use two spaces to indent ruby by default
-    if(!s.Languages.hasUseDefaultSettings("ruby")) {
-        s.Languages.setUseDefaultSettings("ruby", false);
-        s.Languages.setTabSize("ruby", 2);
-        s.Languages.setIndentWithSpaces("ruby",true);
+    if (!s.Languages.hasUseDefaultSettings("Ruby")) {
+        s.Languages.setUseDefaultSettings("Ruby", false);
+        s.Languages.setTabSize("Ruby", 2);
+        s.Languages.setIndentWithSpaces("Ruby", true);
     }
 
 

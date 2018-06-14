@@ -1181,9 +1181,7 @@ void MainWindow::on_editorAdded(EditorTabWidget *tabWidget, int tab)
     editor->setEOLVisible(ui->actionShow_End_of_Line->isChecked());
     editor->setWhitespaceVisible(ui->actionShow_Whitespace->isChecked());
     editor->setOverwrite(m_overwrite);
-    editor->setFont(m_settings.Appearance.getOverrideFontFamily(),
-                    m_settings.Appearance.getOverrideFontSize(),
-                    m_settings.Appearance.getOverrideLineHeight());
+    editor->setFont(m_settings.Appearance.getFontFamily(), m_settings.Appearance.getFontSize());
     editor->setSmartIndent(m_settings.General.getSmartIndentation());
     editor->setMathEnabled(ui->actionMath_Rendering->isChecked());
 }

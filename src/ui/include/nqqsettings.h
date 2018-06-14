@@ -92,10 +92,10 @@ public:
     END_CATEGORY(General)
 
     BEGIN_CATEGORY(Appearance)
-        NQQ_SETTING(ColorScheme,        QString,    "")
-        NQQ_SETTING(OverrideFontFamily, QString,    "")
-        NQQ_SETTING(OverrideFontSize,   int,        0)
-        NQQ_SETTING(OverrideLineHeight, double,     0)
+        NQQ_SETTING(ColorScheme,    QString,    "")
+        NQQ_SETTING(FontFamily,     QString,    "")
+        NQQ_SETTING(FontStyle,      QString,    "")
+        NQQ_SETTING(FontSize,       int,        0)
     END_CATEGORY(Appearance)
 
     BEGIN_CATEGORY(Search)

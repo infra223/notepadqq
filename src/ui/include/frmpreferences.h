@@ -38,12 +38,8 @@ private slots:
     void on_txtNpm_textChanged(const QString &);
     void resetSelectedShortcut();
     void resetAllShortcuts();
-    void on_chkOverrideFontFamily_toggled(bool checked);
-    void on_chkOverrideFontSize_toggled(bool checked);
     void on_spnFontSize_valueChanged(int arg1);
     void on_cmbFontFamilies_currentFontChanged(const QFont &f);
-    void on_chkOverrideLineHeight_toggled(bool checked);
-    void on_spnLineHeight_valueChanged(double arg1);
 
     void on_buttonBox_clicked(QAbstractButton *button);
 
@@ -60,6 +56,8 @@ private slots:
     void on_btnToolbarReset_clicked();
 
     void on_chkAutosave_toggled(bool checked);
+
+    void on_cmbFontStyles_currentTextChanged(const QString &arg1);
 
 private:
     /**

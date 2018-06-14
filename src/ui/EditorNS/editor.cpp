@@ -447,7 +447,12 @@ namespace EditorNS
         m_endOfLineSequence = newLineSequence;
     }
 
-    void Editor::setFont(QString fontFamily, int fontSize, double lineHeight)
+    void Editor::setFont(const QFont& font)
+    {
+        m_textEditor.setFont(font);
+    }
+
+    void Editor::setFont(QString fontFamily, int fontSize)
     {
         QFont f = font();
 
@@ -459,7 +464,6 @@ namespace EditorNS
         if (fontSize > 0)
             f.setPointSize(fontSize);
 
-        // TODO: lineHeight won't be set anymore.
         m_textEditor.setFont(f);
     }
 
