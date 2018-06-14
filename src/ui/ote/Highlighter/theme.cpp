@@ -114,7 +114,9 @@ QRgb Theme::editorColor(EditorColorRole role) const
     return m_data ? m_data->editorColor(role) : 0;
 }
 
-bool KSyntaxHighlighting::operator==(const Theme& a, const Theme& b)
+namespace KSyntaxHighlighting {
+bool operator==(const Theme& a, const Theme& b)
 {
     return a.m_data == b.m_data;
+}
 }

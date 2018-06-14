@@ -168,6 +168,13 @@ void frmSearchReplace::replace(QString string, QString replacement, SearchHelper
     }
 }
 
+void setFlag(QTextDocument::FindFlags& flags, QTextDocument::FindFlag f, bool enabled) {
+    if (enabled)
+        flags |= f;
+    else
+        flags &= (~f);
+}
+
 int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelpers::SearchMode searchMode, SearchHelpers::SearchOptions searchOptions) {
     /*QString rawSearch = SearchString::format(string, searchMode, searchOptions);
     if (searchMode == SearchHelpers::SearchMode::SpecialChars) {
@@ -187,8 +194,8 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
 
     QString term = ui->cmbSearch->currentText();
     QTextDocument::FindFlags flags;
-    flags.setFlag(QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
-    flags.setFlag(QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
+    setFlag(flags, QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
+    setFlag(flags, QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
 
     term = SearchString::format(term, searchMode, searchOptions);
 
@@ -255,9 +262,10 @@ void frmSearchReplace::findFromUI(bool forward)
 
     QString term = ui->cmbSearch->currentText();
     QTextDocument::FindFlags flags;
-    flags.setFlag(QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
-    flags.setFlag(QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
-    flags.setFlag(QTextDocument::FindBackward, !forward);
+
+    setFlag(flags, QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
+    setFlag(flags, QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
+    setFlag(flags, QTextDocument::FindBackward, !forward);
 
     term = SearchString::format(term, searchModeFromUI(), searchOptionsFromUI());
     te.find(term, flags);

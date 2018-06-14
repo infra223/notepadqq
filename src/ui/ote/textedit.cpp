@@ -116,8 +116,13 @@ void TextEdit::setWhitespaceVisible(bool show)
     auto opts = document()->defaultTextOption();
     auto flags = opts.flags();
 
-    flags.setFlag(QTextOption::ShowTabsAndSpaces, show);
-    opts.setFlags(flags);
+    //flags.setFlag(QTextOption::ShowTabsAndSpaces, show);
+    if (show)
+        opts.setFlags(flags | QTextOption::ShowTabsAndSpaces);
+    else
+        opts.setFlags(flags &  (~QTextOption::ShowTabsAndSpaces));
+
+    //opts.setFlags(flags);
     document()->setDefaultTextOption(opts);
 }
 
@@ -154,6 +159,17 @@ void TextEdit::setTabWidth(int width)
     setFont(getFont());
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+void TextEdit::setTabStopDistance(qreal distance)
+{
+    QTextOption opt = document()->defaultTextOption();
+    if (opt.tabStop() == distance || distance < 0)
+        return;
+    opt.setTabStop(distance);
+    document()->setDefaultTextOption(opt);
+}
+#endif
+
 void TextEdit::setFont(QFont font)
 {
     if (!QFontInfo(font).fixedPitch()) {
@@ -168,7 +184,11 @@ void TextEdit::setFont(QFont font)
     // make the font use it.
     // https://stackoverflow.com/a/42071875/1038629
     QFontMetricsF fm(font);
+#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
+    auto stopWidth = m_tabWidth * fm.boundingRect(' ').width();
+#else
     auto stopWidth = m_tabWidth * fm.horizontalAdvance(' ');
+#endif
     auto letterSpacing = (ceil(stopWidth) - stopWidth) / m_tabWidth;
 
     font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
@@ -514,7 +534,7 @@ QPair<int, int> getLeadingWSLength(const QStringRef& ref, int tabWidth)
     auto ws = 0;
 
     for (int i = 0; i < ref.size(); ++i) {
-        switch (ref[i].toLatin1()) {
+        switch (ref.at(i).toLatin1()) {
         case ' ':
             ws += 1;
             break;
@@ -544,7 +564,9 @@ void TextEdit::convertLeadingWhitespaceToTabs()
         auto idx = pair.first;
         auto ws = pair.second;
 
-        final += QString(ws / m_tabWidth, '\t') + QString(ws % m_tabWidth, ' ') + line.mid(idx) + '\n';
+        final += QString(ws / m_tabWidth, '\t') + QString(ws % m_tabWidth, ' ') ;
+        final += line.mid(idx);
+        final += '\n';
     }
 
     if (!final.isEmpty())
@@ -572,7 +594,9 @@ void TextEdit::convertLeadingWhitespaceToSpaces()
         auto idx = pair.first;
         auto ws = pair.second;
 
-        final += QString(ws, ' ') + line.mid(idx) + '\n';
+        final += QString(ws, ' ');
+        final += line.mid(idx);
+        final += '\n';
     }
 
     if (!final.isEmpty())
@@ -590,7 +614,7 @@ void TextEdit::convertLeadingWhitespaceToSpaces()
 int findFirstNonWS(const QStringRef& ref)
 {
     for (int i = 0; i < ref.size(); ++i)
-        if (!ref[i].isSpace())
+        if (!ref.at(i).isSpace())
             return i;
 
     return ref.size();
@@ -599,7 +623,7 @@ int findFirstNonWS(const QStringRef& ref)
 int findLastNonWS(const QStringRef& ref)
 {
     for (int i = ref.size() - 1; i >= 0; i--)
-        if (!ref[i].isSpace())
+        if (!ref.at(i).isSpace())
             return i;
 
     return 0;
@@ -619,7 +643,8 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
         const int start = !leading ? 0 : findFirstNonWS(line);
         const int end = !trailing ? -1 : findLastNonWS(line) - start + 1;
 
-        final += line.mid(start, end) + '\n';
+        final += line.mid(start, end);
+        final += '\n';
     }
 
     if (!final.isEmpty())

@@ -49,8 +49,6 @@ parts:
     build-packages:
       - pkg-config
       - qtbase5-dev
-      - qtwebengine5-dev
-      - libqt5websockets5-dev
       - libqt5svg5-dev
       - qttools5-dev-tools
       - libuchardet-dev

@@ -161,6 +161,10 @@ private:
         ESMatchingBrackets,
     };
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+	void setTabStopDistance(qreal distance);
+#endif
+
     typedef std::vector<BlockData> BlockList;
     typedef QList<QTextEdit::ExtraSelection> ExtraSelectionList;
     typedef QMap<ESType, ExtraSelectionList> ExtraSelectionMap;
