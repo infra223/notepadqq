@@ -225,7 +225,11 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
 
         if (m_foldingStartBlock == -1)
             break;
-
+        
+        // Don't draw the folding range lines when the hovered block is already folded
+        if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock))
+            break;
+        
         if (!block.isVisible())
             continue;
 
