@@ -517,25 +517,36 @@ namespace EditorNS
 
     void Editor::setOverwrite(bool overwrite)
     {
-        // asyncSendMessageWithResultP("C_CMD_SET_OVERWRITE", overwrite);
         m_textEditor.setOverwriteMode(overwrite);
     }
 
     std::pair<Editor::IndentationMode, bool> Editor::detectDocumentIndentation()
     {
-        /*return asyncSendMessageWithResultP("C_FUN_DETECT_INDENTATION_MODE").then([](QVariant result){
-            QVariantMap indent = result.toMap();
-            IndentationMode out;
+        // This is basically a copy from App.js DETECT_INDENTATION function.
+        QRegularExpression reg("([ ]{2,}|[\t]+)[^ \t]+?");
+        QStringList lines = m_textEditor.toPlainText().split('\n', QString::SkipEmptyParts);
+        int maxLines = 50;
 
-            bool found = indent.value("found", false).toBool();
+        for (const auto& line : lines) {
+            const auto it = reg.match(line);
 
-            if (found) {
-                out.useTabs = indent.value("useTabs", true).toBool();
-                out.size = indent.value("size", 4).toInt();
+            if (maxLines-- <= 0)
+                break;
+
+            if (it.hasMatch()) {
+                const auto match = it.captured(1);
+
+                if (match[0] == '\t')
+                    return std::make_pair(Editor::IndentationMode{true, 0}, true);
+                else {
+                    int length = match.length();
+                    if (length == 2 || length == 4 || length == 8)
+                        return std::make_pair(Editor::IndentationMode{false, length}, true);
+                    else
+                        return std::make_pair(Editor::IndentationMode{false, 0}, false);
+                }
             }
-
-            return std::make_pair(out, found);
-        });*/
+        }
 
         return std::make_pair(Editor::IndentationMode{0, 0}, false);
     }

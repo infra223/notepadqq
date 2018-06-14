@@ -1,6 +1,8 @@
 - Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
 - One Whitespace function not implemented.
 - Math Rendering QAction still inside.
+- Printing not yet implemented.
+- Set default theme in main::ensureDefaultSettings.
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
