@@ -184,6 +184,12 @@ void TextEdit::setFont(QFont font)
     setTabWidth(m_tabWidth);
 }
 
+QFont TextEdit::getFont() const {
+    QFont f = font();
+    f.setPointSize(m_fontSize);
+    return f;
+}
+
 bool TextEdit::isTabToSpaces() const
 {
     return m_tabToSpaces;
@@ -348,27 +354,32 @@ void TextEdit::resetZoom()
 
 void TextEdit::setZoomTo(int value)
 {
-    const auto diff = value - m_pointZoom;
-
-    QPlainTextEdit::zoomIn(diff);
-    m_pointZoom = value;
-
+    // Clamp maximum font size to [4,40]. That should be sensible.
+    value = std::max(m_fontSize - value, 4);
+    value = std::min(value, 40);
+    
+    m_zoomLevel = value;
+    
+    QFont f = font();
+    f.setPointSize(m_fontSize + m_zoomLevel);
+    QPlainTextEdit::setFont(f);
+    
     updateSidebarGeometry();
 }
 
 void TextEdit::zoomIn()
 {
-    setZoomTo(m_pointZoom + 1);
+    setZoomTo(m_zoomLevel + 1);
 }
 
 void TextEdit::zoomOut()
 {
-    setZoomTo(m_pointZoom - 1);
+    setZoomTo(m_zoomLevel - 1);
 }
 
 int TextEdit::getZoomLevel() const
 {
-    return m_pointZoom;
+    return m_zoomLevel;
 }
 
 void TextEdit::clearHistory()

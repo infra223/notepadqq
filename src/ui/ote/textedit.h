@@ -44,7 +44,9 @@ public:
     void setTabToSpaces(bool enable);
     void setWordWrap(bool enable);
     void setTabWidth(int tabWidth);
+    
     void setFont(QFont font);
+    QFont getFont() const;
 
     bool isTabToSpaces() const;
     int getTabWidth() const;
@@ -189,7 +191,8 @@ private:
     QTextDocument::FindFlags m_findFlags;
 
     int m_tabWidth = 4;
-    int m_pointZoom = 0;
+    int m_fontSize = 0; // Will be set by setFont(...) in constructor call
+    int m_zoomLevel = 0;
 
     ExtraSelectionMap m_extraSelections;
 
