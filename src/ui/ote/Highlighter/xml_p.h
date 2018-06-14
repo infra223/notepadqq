@@ -1,5 +1,6 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
+    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
