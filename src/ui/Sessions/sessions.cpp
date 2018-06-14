@@ -5,13 +5,14 @@
 #include "include/topeditorcontainer.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QTimer>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
 #include <vector>
-
 
 /* Session XML structure:
  *
@@ -42,8 +43,6 @@
 struct TabData {
     QString filePath;
     QString cacheFilePath;
-    int cursorX = 0;
-    int cursorY = 0;
     int scrollX = 0;
     int scrollY = 0;
     bool active = false;
@@ -169,8 +168,6 @@ std::vector<TabData> SessionReader::readTabData() {
             TabData td;
             td.filePath = attrs.value("filePath").toString();
             td.cacheFilePath = attrs.value("cacheFilePath").toString();
-            td.cursorX = attrs.value("cursorX").toInt();
-            td.cursorY = attrs.value("cursorY").toInt();
             td.scrollX = attrs.value("scrollX").toInt();
             td.scrollY = attrs.value("scrollY").toInt();
             td.language = attrs.value("language").toString();
@@ -223,8 +220,6 @@ void SessionWriter::addTabData(const TabData& td){
     QXmlStreamAttributes attrs;
     attrs.push_back(QXmlStreamAttribute("filePath", td.filePath));
     attrs.push_back(QXmlStreamAttribute("cacheFilePath", td.cacheFilePath));
-    attrs.push_back(QXmlStreamAttribute("cursorX", QString::number(td.cursorX)));
-    attrs.push_back(QXmlStreamAttribute("cursorY", QString::number(td.cursorY)));
     attrs.push_back(QXmlStreamAttribute("scrollX", QString::number(td.scrollX)));
     attrs.push_back(QXmlStreamAttribute("scrollY", QString::number(td.scrollY)));
 
@@ -313,10 +308,7 @@ bool saveSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
             td.filePath = !isOrphan ? editor->filePath().toLocalFile() : "";
 
             // Finally save other misc information about the tab.
-            const auto& cursorPos = editor->cursorPosition();
             const auto& scrollPos = editor->scrollPosition();
-            td.cursorX = cursorPos.first;
-            td.cursorY = cursorPos.second;
             td.scrollX = scrollPos.first;
             td.scrollY = scrollPos.second;
             td.active = tabWidget->currentEditor() == editor;
@@ -402,28 +394,13 @@ void loadSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
             if (!fileExists && !cacheFileExists)
                 continue;
 
- 
-        auto name = QFileInfo(filePath).fileName();
-
-        auto& cache = LanguageService::getInstance();
-        auto lang = cache.lookupByFileName(name);
-=======
-        /*auto& cache = LanguageService::getInstance();
-        auto lang = cache.lookupByFileName(fileName);
->>>>>>> Clang syntax.
-        if (lang != nullptr) {
-            setLanguage(lang);
-            return;
-        }
-        lang = cache.lookupByExtension(name);
-        if (lang != nullptr) {
-            setLanguage(lang);
-        }*/
-        setLanguage(m_textEditor.getRepository().definitionForFileName(fileName));
-    }
-
-    void Editor::setLanguageFromFilePath()
-    {           docEngine->getDocumentLoader().setUrl(loadUrl).setTabWidget(tabW).setRememberLastDir(false).execute();
+            docEngine->getDocumentLoader()
+                .setUrl(loadUrl)
+                .setTabWidget(tabW)
+                .setRememberLastDir(false)
+                .setFileSizeWarning(DocEngine::FileSizeActionYesToAll)
+                .execute();
+>>>>>>> Restore scroll positions during session load.
 
             int idx = tabW->findOpenEditorByUrl(loadUrl);
 
@@ -471,8 +448,10 @@ void loadSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
 
             if(!tab.language.isEmpty()) editor->setLanguage(tab.language);
 
-            editor->setCursorPosition(tab.cursorX, tab.cursorY);
-            editor->setScrollPosition(tab.scrollX, tab.scrollY);
+            QTimer::singleShot(0, [editor, x = tab.scrollX, y = tab.scrollY, cx = tab.cursorX, cy = tab.cursorY]() { 
+                editor->setScrollPosition(x, y);
+                editor->setCursorPosition(cx, cy);
+			});
 
             if (tab.customIndent) {
                 editor->setCustomIndentationMode(tab.useTabs, tab.tabSize);

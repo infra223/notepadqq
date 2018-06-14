@@ -170,7 +170,7 @@ void TextEdit::setFont(QFont font)
 
     m_fontSize = font.pointSize();
     font.setPointSize(font.pointSize() + m_zoomLevel);
-    
+
     // Calculating letter width using QFrontMetrics isn't 100% accurate. Small inaccuracies
     // can accumulate over time. Instead, we can calculate a good letter spacing value and
     // make the font use it.
@@ -362,13 +362,13 @@ void TextEdit::setZoomTo(int value)
         value = MIN_FONT_SIZE - m_fontSize;
     else if (m_fontSize + value > MAX_FONT_SIZE)
         value = MAX_FONT_SIZE - m_fontSize;
-    
+
     m_zoomLevel = value;
 
     QFont f = font();
     f.setPointSize(m_fontSize + m_zoomLevel);
     QPlainTextEdit::setFont(f);
-    
+
     updateSidebarGeometry();
 }
 
