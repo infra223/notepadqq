@@ -153,12 +153,22 @@ void TextEdit::setWordWrap(bool enable)
     enable ? setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere) : setWordWrapMode(QTextOption::NoWrap);
 }
 
+void TextEdit::setTabWidth(int width)
+{
+    if (width < 0 || width == m_tabWidth)
+        return;
+
+    m_tabWidth = width;
+    setFont(getFont());
+}
+
 void TextEdit::setFont(QFont font)
 {
     if (!QFontInfo(font).fixedPitch()) {
         qDebug() << "Selected font is not monospace: " << font.family() << font.style();
     }
 
+    m_fontSize = font.pointSize();
     font.setPointSize(font.pointSize() + m_zoomLevel);
     
     // Calculating letter width using QFrontMetrics isn't 100% accurate. Small inaccuracies
@@ -344,17 +354,17 @@ void TextEdit::resetZoom()
 
 void TextEdit::setZoomTo(int value)
 {
-    // Clamp maximum font size to [4,60]. That should be sensible.
+    // Clamp maximum font size to [4,40]. That should be sensible.
     const int MIN_FONT_SIZE = 4;
-    const int MAX_FONT_SIZE = 60;
-    
+    const int MAX_FONT_SIZE = 40;
+
     if (m_fontSize + value < MIN_FONT_SIZE)
-        value = m_fontSize - MIN_FONT_SIZE;
+        value = MIN_FONT_SIZE - m_fontSize;
     else if (m_fontSize + value > MAX_FONT_SIZE)
         value = MAX_FONT_SIZE - m_fontSize;
     
     m_zoomLevel = value;
-    
+
     QFont f = font();
     f.setPointSize(m_fontSize + m_zoomLevel);
     QPlainTextEdit::setFont(f);
@@ -634,7 +644,11 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
 
 void TextEdit::updateSidebarGeometry()
 {
-    m_sideBar->updateSizeHint(blockBoundingGeometry(firstVisibleBlock()).height());
+    const auto firstBlock = firstVisibleBlock();
+    const qreal lineHeight =
+        firstBlock.isValid() ? blockBoundingRect(firstBlock).height() / firstBlock.lineCount() : 17; // Decent default
+
+    m_sideBar->updateSizeHint(lineHeight);
     auto gutterWidth = m_sideBar->sizeHint().width();
 
     setViewportMargins(gutterWidth, 0, 0, 0);

@@ -37,7 +37,7 @@ private:
     int m_foldingEndBlock = -1;
 
     QSize m_gutterSize;
-    qreal m_foldingBarWidth = 0;
+    qreal m_lineHeight = 0;
 };
 
 } // namespace ote

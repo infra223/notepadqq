@@ -43,6 +43,7 @@ public:
     void setSmartIndent(bool enable);
     void setTabToSpaces(bool enable);
     void setWordWrap(bool enable);
+    void setTabWidth(int width);
     
     void setFont(QFont font);
     QFont getFont() const;

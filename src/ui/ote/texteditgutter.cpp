@@ -37,7 +37,7 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
 
     int hoverBlock = -1;
 
-    if (event->x() < this->geometry().right() - m_foldingBarWidth) {
+    if (event->x() < this->geometry().right() - m_lineHeight) {
         hoverBlock = -1;
     } else if (m_textEdit->isFoldable(block)) { // m_highlighter->startsFoldingRegion(block)
         hoverBlock = blockNum;
@@ -82,10 +82,10 @@ void TextEditGutter::updateSizeHint(qreal lineHeight)
     const QStringRef ref(&templateString, 0, digits);
     const auto leftMargin = lineHeight / 4;
     const auto widthOfString = m_textEdit->fontMetrics().boundingRect(ref.toString()).width();
-    const auto foldingMarkerSize = lineHeight;
 
-    m_foldingBarWidth = foldingMarkerSize;
-    m_gutterSize = QSize(leftMargin + widthOfString + foldingMarkerSize, 0);
+    m_lineHeight = lineHeight;
+    // Add line-height as width of folding bar
+    m_gutterSize = QSize(leftMargin + widthOfString + lineHeight, 0);
 }
 
 void TextEditGutter::paintEvent(QPaintEvent* event)
@@ -136,8 +136,8 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
     if (blockList.empty())
         return;
 
-    // const KSyntaxHighlighting::Theme& currentTheme = m_textedit->getTheme();
-    const auto foldingMarkerSize = blockList.front().translatedRect.height();
+    const auto foldingBrush = QBrush(m_textEdit->getTheme().editorColor(KSyntaxHighlighting::Theme::CodeFolding));
+    const auto foldingMarkerSize = m_lineHeight;
 
     for (const auto& blockData : blockList) {
         const auto block = blockData.block;
@@ -161,8 +161,7 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
         painter.save();
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(Qt::NoPen);
-        painter.setBrush(
-            QColor(m_textedit->getTheme().editorColor(KSyntaxHighlighting::Theme::CodeFolding)));
+        painter.setBrush(foldingBrush);
 
         painter.translate(width() - foldingMarkerSize, geom.top());
         painter.translate(foldingMarkerSize * 0.6, foldingMarkerSize * 0.5);
@@ -178,9 +177,8 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     if (blockList.empty())
         return;
 
-    const KSyntaxHighlighting::Theme& currentTheme = m_textedit->getTheme();
+    const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->getTheme();
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
-    const auto foldingMarkerSize = blockList.front().translatedRect.height();
 
     painter.fillRect(event->rect(), currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
     // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
@@ -204,7 +202,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
         painter.setPen(color);
         painter.drawText(0,
             geom.top(),
-            width() - foldingMarkerSize,
+            width() - static_cast<int>(m_lineHeight),
             geom.height(),
             Qt::AlignRight,
             QString::number(blockNumber + 1));
@@ -214,7 +212,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     painter.save();
     QPen p;
     p.setColor(m_textEdit->getTheme().textColor(KSyntaxHighlighting::Theme::Normal));
-    p.setWidth(static_cast<int>(m_foldingBarWidth / 8));
+    p.setWidth(static_cast<int>(m_lineHeight / 8));
     painter.setPen(p);
 
     for (const auto& blockData : blockList) {
@@ -225,7 +223,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
             break;
         
         // Don't draw the folding range lines when the hovered block is already folded
-        if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock))
+        if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock)))
             break;
         
         if (!block.isVisible())
@@ -239,6 +237,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
         if (blockNumber > m_foldingEndBlock)
             break;
 
+        const auto foldingMarkerSize = m_lineHeight;
         if (blockNumber == m_foldingStartBlock) {
             const QPointF start(width() - foldingMarkerSize * 0.5, geom.top() + foldingMarkerSize * 0.8);
             const QPointF end(width() - foldingMarkerSize * 0.5, geom.bottom());
