@@ -6,6 +6,8 @@
 - Remove KSyntaxHighlighting namespace.
 - Add light themes.
 - Rebase on upstream.
+- Bump version.
+- Clean up snap file
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.
