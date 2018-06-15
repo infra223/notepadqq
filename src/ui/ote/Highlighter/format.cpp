@@ -31,7 +31,7 @@
 #include <QMetaEnum>
 #include <QXmlStreamReader>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 static Theme::TextStyle stringToDefaultFormat(const QStringRef& str)
 {

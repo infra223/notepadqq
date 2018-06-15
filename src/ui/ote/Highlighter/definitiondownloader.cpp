@@ -19,8 +19,8 @@
 #include "definitiondownloader.h"
 
 #include "definition.h"
-#include "ksyntaxhighlighting_logging.h"
-#include "ksyntaxhighlighting_version.h"
+#include "OTE_logging.h"
+#include "OTE_version.h"
 #include "repository.h"
 
 #include <QDebug>
@@ -33,9 +33,9 @@
 #include <QTimer>
 #include <QXmlStreamReader>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
-class KSyntaxHighlighting::DefinitionDownloaderPrivate {
+class ote::DefinitionDownloaderPrivate {
 public:
     DefinitionDownloader* q;
     Repository* repo;

@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_FOLDINGREGION_H
-#define KSYNTAXHIGHLIGHTING_FOLDINGREGION_H
+#ifndef OTE_FOLDINGREGION_H
+#define OTE_FOLDINGREGION_H
 
 #include <QTypeInfo>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 /** Represents a begin or end of a folding region.
  *  @since 5.28 */
@@ -94,6 +94,6 @@ private:
 
 }
 
-Q_DECLARE_TYPEINFO(KSyntaxHighlighting::FoldingRegion, Q_PRIMITIVE_TYPE);
+Q_DECLARE_TYPEINFO(ote::FoldingRegion, Q_PRIMITIVE_TYPE);
 
 #endif

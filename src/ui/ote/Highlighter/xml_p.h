@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_XML_P_H
-#define KSYNTAXHIGHLIGHTING_XML_P_H
+#ifndef OTE_XML_P_H
+#define OTE_XML_P_H
 
 #include <QString>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 /** Utilities for XML parsing. */
 namespace Xml {
 

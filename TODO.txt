@@ -3,11 +3,9 @@
 - Make sure indentation works. Custom indentation specifically. E.g. when indentation detection kicks in.
 - setTabWidth on <Qt5.10 doesn't seem to work yet.
 - Add documentation to code.
-- Remove KSyntaxHighlighting namespace.
 - Add light themes.
 - Rebase on upstream.
-- Bump version.
-- Clean up snap file
+- Do last: Bump version (see Wiki).
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.

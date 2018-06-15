@@ -16,13 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_STATE_H
-#define KSYNTAXHIGHLIGHTING_STATE_H
+#ifndef OTE_STATE_H
+#define OTE_STATE_H
 
 #include <QExplicitlySharedDataPointer>
 #include <QTypeInfo>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class StateData;
 
@@ -72,6 +72,6 @@ private:
 
 }
 
-Q_DECLARE_TYPEINFO(KSyntaxHighlighting::State, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(ote::State, Q_MOVABLE_TYPE);
 
-#endif // KSYNTAXHIGHLIGHTING_STATE_H
+#endif // OTE_STATE_H

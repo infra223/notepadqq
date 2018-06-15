@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_CONTEXTSWITCH_P_H
-#define KSYNTAXHIGHLIGHTING_CONTEXTSWITCH_P_H
+#ifndef OTE_CONTEXTSWITCH_P_H
+#define OTE_CONTEXTSWITCH_P_H
 
 #include <QString>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Context;
 class Definition;
@@ -48,4 +48,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_CONTEXTSWITCH_P_H
+#endif // OTE_CONTEXTSWITCH_P_H

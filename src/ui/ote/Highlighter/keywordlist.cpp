@@ -21,7 +21,7 @@
 #include <QDebug>
 #include <QXmlStreamReader>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 KeywordList::KeywordList()
     : m_caseSensitive(Qt::CaseSensitive)

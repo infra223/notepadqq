@@ -23,7 +23,7 @@
 
 #include <QStringList>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 StateData::StateData()
     : m_defData(nullptr)

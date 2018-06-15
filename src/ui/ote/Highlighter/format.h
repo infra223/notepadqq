@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_FORMAT_H
-#define KSYNTAXHIGHLIGHTING_FORMAT_H
+#ifndef OTE_FORMAT_H
+#define OTE_FORMAT_H
 
 #include <QExplicitlySharedDataPointer>
 #include <QTypeInfo>
@@ -26,7 +26,7 @@ class QColor;
 class QString;
 class QXmlStreamReader;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class DefinitionRef;
 class FormatPrivate;
@@ -127,6 +127,6 @@ private:
 };
 }
 
-Q_DECLARE_TYPEINFO(KSyntaxHighlighting::Format, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(ote::Format, Q_MOVABLE_TYPE);
 
-#endif // KSYNTAXHIGHLIGHTING_FORMAT_H
+#endif // OTE_FORMAT_H

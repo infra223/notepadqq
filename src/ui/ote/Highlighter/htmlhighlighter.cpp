@@ -28,9 +28,9 @@
 #include <QFileInfo>
 #include <QTextStream>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
-class KSyntaxHighlighting::HtmlHighlighterPrivate {
+class ote::HtmlHighlighterPrivate {
 public:
     std::unique_ptr<QTextStream> out;
     std::unique_ptr<QFile> file;

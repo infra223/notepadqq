@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_FORMAT_P_H
-#define KSYNTAXHIGHLIGHTING_FORMAT_P_H
+#ifndef OTE_FORMAT_P_H
+#define OTE_FORMAT_P_H
 
 #include "definitionref_p.h"
 #include "textstyledata_p.h"
@@ -26,7 +26,7 @@
 #include <QSharedData>
 #include <QString>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class FormatPrivate : public QSharedData
 {

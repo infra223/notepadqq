@@ -136,7 +136,7 @@ void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockL
     if (blockList.empty())
         return;
 
-    const auto foldingBrush = QBrush(m_textEdit->getTheme().editorColor(KSyntaxHighlighting::Theme::CodeFolding));
+    const auto foldingBrush = QBrush(m_textEdit->getTheme().editorColor(Theme::CodeFolding));
     const auto foldingMarkerSize = m_lineHeight;
 
     for (const auto& blockData : blockList) {
@@ -177,10 +177,10 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     if (blockList.empty())
         return;
 
-    const KSyntaxHighlighting::Theme& currentTheme = m_textEdit->getTheme();
+    const Theme& currentTheme = m_textEdit->getTheme();
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
 
-    painter.fillRect(event->rect(), currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
+    painter.fillRect(event->rect(), currentTheme.editorColor(Theme::CurrentLine));
     // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
 
     for (const auto& blockData : blockList) {
@@ -192,8 +192,8 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
 
         const auto blockNumber = block.blockNumber();
         const auto color = (blockNumber == currentBlockNumber)
-                               ? currentTheme.editorColor(KSyntaxHighlighting::Theme::CurrentLineNumber)
-                               : currentTheme.editorColor(KSyntaxHighlighting::Theme::LineNumbers);
+                               ? currentTheme.editorColor(Theme::CurrentLineNumber)
+                               : currentTheme.editorColor(Theme::LineNumbers);
 
         // painter.fillRect(0, geom.top(), width()-foldingMarkerSize, geom.height(), QColor(QColor::colorNames()[rand()
         // % 10]));
@@ -211,7 +211,7 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
     // Paint folding range
     painter.save();
     QPen p;
-    p.setColor(m_textEdit->getTheme().textColor(KSyntaxHighlighting::Theme::Normal));
+    p.setColor(m_textEdit->getTheme().textColor(Theme::Normal));
     p.setWidth(static_cast<int>(m_lineHeight / 8));
     painter.setPen(p);
 

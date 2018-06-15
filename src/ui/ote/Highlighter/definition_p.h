@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_DEFINITION_P_H
-#define KSYNTAXHIGHLIGHTING_DEFINITION_P_H
+#ifndef OTE_DEFINITION_P_H
+#define OTE_DEFINITION_P_H
 
 #include "definitionref_p.h"
 
@@ -33,7 +33,7 @@ class QXmlStreamReader;
 class QJsonObject;
 QT_END_NAMESPACE
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Definition;
 class Repository;

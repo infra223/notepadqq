@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_DEFINITIONDOWNLOADER_H
-#define KSYNTAXHIGHLIGHTING_DEFINITIONDOWNLOADER_H
+#ifndef OTE_DEFINITIONDOWNLOADER_H
+#define OTE_DEFINITIONDOWNLOADER_H
 
 
 
 #include <QObject>
 #include <memory>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class DefinitionDownloaderPrivate;
 class Repository;
@@ -105,4 +105,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_DEFINITIONDOWNLOADER_H
+#endif // OTE_DEFINITIONDOWNLOADER_H

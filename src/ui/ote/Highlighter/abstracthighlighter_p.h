@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_ABSTRACTHIGHLIGHTER_P_H
-#define KSYNTAXHIGHLIGHTING_ABSTRACTHIGHLIGHTER_P_H
+#ifndef OTE_ABSTRACTHIGHLIGHTER_P_H
+#define OTE_ABSTRACTHIGHLIGHTER_P_H
 
 #include "definition.h"
 #include "theme.h"
 
 class QStringList;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class ContextSwitch;
 class StateData;

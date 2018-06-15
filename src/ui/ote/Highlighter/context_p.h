@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_CONTEXT_P_H
-#define KSYNTAXHIGHLIGHTING_CONTEXT_P_H
+#ifndef OTE_CONTEXT_P_H
+#define OTE_CONTEXT_P_H
 
 #include "rule_p.h"
 #include "contextswitch_p.h"
@@ -29,7 +29,7 @@
 
 class QXmlStreamReader;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Context
 {
@@ -92,4 +92,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_CONTEXT_P_H
+#endif // OTE_CONTEXT_P_H

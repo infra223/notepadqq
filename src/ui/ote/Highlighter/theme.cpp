@@ -22,7 +22,7 @@
 
 #include <QCoreApplication>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 Theme::Theme() {}
 
@@ -114,7 +114,7 @@ QRgb Theme::editorColor(EditorColorRole role) const
     return m_data ? m_data->editorColor(role) : 0;
 }
 
-namespace KSyntaxHighlighting {
+namespace ote {
 bool operator==(const Theme& a, const Theme& b)
 {
     return a.m_data == b.m_data;

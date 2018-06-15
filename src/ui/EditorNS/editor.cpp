@@ -30,14 +30,14 @@ namespace EditorNS
         fullConstructor(theme);
     }
 
-    Editor::Editor(const KSyntaxHighlighting::Theme& theme, QWidget* parent)
+    Editor::Editor(const ote::Theme& theme, QWidget* parent)
         : QWidget(parent)
         , m_textEditor(parent)
     {
         fullConstructor(theme);
     }
 
-    void Editor::fullConstructor(const KSyntaxHighlighting::Theme& theme) // FIXME: Should use new Theme
+    void Editor::fullConstructor(const ote::Theme& theme) // FIXME: Should use new Theme
     {
         m_layout = new QVBoxLayout(this);
         m_layout->setContentsMargins(0, 0, 0, 0);
@@ -155,7 +155,7 @@ namespace EditorNS
         return m_textEditor.document()->revision();
     }
 
-    void Editor::setLanguage(KSyntaxHighlighting::Definition def)
+    void Editor::setLanguage(ote::Definition def)
     {
         qDebug() << "Setting language to " << def.name();
 
@@ -208,10 +208,10 @@ namespace EditorNS
             return;
         }
 
-        setLanguage(KSyntaxHighlighting::Definition());
+        setLanguage(ote::Definition());
     }
 
-    void Editor::setIndentationMode(const KSyntaxHighlighting::Definition& def)
+    void Editor::setIndentationMode(const ote::Definition& def)
     {
         const auto& s = NqqSettings::getInstance().Languages;
         const bool useDefaults = s.getUseDefaultSettings(def.name());
@@ -446,7 +446,7 @@ namespace EditorNS
         m_bom = bom;
     }
 
-    void Editor::setTheme(const KSyntaxHighlighting::Theme& theme)
+    void Editor::setTheme(const ote::Theme& theme)
     {
         // TODO: This is called way too often
         // qDebug() << "Setting theme to " << theme.name();

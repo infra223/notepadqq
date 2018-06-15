@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_DEFINITIONREF_P_H
-#define KSYNTAXHIGHLIGHTING_DEFINITIONREF_P_H
+#ifndef OTE_DEFINITIONREF_P_H
+#define OTE_DEFINITIONREF_P_H
 
 #include <memory>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Definition;
 class DefinitionData;

@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_ABSTRACTHIGHLIGHTERM_H
-#define KSYNTAXHIGHLIGHTING_ABSTRACTHIGHLIGHTERM_H
+#ifndef OTE_ABSTRACTHIGHLIGHTERM_H
+#define OTE_ABSTRACTHIGHLIGHTERM_H
 
 #include <QObject>
 
@@ -25,7 +25,7 @@
 
 class QString;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class AbstractHighlighterPrivate;
 class Definition;
@@ -175,6 +175,6 @@ private:
 };
 }
 
-Q_DECLARE_INTERFACE(KSyntaxHighlighting::AbstractHighlighter, "org.kde.SyntaxHighlighting.AbstractHighlighter")
+Q_DECLARE_INTERFACE(ote::AbstractHighlighter, "org.kde.SyntaxHighlighting.AbstractHighlighter")
 
-#endif // KSYNTAXHIGHLIGHTING_ABSTRACTHIGHLIGHTERM_H
+#endif // OTE_ABSTRACTHIGHLIGHTERM_H

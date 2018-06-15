@@ -23,7 +23,7 @@
 
 #include <QDebug>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 ContextSwitch::ContextSwitch()
     : m_context(nullptr)

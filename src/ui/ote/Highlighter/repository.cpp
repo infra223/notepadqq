@@ -36,7 +36,7 @@
 
 #include <limits>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 static void initResource()
 {

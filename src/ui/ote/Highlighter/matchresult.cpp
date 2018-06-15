@@ -18,7 +18,7 @@
 
 #include "matchresult_p.h"
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 MatchResult::MatchResult(int offset, const QStringList& captures)
     : m_captures(captures)

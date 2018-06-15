@@ -38,7 +38,7 @@
 
 #include <algorithm>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 DefinitionData::DefinitionData()
     : repo(nullptr)

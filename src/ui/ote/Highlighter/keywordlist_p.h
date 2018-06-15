@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H
-#define KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H
+#ifndef OTE_KEYWORDLIST_P_H
+#define OTE_KEYWORDLIST_P_H
 
 #include <QSet>
 #include <QString>
@@ -25,7 +25,7 @@
 
 class QXmlStreamReader;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class KeywordList
 {
@@ -53,4 +53,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H
+#endif // OTE_KEYWORDLIST_P_H

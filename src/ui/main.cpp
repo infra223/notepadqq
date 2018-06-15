@@ -206,8 +206,8 @@ void enforceDefaultSettings()
 
     if (!repo.theme(s.Appearance.getColorScheme()).isValid()) {
         const auto theme = (qApp->palette().color(QPalette::Base).lightness() < 128)
-                               ? repo.defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-                               : repo.defaultTheme(KSyntaxHighlighting::Repository::LightTheme);
+                               ? repo.defaultTheme(ote::Repository::DarkTheme)
+                               : repo.defaultTheme(ote::Repository::LightTheme);
 
         s.Appearance.setColorScheme(theme.name());
     }

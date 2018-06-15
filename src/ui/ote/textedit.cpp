@@ -21,14 +21,14 @@ namespace ote {
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
-    , m_highlighter(new KSyntaxHighlighting::SyntaxHighlighter(document()))
+    , m_highlighter(new SyntaxHighlighter(document()))
 {
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
     // We probably shouldn't call this here.
     /*setTheme((palette().color(QPalette::Base).lightness() < 128)
-                 ? getRepository().defaultTheme(KSyntaxHighlighting::Repository::DarkTheme)
-                 : getRepository().defaultTheme(KSyntaxHighlighting::Repository::LightTheme));*/
+                 ? getRepository().defaultTheme(Repository::DarkTheme)
+                 : getRepository().defaultTheme(Repository::LightTheme));*/
 
     m_t.start();
 
@@ -45,16 +45,16 @@ TextEdit::TextEdit(QWidget* parent)
     onCursorPositionChanged();
 }
 
-void TextEdit::setTheme(const KSyntaxHighlighting::Theme& theme)
+void TextEdit::setTheme(const Theme& theme)
 {
     if (theme == getTheme())
         return;
 
     auto pal = qApp->palette();
     if (theme.isValid()) {
-        pal.setColor(QPalette::Base, theme.editorColor(KSyntaxHighlighting::Theme::BackgroundColor));
-        pal.setColor(QPalette::Text, theme.textColor(KSyntaxHighlighting::Theme::Normal));
-        pal.setColor(QPalette::Highlight, theme.editorColor(KSyntaxHighlighting::Theme::CurrentLine));
+        pal.setColor(QPalette::Base, theme.editorColor(Theme::BackgroundColor));
+        pal.setColor(QPalette::Text, theme.textColor(Theme::Normal));
+        pal.setColor(QPalette::Highlight, theme.editorColor(Theme::CurrentLine));
     }
     setPalette(pal);
     viewport()->setPalette(pal);
@@ -68,7 +68,7 @@ void TextEdit::setTheme(const KSyntaxHighlighting::Theme& theme)
 void TextEdit::highlightCurrentLine()
 {
     QTextEdit::ExtraSelection selection;
-    selection.format.setBackground(QBrush(getTheme().editorColor(KSyntaxHighlighting::Theme::CurrentLine)));
+    selection.format.setBackground(QBrush(getTheme().editorColor(Theme::CurrentLine)));
     selection.format.setProperty(QTextFormat::FullWidthSelection, true);
     selection.cursor = textCursor();
     selection.cursor.clearSelection();
@@ -78,18 +78,18 @@ void TextEdit::highlightCurrentLine()
     eslh << selection;
 }
 
-KSyntaxHighlighting::Repository* TextEdit::s_repository = nullptr;
+Repository* TextEdit::s_repository = nullptr;
 
 void TextEdit::initRepository(const QString& path)
 {
     QElapsedTimer t;
     t.start();
-    s_repository = new KSyntaxHighlighting::Repository(path);
+    s_repository = new Repository(path);
 
     qDebug() << "Repository directory loaded in " << t.elapsed() / 1000 / 1000 << "msec";
 }
 
-void TextEdit::setDefinition(const KSyntaxHighlighting::Definition& d)
+void TextEdit::setDefinition(const Definition& d)
 {
     m_highlighter->setDefinition(d);
 }
@@ -718,9 +718,9 @@ void TextEdit::onSelectionChanged()
 
     ExtraSelectionList list;
     QTextEdit::ExtraSelection selection;
-    selection.format.setForeground(QBrush(getTheme().textColor(KSyntaxHighlighting::Theme::Keyword)));
+    selection.format.setForeground(QBrush(getTheme().textColor(Theme::Keyword)));
     selection.format.setBackground(
-        QBrush(getTheme().editorColor(KSyntaxHighlighting::Theme::SearchHighlight)));
+        QBrush(getTheme().editorColor(Theme::SearchHighlight)));
 
     while ((j = fullText.indexOf(text, j)) != -1) {
         selection.cursor = cursor;
@@ -741,7 +741,7 @@ void TextEdit::createParenthesisSelection(int pos)
     cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
 
     QTextCharFormat f;
-    f.setForeground(QBrush(getTheme().editorColor(KSyntaxHighlighting::Theme::BracketMatching)));
+    f.setForeground(QBrush(getTheme().editorColor(Theme::BracketMatching)));
 
     m_extraSelections[ESMatchingBrackets] << QTextEdit::ExtraSelection{cursor, f};
 }
@@ -827,8 +827,8 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
     const qreal constWidth = metrics.width(contStr);
     const qreal spaceWidth = metrics.width(' ') * 2;
 
-    const QColor textColor(getTheme().textColor(KSyntaxHighlighting::Theme::Normal));
-    const QBrush regionBrush(getTheme().textColor(KSyntaxHighlighting::Theme::RegionMarker));
+    const QColor textColor(getTheme().textColor(Theme::Normal));
+    const QBrush regionBrush(getTheme().textColor(Theme::RegionMarker));
 
     painter.save();
     painter.setPen(textColor);
@@ -856,7 +856,7 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
         if (folded) {
             qreal offset = spaceWidth + (m_showEndOfLineMarkers ? arrowWidth : 0);
             painter.save();
-            painter.setPen(getTheme().textColor(KSyntaxHighlighting::Theme::RegionMarker));
+            painter.setPen(getTheme().textColor(Theme::RegionMarker));
 
             QRectF rect;
             rect.setTopLeft(QPointF(lineRect.right() + offset, lineRect.top()));
@@ -887,7 +887,7 @@ void TextEdit::paintLineBreaks(QPainter& painter, const BlockList& blockList) co
     const auto arrowWidth = fontMetrics().boundingRect(visualArrow).width();
 
     painter.save();
-    painter.setPen(getTheme().textColor(KSyntaxHighlighting::Theme::Normal));
+    painter.setPen(getTheme().textColor(Theme::Normal));
 
     for (const auto& blockData : blockList) {
         const auto block = blockData.block;
@@ -1122,7 +1122,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
             QTextBlockFormat blockFormat = block.blockFormat();
 
             QBrush bg = blockFormat.background();
-            // QBrush bg( getTheme().editorColor(KSyntaxHighlighting::Theme::BackgroundColor) );
+            // QBrush bg( getTheme().editorColor(Theme::BackgroundColor) );
             if (bg != Qt::NoBrush) {
                 QRectF contentsRect = r;
                 contentsRect.setWidth(qMax(r.width(), maximumWidth));
@@ -1136,7 +1136,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
                 s.format.clearForeground();
                 s.format.setBackground(
-                    QBrush(getTheme().editorColor(KSyntaxHighlighting::Theme::TextSelection)));
+                    QBrush(getTheme().editorColor(Theme::TextSelection)));
 
                 // context.selections.pop_back();
 
@@ -1145,7 +1145,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
                 //QPalette::ColorGroup cg = d->hasFocus ? QPalette::Active : QPalette::Inactive;
                 selection.format.setBackground(
-                QBrush(getTheme().editorColor(KSyntaxHighlighting::Theme::CurrentLine)) );
+                QBrush(getTheme().editorColor(Theme::CurrentLine)) );
                 //selection.format.setBackground(m_currentTheme.getColor(Theme::TextEditActiveBackground));
                 selection.format.setProperty(QTextFormat::FullWidthSelection, true);
                 context.selections.push_back(selection);*/

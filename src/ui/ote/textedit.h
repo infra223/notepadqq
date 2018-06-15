@@ -29,11 +29,11 @@ class TextEdit : public QPlainTextEdit
 public:
     TextEdit(QWidget* parent);
 
-    void setTheme(const KSyntaxHighlighting::Theme& theme);
-    KSyntaxHighlighting::Theme getTheme() const { return m_highlighter->theme(); }
+    void setTheme(const Theme& theme);
+    Theme getTheme() const { return m_highlighter->theme(); }
 
-    void setDefinition(const KSyntaxHighlighting::Definition& d);
-    KSyntaxHighlighting::Definition getDefinition() const { return m_highlighter->definition(); }
+    void setDefinition(const Definition& d);
+    Definition getDefinition() const { return m_highlighter->definition(); }
 
     void setSyntaxHighlightingEnabled(bool enabled);
 
@@ -201,17 +201,17 @@ private:
     ExtraSelectionMap m_extraSelections;
 
     TextEditGutter* m_sideBar;
-    KSyntaxHighlighting::SyntaxHighlighter* m_highlighter;
+    SyntaxHighlighter* m_highlighter;
 
     void createParenthesisSelection(int pos);
 
     void highlightCurrentLine();
 
-    static KSyntaxHighlighting::Repository* s_repository;
+    static Repository* s_repository;
 
 public:
 
-    static KSyntaxHighlighting::Repository& getRepository() {
+    static Repository& getRepository() {
         return *s_repository;
     }
     static void initRepository(const QString& path);

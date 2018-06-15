@@ -27,7 +27,7 @@
 #include <QString>
 #include <QXmlStreamReader>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 Context::Context()
     : m_resolveState(Unknown)

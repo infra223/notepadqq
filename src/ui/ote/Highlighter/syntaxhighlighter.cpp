@@ -29,9 +29,9 @@
 
 Q_DECLARE_METATYPE(QTextBlock)
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 class TextBlockUserData : public QTextBlockUserData {
 public:
     State state;
@@ -45,7 +45,7 @@ public:
     QVector<FoldingRegion> foldingRegions;
 };
 
-} // namespace KSyntaxHighlighting
+} // namespace ote
 
 FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlock)
 {
@@ -183,7 +183,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
 }
 
-void SyntaxHighlighter::applyFormat(int offset, int length, const KSyntaxHighlighting::Format& format)
+void SyntaxHighlighter::applyFormat(int offset, int length, const ote::Format& format)
 {
     if (format.isDefaultTextStyle(theme()) || length == 0)
         return;

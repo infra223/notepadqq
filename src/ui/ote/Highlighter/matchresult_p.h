@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H
-#define KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H
+#ifndef OTE_MATCHRESULT_P_H
+#define OTE_MATCHRESULT_P_H
 
 #include <QStringList>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class MatchResult
 {
@@ -40,4 +40,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H
+#endif // OTE_MATCHRESULT_P_H

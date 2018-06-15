@@ -37,7 +37,7 @@ namespace EditorNS
         Q_OBJECT
     public:
 
-        explicit Editor(const KSyntaxHighlighting::Theme& theme, QWidget *parent = 0);
+        explicit Editor(const ote::Theme& theme, QWidget *parent = 0);
         explicit Editor(QWidget *parent = 0);
 
         /**
@@ -151,7 +151,7 @@ namespace EditorNS
          *        the default configuration for the specified language.
          * @param language Language id
          */
-        Q_INVOKABLE void setLanguage(KSyntaxHighlighting::Definition def);
+        Q_INVOKABLE void setLanguage(ote::Definition def);
         Q_INVOKABLE void setLanguage(const QString &language);
 <<<<<<< HEAD
         Q_INVOKABLE void setLanguageFromFilePath(const QString& filePath);
@@ -188,7 +188,7 @@ namespace EditorNS
         Q_INVOKABLE void setSmartIndent(bool enabled);
         Q_INVOKABLE void setSelectionsText(const QStringList &texts, SelectMode mode);
         Q_INVOKABLE void setSelectionsText(const QStringList &texts);
-        KSyntaxHighlighting::Definition getLanguage() { return m_textEditor.getDefinition(); }
+        ote::Definition getLanguage() { return m_textEditor.getDefinition(); }
         Q_INVOKABLE void setLineWrap(const bool wrap);
         Q_INVOKABLE void setEOLVisible(const bool showeol);
         Q_INVOKABLE void setWhitespaceVisible(const bool showspace);
@@ -231,7 +231,7 @@ namespace EditorNS
         bool bom() const;
         void setBom(bool bom);
 
-        void setTheme(const KSyntaxHighlighting::Theme& theme);
+        void setTheme(const ote::Theme& theme);
         void setTheme(const QString& themeName);
 
         ote::TextEdit& textEditor() { return m_textEditor; }
@@ -286,10 +286,10 @@ namespace EditorNS
         bool m_customIndentationMode = false;
         const Language* m_currentLanguage = nullptr;
 
-        void fullConstructor(const KSyntaxHighlighting::Theme& theme);
+        void fullConstructor(const ote::Theme& theme);
 
         void setIndentationMode(const bool useTabs, const int size);
-        void setIndentationMode(const KSyntaxHighlighting::Definition& def);
+        void setIndentationMode(const ote::Definition& def);
 
     signals:
         void messageReceived(QString msg, QVariant data);

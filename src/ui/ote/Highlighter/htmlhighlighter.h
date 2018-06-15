@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_HTMLHIGHLIGHTER_H
-#define KSYNTAXHIGHLIGHTING_HTMLHIGHLIGHTER_H
+#ifndef OTE_HTMLHIGHLIGHTER_H
+#define OTE_HTMLHIGHLIGHTER_H
 
 
 #include "abstracthighlighter.h"
@@ -29,7 +29,7 @@
 class QFile;
 class QTextStream;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class HtmlHighlighterPrivate;
 
@@ -52,4 +52,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_HTMLHIGHLIGHTER_H
+#endif // OTE_HTMLHIGHLIGHTER_H

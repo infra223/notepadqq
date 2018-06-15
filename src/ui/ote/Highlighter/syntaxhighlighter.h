@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_QSYNTAXHIGHLIGHTER_H
-#define KSYNTAXHIGHLIGHTING_QSYNTAXHIGHLIGHTER_H
+#ifndef OTE_QSYNTAXHIGHLIGHTER_H
+#define OTE_QSYNTAXHIGHLIGHTER_H
 
 #include "abstracthighlighter.h"
 
@@ -27,7 +27,7 @@
 #include <QTextDocument>
 #include <QSyntaxHighlighter>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class SyntaxHighlighterPrivate;
 
@@ -89,4 +89,4 @@ private:
 };
 }
 
-#endif // KSYNTAXHIGHLIGHTING_QSYNTAXHIGHLIGHTER_H
+#endif // OTE_QSYNTAXHIGHLIGHTER_H

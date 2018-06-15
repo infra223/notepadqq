@@ -27,7 +27,7 @@
 #include <QJsonValue>
 #include <QMetaEnum>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 ThemeData* ThemeData::get(const Theme& theme)
 {

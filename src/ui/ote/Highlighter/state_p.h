@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_STATE_P_H
-#define KSYNTAXHIGHLIGHTING_STATE_P_H
+#ifndef OTE_STATE_P_H
+#define OTE_STATE_P_H
 
 #include <QSharedData>
 #include <QStack>
@@ -26,7 +26,7 @@ QT_BEGIN_NAMESPACE
 class QStringList;
 QT_END_NAMESPACE
 
-namespace KSyntaxHighlighting
+namespace ote
 {
 
 class Context;

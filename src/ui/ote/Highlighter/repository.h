@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_REPOSITORY_H
-#define KSYNTAXHIGHLIGHTING_REPOSITORY_H
+#ifndef OTE_REPOSITORY_H
+#define OTE_REPOSITORY_H
 
 #include <qglobal.h>
 #include <memory>
@@ -26,7 +26,7 @@ class QString;
 template <typename T> class QVector;
 
 /**
- * @namespace KSyntaxHighlighting
+ * @namespace ote
  *
  * Syntax highlighting engine for Kate syntax definitions.
  * In order to access the syntax highlighting Definition files, use the
@@ -34,7 +34,7 @@ template <typename T> class QVector;
  *
  * @see Repository
  */
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Definition;
 class RepositoryPrivate;
@@ -71,7 +71,7 @@ class Theme;
  * @section repo_search_paths Search Paths
  *
  * All highlighting Definition and Theme files are compiled into the shared
- * KSyntaxHighlighting library by using the Qt resource system. Loading
+ * OTE library by using the Qt resource system. Loading
  * additional files from disk is supported as well.
  *
  * Loading syntax Definition files works as follows:
@@ -234,4 +234,4 @@ private:
 
 }
 
-#endif // KSYNTAXHIGHLIGHTING_REPOSITORY_H
+#endif // OTE_REPOSITORY_H

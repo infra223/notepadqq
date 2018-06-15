@@ -31,7 +31,7 @@
 
 #include <QDebug>
 
-using namespace KSyntaxHighlighting;
+using namespace ote;
 
 AbstractHighlighterPrivate::AbstractHighlighterPrivate() {}
 

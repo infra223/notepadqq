@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_TEXTSTYLEDATA_P_H
-#define KSYNTAXHIGHLIGHTING_TEXTSTYLEDATA_P_H
+#ifndef OTE_TEXTSTYLEDATA_P_H
+#define OTE_TEXTSTYLEDATA_P_H
 
 #include <QColor>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class TextStyleData
 {

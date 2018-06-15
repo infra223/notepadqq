@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_THEME_H
-#define KSYNTAXHIGHLIGHTING_THEME_H
+#ifndef OTE_THEME_H
+#define OTE_THEME_H
 
 #include <QColor>
 #include <QExplicitlySharedDataPointer>
 #include <qobjectdefs.h>
 #include <QTypeInfo>
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class ThemeData;
 class RepositoryPrivate;
@@ -361,6 +361,6 @@ private:
 
 }
 
-Q_DECLARE_TYPEINFO(KSyntaxHighlighting::Theme, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(ote::Theme, Q_MOVABLE_TYPE);
 
-#endif // KSYNTAXHIGHLIGHTING_THEME_H
+#endif // OTE_THEME_H

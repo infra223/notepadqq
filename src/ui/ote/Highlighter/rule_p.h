@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_RULE_P_H
-#define KSYNTAXHIGHLIGHTING_RULE_P_H
+#ifndef OTE_RULE_P_H
+#define OTE_RULE_P_H
 
 #include "contextswitch_p.h"
 #include "definition.h"
@@ -34,7 +34,7 @@
 
 class QXmlStreamReader;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Rule
 {
@@ -252,4 +252,4 @@ private:
 
 }
 
-#endif // KSYNTAXHIGHLIGHTING_RULE_P_H
+#endif // OTE_RULE_P_H

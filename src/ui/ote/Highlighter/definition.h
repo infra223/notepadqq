@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_DEFINITION_H
-#define KSYNTAXHIGHLIGHTING_DEFINITION_H
+#ifndef OTE_DEFINITION_H
+#define OTE_DEFINITION_H
 
 #include <QTypeInfo>
 
@@ -27,7 +27,7 @@ class QString;
 class QStringList;
 template <typename T> class QVector;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 class Context;
 class Format;
@@ -180,6 +180,6 @@ private:
 
 }
 
-Q_DECLARE_TYPEINFO(KSyntaxHighlighting::Definition, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(ote::Definition, Q_MOVABLE_TYPE);
 
 #endif

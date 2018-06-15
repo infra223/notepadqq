@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KSYNTAXHIGHLIGHTING_REPOSITORY_P_H
-#define KSYNTAXHIGHLIGHTING_REPOSITORY_P_H
+#ifndef OTE_REPOSITORY_P_H
+#define OTE_REPOSITORY_P_H
 
 #include <QHash>
 #include <QVector>
@@ -27,7 +27,7 @@
 
 class QString;
 
-namespace KSyntaxHighlighting {
+namespace ote {
 
 
 class Repository;
