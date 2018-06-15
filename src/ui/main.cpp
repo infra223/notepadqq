@@ -135,21 +135,13 @@ int main(int argc, char *argv[])
     // There are no other instances: start a new server.
     a.startServer();
 
-<<<<<<< HEAD
-    QFileInfo finfo(Notepadqq::editorPath());
-    if (!finfo.isReadable()) {
-        qCritical() << "Can't open file: " + finfo.filePath();
-        return EXIT_FAILURE;
-    }
-=======
-    // FIXME?
+    // FIXME? Make sure data directory is readable?
     /*QFile file(Notepadqq::editorPath());
     if (!file.open(QIODevice::ReadOnly)) {
         qCritical() << "Can't open file: " + file.fileName();
         return EXIT_FAILURE;
     }
     file.close();*/
->>>>>>> Clang syntax.
 
     if (Extensions::ExtensionsLoader::extensionRuntimePresent()) {
         Extensions::ExtensionsLoader::startExtensionsServer();

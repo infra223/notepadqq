@@ -153,16 +153,10 @@ namespace EditorNS
          */
         Q_INVOKABLE void setLanguage(ote::Definition def);
         Q_INVOKABLE void setLanguage(const QString &language);
-<<<<<<< HEAD
-        Q_INVOKABLE void setLanguageFromFilePath(const QString& filePath);
-        Q_INVOKABLE void setLanguageFromFilePath();
-        Q_INVOKABLE QPromise<void> setValue(const QString &value);
-=======
-        Q_INVOKABLE void setLanguageFromFileName(const QString& fileName);
+        Q_INVOKABLE void setLanguageFromFileName(const QString& filePath);
         Q_INVOKABLE void setLanguageFromFileName();
         void detectAndSetLanguage();
         Q_INVOKABLE void setValue(const QString &value);
->>>>>>> Clang syntax.
         Q_INVOKABLE QString value();
 
         /**

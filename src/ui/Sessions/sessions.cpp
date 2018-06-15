@@ -400,7 +400,6 @@ void loadSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
                 .setRememberLastDir(false)
                 .setFileSizeWarning(DocEngine::FileSizeActionYesToAll)
                 .execute();
->>>>>>> Restore scroll positions during session load.
 
             int idx = tabW->findOpenEditorByUrl(loadUrl);
 
