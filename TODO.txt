@@ -4,8 +4,8 @@
 - setTabWidth on <Qt5.10 doesn't seem to work yet.
 - Add documentation to code.
 - Add light themes.
-- Check if Recent Files still works.
 - Do last: Bump version (see Wiki).
+- Smart Indent doesn't work
 
 
 == Folding ==
