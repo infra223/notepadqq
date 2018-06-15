@@ -570,7 +570,7 @@ int DocEngine::saveDocument(EditorTabWidget *tabWidget, int tab, QUrl outFileNam
         if (!copy) {
             if (editor->filePath() != outFileName) {
                 editor->setFilePath(outFileName);
-                editor->setLanguageFromFilePath();
+                editor->setLanguageFromFileName();
             }
             editor->markClean();
             editor->setFileOnDiskChanged(false);
