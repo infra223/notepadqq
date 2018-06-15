@@ -15,8 +15,8 @@ public:
 
     void updateSizeHint(qreal lineHeight);
 
-signals:
-    void foldingMarkClicked(const QTextBlock& block);
+// signals:
+//    void foldingMarkClicked(const QTextBlock& block);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

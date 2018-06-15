@@ -1,19 +1,13 @@
 #ifndef TEXTEDITOR_H
 #define TEXTEDITOR_H
 
-#include <vector>
-
 #include <QPlainTextEdit>
 #include <QTextBlock>
 
-#include <QElapsedTimer>
-//#include "Highlighting/compositehighlighter.h"
-//#include "Themes/theme.h"
-//#include "Syntax/syntaxdefinition.h"
+#include <vector>
 
 #include "Highlighter/syntaxhighlighter.h"
 #include "Highlighter/repository.h"
-
 #include "Highlighter/theme.h"
 #include "Highlighter/definition.h"
 
@@ -35,8 +29,9 @@ public:
     void setDefinition(const Definition& d);
     Definition getDefinition() const { return m_highlighter->definition(); }
 
-    void setSyntaxHighlightingEnabled(bool enabled);
+    //void setSyntaxHighlightingEnabled(bool enabled);
 
+    // Various text formatting and display options
     void setEndOfLineMarkersVisible(bool enable);
     void setWhitespaceVisible(bool show);
     void setShowLinebreaks(bool show);
@@ -48,7 +43,10 @@ public:
     void setFont(QFont font);
     QFont getFont() const;
 
+    // Returns whether the editor automatically turns tabs to spaces on user input.
     bool isTabToSpaces() const;
+    
+    // Returns the width of a tab as the number of spaces it takes to reach the same width.
     int getTabWidth() const;
 
     QString getCurrentWord() const;
@@ -95,9 +93,8 @@ public:
 
     //bool find(const QRegExp &exp, QTextDocument::FindFlags options = QTextDocument::FindFlags()) = delete;
 
+    // Returns whether the currently selected text is the one selected by the most recent call of find(...)
     bool isSearchTermSelected() const { return m_findTermSelected; }
-
-    QElapsedTimer m_t;
 
     // Zoom
     void resetZoom();
@@ -122,6 +119,18 @@ public:
     void convertLeadingWhitespaceToTabs();
     void convertLeadingWhitespaceToSpaces();
     void trimWhitespace(bool leading, bool trailing);
+    
+    // Returns a static instance of ote::Repository. Use this to get themes or definitions
+    static Repository& getRepository() {
+        return *s_repository;
+    }
+    
+    // This needs to be called before any TextEdits are created
+    static void initRepository(const QString& path);
+
+    bool isFoldable(const QTextBlock& block) const;
+    bool isFolded(const QTextBlock& block) const;
+    void toggleFold(const QTextBlock& startBlock);
 
 signals:
     void cursorPositionChanged();
@@ -139,6 +148,7 @@ protected:
     void paintEvent(QPaintEvent* e) override;
 
     void contextMenuEvent(QContextMenuEvent* event) override;
+    
 private:
     friend class TextEditGutter;
     
@@ -149,7 +159,6 @@ private:
     void onCursorPositionChanged();
     void onSelectionChanged();
 
-private:
     struct BlockData {
         QTextBlock block;
         QRect translatedRect;
@@ -208,17 +217,6 @@ private:
     void highlightCurrentLine();
 
     static Repository* s_repository;
-
-public:
-
-    static Repository& getRepository() {
-        return *s_repository;
-    }
-    static void initRepository(const QString& path);
-
-    bool isFoldable(const QTextBlock& block) const;
-    bool isFolded(const QTextBlock& block) const;
-    void toggleFold(const QTextBlock& startBlock);
 };
 
 } // namespace ote

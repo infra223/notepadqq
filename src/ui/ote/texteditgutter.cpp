@@ -39,7 +39,7 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
 
     if (event->x() < this->geometry().right() - m_lineHeight) {
         hoverBlock = -1;
-    } else if (m_textEdit->isFoldable(block)) { // m_highlighter->startsFoldingRegion(block)
+    } else if (m_textEdit->isFoldable(block)) {
         hoverBlock = blockNum;
     }
 

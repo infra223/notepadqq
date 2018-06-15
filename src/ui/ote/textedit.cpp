@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QTextBlock>
+#include <QElapsedTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -29,8 +30,6 @@ TextEdit::TextEdit(QWidget* parent)
     /*setTheme((palette().color(QPalette::Base).lightness() < 128)
                  ? getRepository().defaultTheme(Repository::DarkTheme)
                  : getRepository().defaultTheme(Repository::LightTheme));*/
-
-    m_t.start();
 
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
     connect(this, &QPlainTextEdit::updateRequest, this, &TextEdit::updateSidebarArea);
@@ -94,13 +93,13 @@ void TextEdit::setDefinition(const Definition& d)
     m_highlighter->setDefinition(d);
 }
 
-void TextEdit::setSyntaxHighlightingEnabled(bool enabled)
+/*void TextEdit::setSyntaxHighlightingEnabled(bool enabled)
 {
     if (enabled && m_highlighter->document() == nullptr)
         m_highlighter->setDocument(document());
     else
         m_highlighter->setDocument(nullptr);
-}
+}*/
 
 void TextEdit::setEndOfLineMarkersVisible(bool enable)
 {
