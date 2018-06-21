@@ -6,7 +6,7 @@
 - Add light themes.
 - Do last: Bump version (see Wiki).
 - Smart Indent doesn't work
-
+- Fail gracefully if no themes could be loaded.
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.

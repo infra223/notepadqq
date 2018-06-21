@@ -184,7 +184,7 @@ void TextEdit::setFont(QFont font)
     // https://stackoverflow.com/a/42071875/1038629
     QFontMetricsF fm(font);
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
-    auto stopWidth = m_tabWidth * fm.boundingRect(' ').width();
+    auto stopWidth = m_tabWidth * fm.width(' ');
 #else
     auto stopWidth = m_tabWidth * fm.horizontalAdvance(' ');
 #endif
