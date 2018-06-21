@@ -135,13 +135,12 @@ int main(int argc, char *argv[])
     // There are no other instances: start a new server.
     a.startServer();
 
-    // FIXME? Make sure data directory is readable?
-    /*QFile file(Notepadqq::editorPath());
-    if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "Can't open file: " + file.fileName();
+    const auto& repo = ote::TextEdit::getRepository();
+    if (!repo.defaultTheme(ote::Repository::DarkTheme).isValid() ||
+        !repo.defaultTheme(ote::Repository::DarkTheme).isValid()) {
+        qCritical() << "Basic themes could not be loaded!";
         return EXIT_FAILURE;
     }
-    file.close();*/
 
     if (Extensions::ExtensionsLoader::extensionRuntimePresent()) {
         Extensions::ExtensionsLoader::startExtensionsServer();
