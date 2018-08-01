@@ -1,3 +1,4 @@
+
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
     Modified 2018 Julian Bansen <https://github.com/JuBan1>
@@ -24,6 +25,7 @@
 #include "format.h"
 #include "state.h"
 #include "theme.h"
+#include "fmtrangelist.h"
 
 #include <QDebug>
 
@@ -36,6 +38,7 @@ class TextBlockUserData : public QTextBlockUserData {
 public:
     State state;
     QVector<FoldingRegion> foldingRegions;
+    FmtRangeList commentRangeList;
     bool forceRehighlight = false;
 };
 
@@ -43,6 +46,7 @@ class SyntaxHighlighterPrivate : public AbstractHighlighterPrivate {
 public:
     static FoldingRegion foldingRegion(const QTextBlock& startBlock);
     QVector<FoldingRegion> foldingRegions;
+    FmtRangeList commentRangeList;
 };
 
 } // namespace ote
@@ -124,6 +128,14 @@ QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock)
     return QTextBlock();
 }
 
+bool SyntaxHighlighter::isPositionInComment(int absPos, int len) const
+{
+    const auto& block = document()->findBlock(absPos);
+    auto data = dynamic_cast<TextBlockUserData*>(block.userData());
+    if(!data) return false;
+    return data->commentRangeList.isInRange(absPos - block.position(), len);
+}
+
 void SyntaxHighlighter::startRehighlighting()
 {
     const auto firstBlock = document()->firstBlock();
@@ -148,6 +160,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
             state = prevData->state;
     }
     d->foldingRegions.clear();
+    d->commentRangeList.clear();
     state = highlightLine(text, state);
 
     auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
@@ -155,6 +168,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
         data = new TextBlockUserData;
         data->state = state;
         data->foldingRegions = d->foldingRegions;
+        data->commentRangeList = d->commentRangeList;
         setCurrentBlockUserData(data);
         return;
     }
@@ -162,11 +176,13 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     bool forceRehighlighting = data->forceRehighlight;
 
     if (!forceRehighlighting && data->state == state &&
-        data->foldingRegions == d->foldingRegions) // we ended up in the same state, so we are done here
+        data->foldingRegions == d->foldingRegions &&
+        data->commentRangeList == d->commentRangeList) // we ended up in the same state, so we are done here
         return;
 
     data->state = state;
     data->foldingRegions = d->foldingRegions;
+    data->commentRangeList = d->commentRangeList;
     data->forceRehighlight = false;
 
     const auto nextBlock = currentBlock().next();
@@ -202,6 +218,11 @@ void SyntaxHighlighter::applyFormat(int offset, int length, const ote::Format& f
         tf.setFontUnderline(true);
     if (format.isStrikeThrough(theme()))
         tf.setFontStrikeOut(true);
+
+    if (format.isComment()){
+        Q_D(SyntaxHighlighter);
+        d->commentRangeList.addRange(offset, length);
+    }
 
     QSyntaxHighlighter::setFormat(offset, length, tf);
 }

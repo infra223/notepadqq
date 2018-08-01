@@ -43,6 +43,7 @@ public:
     Theme::TextStyle defaultStyle;
     quint16 id;
     bool spellCheck;
+    bool isComment;
 };
 
 }

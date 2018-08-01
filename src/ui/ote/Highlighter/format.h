@@ -121,6 +121,11 @@ public:
      */
     bool spellCheck() const;
 
+    /**
+     * Returns whether this format has a "Comment"-name. This might not be 100% accurate.
+     */
+    bool isComment() const;
+
 private:
     friend class FormatPrivate;
     QExplicitlySharedDataPointer<FormatPrivate> d;

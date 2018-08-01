@@ -196,9 +196,14 @@ bool Format::spellCheck() const
     return d->spellCheck;
 }
 
+bool Format::isComment() const {
+    return d->isComment;
+}
+
 void FormatPrivate::load(QXmlStreamReader& reader)
 {
     name = reader.attributes().value(QStringLiteral("name")).toString();
+    isComment = (name == "Comment");
     defaultStyle = stringToDefaultFormat(reader.attributes().value(QStringLiteral("defStyleNum")));
 
     QStringRef ref = reader.attributes().value(QStringLiteral("color"));

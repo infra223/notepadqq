@@ -72,6 +72,8 @@ public:
      */
     QTextBlock findFoldingRegionEnd(const QTextBlock &startBlock) const;
 
+    bool isPositionInComment(int absPos, int len=0) const;
+
     /** Rehighlights the entire document. Rather than blocking the main thread
      *  it will only process one block with each program tick. As a result,
      *  highlighting large documents won't freeze the program but might take

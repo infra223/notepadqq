@@ -688,6 +688,13 @@ void TextEdit::onCursorPositionChanged()
 {
     // Highlight current line
     highlightCurrentLine();
+/*
+    auto pos = textCursor().position();
+    if (m_highlighter->isPositionInComment(pos))
+        qDebug() << "Is inside comment";
+    else
+        qDebug() << "Is not inside comment";*/
+
 
     // Try to match brackets
     m_extraSelections[ESMatchingBrackets].clear();

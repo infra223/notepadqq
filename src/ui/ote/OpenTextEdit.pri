@@ -28,7 +28,8 @@ SOURCES += \
     $$PWD/Highlighter/themedata.cpp \
     $$PWD/Highlighter/wildcardmatcher.cpp \
     $$PWD/textedit.cpp \
-    $$PWD/texteditgutter.cpp
+    $$PWD/texteditgutter.cpp \
+    $$PWD/Highlighter/fmtrangelist.cpp
 
 HEADERS += \
     $$PWD/Highlighter/abstracthighlighter.h \
@@ -57,5 +58,6 @@ HEADERS += \
     $$PWD/Highlighter/wildcardmatcher_p.h \
     $$PWD/Highlighter/xml_p.h \
     $$PWD/textedit.h \
-    $$PWD/texteditgutter.h
+    $$PWD/texteditgutter.h \
+    $$PWD/Highlighter/fmtrangelist.h
  
