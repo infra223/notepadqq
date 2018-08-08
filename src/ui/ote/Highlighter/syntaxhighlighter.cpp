@@ -170,8 +170,10 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
         data->foldingRegions = d->foldingRegions;
         data->commentRangeList = d->commentRangeList;
         setCurrentBlockUserData(data);
+        emit blockChanged(currentBlock()); // TODO: Put into scope guard
         return;
     }
+    emit blockChanged(currentBlock()); // TODO: Put into scope guard
 
     bool forceRehighlighting = data->forceRehighlight;
 

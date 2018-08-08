@@ -11,6 +11,7 @@
 #include "Highlighter/theme.h"
 #include "Highlighter/definition.h"
 
+#include "editorlabel.h"
 
 namespace ote {
 
@@ -132,8 +133,14 @@ public:
     bool isFolded(const QTextBlock& block) const;
     void toggleFold(const QTextBlock& startBlock);
 
+    // Editor labels
+    WeakEditorLabelPtr getEditorLabelAtPos(int pos);
+    void removeEditorLabel(WeakEditorLabelPtr label);
+    WeakEditorLabelPtr addEditorLabel(EditorLabelPtr label);
+
 signals:
-    void cursorPositionChanged();
+    //void cursorPositionChanged();
+    void blockChanged(const QTextBlock& block);
     void contentsChanged();
     void mouseWheelUsed(QWheelEvent *ev);
     void gotFocus();
@@ -158,6 +165,7 @@ private:
 
     void onCursorPositionChanged();
     void onSelectionChanged();
+    void onContentsChange(int position, int removed, int added);
 
     struct BlockData {
         QTextBlock block;
@@ -211,6 +219,8 @@ private:
 
     TextEditGutter* m_sideBar;
     SyntaxHighlighter* m_highlighter;
+
+    std::vector<EditorLabelPtr> m_editorLabels;
 
     void createParenthesisSelection(int pos);
 

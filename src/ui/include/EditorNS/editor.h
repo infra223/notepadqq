@@ -1,8 +1,6 @@
 #ifndef EDITOR_H
 #define EDITOR_H
 
-#include "include/EditorNS/languageservice.h"
-
 #include <QObject>
 #include <QQueue>
 #include <QTextCodec>
@@ -278,7 +276,6 @@ namespace EditorNS
         QTextCodec *m_codec = QTextCodec::codecForName("UTF-8");
         bool m_bom = false;
         bool m_customIndentationMode = false;
-        const Language* m_currentLanguage = nullptr;
 
         void fullConstructor(const ote::Theme& theme);
 

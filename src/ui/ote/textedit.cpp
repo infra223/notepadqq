@@ -4,6 +4,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QFontDatabase>
 #include <QMenu>
 #include <QMimeData>
@@ -12,7 +13,7 @@
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QTextBlock>
-#include <QElapsedTimer>
+#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -33,9 +34,12 @@ TextEdit::TextEdit(QWidget* parent)
 
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
     connect(this, &QPlainTextEdit::updateRequest, this, &TextEdit::updateSidebarArea);
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::onCursorPositionChanged);
-    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::cursorPositionChanged);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::onCursorPositionChanged); // slot
+    // connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::cursorPositionChanged); // signal
     connect(this, &QPlainTextEdit::selectionChanged, this, &TextEdit::onSelectionChanged);
+    connect(document(), &QTextDocument::contentsChange, this, &TextEdit::onContentsChange);
+
+    connect(m_highlighter, &ote::SyntaxHighlighter::blockChanged, this, &TextEdit::blockChanged);
 
     setWordWrap(false);
     setCenterOnScroll(false);
@@ -740,6 +744,36 @@ void TextEdit::onSelectionChanged()
     m_extraSelections[ESSameItems] = list;
 }
 
+void TextEdit::onContentsChange(int position, int removed, int added)
+{
+    auto& lbls = m_editorLabels;
+    auto it = std::remove_if(lbls.begin(), lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
+        if (ptr->m_absPos >= position && ptr->m_absPos <= position + removed) {
+            return true;
+        }
+
+        auto b = document()->findBlock(position).previous().previous();
+        if (!b.isValid())
+            b = document()->findBlockByNumber(0);
+
+        auto newPos = b.position();
+
+        if (ptr->m_absPos >= position) {
+            ptr->m_changed = true;
+            ptr->m_absPos += added - removed;
+        } else if (ptr->m_absPos >= newPos) {
+            ptr->m_changed = true;
+        }
+
+        return false;
+    });
+
+    if (it != lbls.end()) {
+        lbls.erase(it, lbls.end());
+        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+    }
+}
+
 void TextEdit::createParenthesisSelection(int pos)
 {
     QTextCursor cursor = textCursor();
@@ -1118,6 +1152,9 @@ void TextEdit::paintEvent(QPaintEvent* e)
     selection.format.setBackground(m_currentTheme.getColor(Theme::SearchHighlight));
     context.selections.push_front(selection);*/
 
+    QTextBlock firstBlock;
+    bool firstSet = false;
+
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
         QTextLayout* layout = block.layout();
@@ -1129,6 +1166,11 @@ void TextEdit::paintEvent(QPaintEvent* e)
         }
 
         if (r.bottom() >= er.top() && r.top() <= er.bottom()) {
+            if (!firstSet) {
+                firstSet = true;
+                firstBlock = block;
+            }
+
             QTextBlockFormat blockFormat = block.blockFormat();
 
             QBrush bg = blockFormat.background();
@@ -1239,6 +1281,47 @@ void TextEdit::paintEvent(QPaintEvent* e)
         if (offset.y() > viewportRect.height())
             break;
         block = block.next();
+    }
+
+    if (firstBlock.isValid()) {
+        QTextBlock db = firstBlock;
+        int bc = 1;
+
+        while (bc-- > 0) {
+            auto prev = db.previous();
+            if (!prev.isValid())
+                break;
+            db = prev;
+        }
+
+        int startingPos = db.position();
+        auto lower = std::upper_bound(
+            m_editorLabels.begin(), m_editorLabels.end(), startingPos, [](int val, const EditorLabelPtr& ptr) {
+                return val < ptr->m_absPos;
+            });
+        auto upper = m_editorLabels.end(); // FIXME
+
+        bool wantRepaint = false;
+
+        for (; lower != upper; ++lower) {
+            auto ptr = *lower;
+
+            if (ptr->m_changed) {
+                if (ptr->updateDisplayRect()) {
+                    ptr->updatePixmap();
+                    wantRepaint = true;
+                }
+                ptr->m_changed = false;
+            }
+
+            QTextBlock b = document()->findBlock(ptr->m_absPos);
+            auto op = blockBoundingGeometry(b).translated(contentOffset()).topLeft();
+
+            ptr->draw(painter, op);
+        }
+
+        if (wantRepaint)
+            QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
     }
 
     if (backgroundVisible() && !block.isValid() && offset.y() <= er.bottom() &&
@@ -1379,6 +1462,41 @@ void TextEdit::toggleFold(const QTextBlock& startBlock)
 
     // update scrollbars
     emit document()->documentLayout()->documentSizeChanged(document()->documentLayout()->documentSize());
+}
+
+WeakEditorLabelPtr TextEdit::getEditorLabelAtPos(int pos)
+{
+    auto it = std::find_if(m_editorLabels.begin(), m_editorLabels.end(), [pos](const EditorLabelPtr& ptr) {
+        return pos == ptr->m_absPos;
+    });
+
+    if (it != m_editorLabels.end())
+        return *it;
+    else
+        return WeakEditorLabelPtr();
+}
+
+void TextEdit::removeEditorLabel(WeakEditorLabelPtr label)
+{
+    if (label.expired())
+        return;
+
+    auto it = std::find(m_editorLabels.begin(), m_editorLabels.end(), label.lock());
+
+    if (it != m_editorLabels.end()) {
+        m_editorLabels.erase(it);
+        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+    }
+}
+
+WeakEditorLabelPtr TextEdit::addEditorLabel(EditorLabelPtr label)
+{
+    const int pos = label->m_absPos;
+    auto it =
+        std::lower_bound(m_editorLabels.begin(), m_editorLabels.end(), pos, [](const EditorLabelPtr& ptr, int pos) {
+            return ptr->m_absPos < pos;
+        });
+    return *m_editorLabels.insert(it, label);
 }
 
 } // namespace ote

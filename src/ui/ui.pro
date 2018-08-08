@@ -77,8 +77,6 @@ SOURCES += main.cpp\
     EditorNS/bannerfilechanged.cpp \
     EditorNS/bannerbasicmessage.cpp \
     EditorNS/bannerfileremoved.cpp \
-    #EditorNS/customqwebview.cpp \
-    #EditorNS/languageservice.cpp \
     clickablelabel.cpp \
     frmencodingchooser.cpp \
     EditorNS/bannerindentationdetected.cpp \
@@ -124,11 +122,9 @@ HEADERS  += include/mainwindow.h \
     include/EditorNS/bannerfilechanged.h \
     include/EditorNS/bannerbasicmessage.h \
     include/EditorNS/bannerfileremoved.h \
-    #include/EditorNS/customqwebview.h \
     include/clickablelabel.h \
     include/frmencodingchooser.h \
     include/EditorNS/bannerindentationdetected.h \
-    #include/EditorNS/languageservice.h \
     include/frmindentationmode.h \
     include/singleapplication.h \
     include/localcommunication.h \

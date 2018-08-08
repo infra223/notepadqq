@@ -14,7 +14,6 @@ SOURCES += \
     $$PWD/Highlighter/context.cpp \
     $$PWD/Highlighter/contextswitch.cpp \
     $$PWD/Highlighter/definition.cpp \
-    #$$PWD/Highlighter/definitiondownloader.cpp \
     $$PWD/Highlighter/foldingregion.cpp \
     $$PWD/Highlighter/format.cpp \
     $$PWD/Highlighter/htmlhighlighter.cpp \
@@ -29,7 +28,14 @@ SOURCES += \
     $$PWD/Highlighter/wildcardmatcher.cpp \
     $$PWD/textedit.cpp \
     $$PWD/texteditgutter.cpp \
-    $$PWD/Highlighter/fmtrangelist.cpp
+    $$PWD/Highlighter/fmtrangelist.cpp \
+    $$PWD/editorlabel.cpp \
+    $$PWD/plugins/colorlabelsplugin.cpp \
+    $$PWD/plugins/latexplugin.cpp \
+    $$PWD/plugins/pluginbase.cpp \
+    $$PWD/JKQTMath/jkqtmathtext.cpp \
+    $$PWD/JKQTMath/jkqtphighrestimer.cpp \
+    $$PWD/JKQTMath/jkqtptools.cpp
 
 HEADERS += \
     $$PWD/Highlighter/abstracthighlighter.h \
@@ -38,7 +44,6 @@ HEADERS += \
     $$PWD/Highlighter/contextswitch_p.h \
     $$PWD/Highlighter/definition.h \
     $$PWD/Highlighter/definition_p.h \
-    #$$PWD/Highlighter/definitiondownloader.h \
     $$PWD/Highlighter/definitionref_p.h \
     $$PWD/Highlighter/foldingregion.h \
     $$PWD/Highlighter/format.h \
@@ -59,5 +64,15 @@ HEADERS += \
     $$PWD/Highlighter/xml_p.h \
     $$PWD/textedit.h \
     $$PWD/texteditgutter.h \
-    $$PWD/Highlighter/fmtrangelist.h
+    $$PWD/Highlighter/fmtrangelist.h \
+    $$PWD/editorlabel.h \
+    $$PWD/plugins/colorlabelsplugin.h \
+    $$PWD/plugins/latexplugin.h \
+    $$PWD/plugins/pluginbase.h \
+    $$PWD/JKQTMath/jkqtmathtext.h \
+    $$PWD/JKQTMath/jkqtp_imexport.h \
+    $$PWD/JKQTMath/jkqtphighrestimer.h \
+    $$PWD/JKQTMath/jkqtptools.h
  
+RESOURCES += $$PWD/JKQTMath/asana.qrc
+DEFINES += AUTOLOAD_Asana_FONTS

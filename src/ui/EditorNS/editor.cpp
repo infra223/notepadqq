@@ -2,6 +2,8 @@
 
 #include "include/notepadqq.h"
 #include "include/nqqsettings.h"
+#include "ote/plugins/colorlabelsplugin.h"
+#include "ote/plugins/latexplugin.h"
 
 #include <QDebug>
 #include <QDir>
@@ -56,6 +58,9 @@ namespace EditorNS
 
         connect(&m_textEditor, &ote::TextEdit::mouseWheelUsed, this, &Editor::mouseWheel);
         connect(&m_textEditor, &ote::TextEdit::urlsDropped, this, &Editor::urlsDropped);
+
+        new ote::ColorLabelsPlugin(&m_textEditor);
+        new ote::LatexPlugin(&m_textEditor);
     }
 
     QSharedPointer<Editor> Editor::getNewEditor(QWidget *parent)

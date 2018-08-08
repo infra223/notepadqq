@@ -81,6 +81,13 @@ public:
      */
     void startRehighlighting();
 
+signals:
+    /**
+     * Is emitted when the highlighter is finished with a new block. That means
+     * text or highlighting state of this block may have changed.
+     */
+    void blockChanged(const QTextBlock& block);
+
 protected:
     void highlightBlock(const QString & text) override;
     void applyFormat(int offset, int length, const Format &format) override;
