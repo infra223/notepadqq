@@ -34,7 +34,7 @@ SOURCES += \
     $$PWD/plugins/latexplugin.cpp \
     $$PWD/plugins/pluginbase.cpp \
     $$PWD/JKQTMath/jkqtmathtext.cpp \
-    $$PWD/JKQTMath/jkqtphighrestimer.cpp \
+    #$PWD/JKQTMath/jkqtphighrestimer.cpp \
     $$PWD/JKQTMath/jkqtptools.cpp
 
 HEADERS += \
@@ -71,7 +71,7 @@ HEADERS += \
     $$PWD/plugins/pluginbase.h \
     $$PWD/JKQTMath/jkqtmathtext.h \
     $$PWD/JKQTMath/jkqtp_imexport.h \
-    $$PWD/JKQTMath/jkqtphighrestimer.h \
+    #$$PWD/JKQTMath/jkqtphighrestimer.h \
     $$PWD/JKQTMath/jkqtptools.h
  
 RESOURCES += $$PWD/JKQTMath/asana.qrc
