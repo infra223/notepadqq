@@ -134,6 +134,11 @@ public:
     void toggleFold(const QTextBlock& startBlock);
 
     // Editor labels
+    typedef std::vector<EditorLabelPtr>::iterator EditorLabelIterator;
+
+    std::pair<EditorLabelIterator, EditorLabelIterator> getEditorLabelsInRange(int begin, int end);
+    std::pair<EditorLabelIterator, EditorLabelIterator> getEditorLabelsInBlock(const QTextBlock& block);
+
     WeakEditorLabelPtr getEditorLabelAtPos(int pos);
     void removeEditorLabel(WeakEditorLabelPtr label);
     WeakEditorLabelPtr addEditorLabel(EditorLabelPtr label);

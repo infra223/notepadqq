@@ -1139,21 +1139,20 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
     QAbstractTextDocumentLayout::PaintContext context = getPaintContext();
 
-    /*int from = m_findRange.first;
-    int to = m_findRange.second;
-    auto c = textCursor();
-    c.setPosition(from);
-    //c.setPosition(to, QTextCursor::KeepAnchor);
-    c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 10);
+    while (block.isValid()) {
+        QRectF r = blockBoundingRect(block).translated(offset);
 
-    QAbstractTextDocumentLayout::Selection selection;
-    selection.cursor = c;
+        if (r.bottom() >= er.top())
+            break;
 
-    selection.format.setBackground(m_currentTheme.getColor(Theme::SearchHighlight));
-    context.selections.push_front(selection);*/
+        offset.ry() += r.height();
+        if (offset.y() > viewportRect.height())
+            break;
 
-    QTextBlock firstBlock;
-    bool firstSet = false;
+        block = block.next();
+    }
+
+    QTextBlock beginBlock = block;
 
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
@@ -1165,117 +1164,110 @@ void TextEdit::paintEvent(QPaintEvent* e)
             continue;
         }
 
-        if (r.bottom() >= er.top() && r.top() <= er.bottom()) {
-            if (!firstSet) {
-                firstSet = true;
-                firstBlock = block;
-            }
+        if (r.top() > er.bottom())
+            break;
 
-            QTextBlockFormat blockFormat = block.blockFormat();
+        QTextBlockFormat blockFormat = block.blockFormat();
 
-            QBrush bg = blockFormat.background();
-            // QBrush bg( getTheme().editorColor(Theme::BackgroundColor) );
-            if (bg != Qt::NoBrush) {
-                QRectF contentsRect = r;
-                contentsRect.setWidth(qMax(r.width(), maximumWidth));
-                fillBackground(&painter, contentsRect, bg);
-            }
+        QBrush bg = blockFormat.background();
+        // QBrush bg( getTheme().editorColor(Theme::BackgroundColor) );
+        if (bg != Qt::NoBrush) {
+            QRectF contentsRect = r;
+            contentsRect.setWidth(qMax(r.width(), maximumWidth));
+            fillBackground(&painter, contentsRect, bg);
+        }
 
-            // The last selection is the text selection added by Qt. Since the original one removes
-            // foregroundColor we've got to intercept it.
-            if (context.selections.size() > 0 && textCursor().hasSelection()) {
-                auto& s = context.selections.last();
+        // The last selection is the text selection added by Qt. Since the original one removes
+        // foregroundColor we've got to intercept it.
+        if (context.selections.size() > 0 && textCursor().hasSelection()) {
+            auto& s = context.selections.last();
 
-                s.format.clearForeground();
-                s.format.setBackground(
-                    QBrush(getTheme().editorColor(Theme::TextSelection)));
+            s.format.clearForeground();
+            s.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
 
-                // context.selections.pop_back();
+            // context.selections.pop_back();
 
-                /*QAbstractTextDocumentLayout::Selection selection;
-                selection.cursor = textCursor();
+            /*QAbstractTextDocumentLayout::Selection selection;
+            selection.cursor = textCursor();
 
-                //QPalette::ColorGroup cg = d->hasFocus ? QPalette::Active : QPalette::Inactive;
-                selection.format.setBackground(
-                QBrush(getTheme().editorColor(Theme::CurrentLine)) );
-                //selection.format.setBackground(m_currentTheme.getColor(Theme::TextEditActiveBackground));
-                selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-                context.selections.push_back(selection);*/
-            }
+            //QPalette::ColorGroup cg = d->hasFocus ? QPalette::Active : QPalette::Inactive;
+            selection.format.setBackground(
+            QBrush(getTheme().editorColor(Theme::CurrentLine)) );
+            //selection.format.setBackground(m_currentTheme.getColor(Theme::TextEditActiveBackground));
+            selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+            context.selections.push_back(selection);*/
+        }
 
-            QVector<QTextLayout::FormatRange> selections;
-            int blpos = block.position();
-            int bllen = block.length();
-            for (int i = 0; i < context.selections.size(); ++i) {
-                const QAbstractTextDocumentLayout::Selection& range = context.selections.at(i);
-                const int selStart = range.cursor.selectionStart() - blpos;
-                const int selEnd = range.cursor.selectionEnd() - blpos;
-                if (selStart < bllen && selEnd > 0 && selEnd > selStart) {
-                    QTextLayout::FormatRange o;
-                    o.start = selStart;
-                    o.length = selEnd - selStart;
-                    o.format = range.format;
-                    selections.append(o);
-                } else if (!range.cursor.hasSelection() && range.format.hasProperty(QTextFormat::FullWidthSelection) &&
-                           block.contains(range.cursor.position())) {
-                    // for full width selections we don't require an actual selection, just
-                    // a position to specify the line. that's more convenience in usage.
-                    QTextLayout::FormatRange o;
-                    QTextLine l = layout->lineForTextPosition(range.cursor.position() - blpos);
-                    o.start = l.textStart();
-                    o.length = l.textLength();
-                    if (o.start + o.length == bllen - 1)
-                        ++o.length; // include newline
-                    o.format = range.format;
-                    selections.append(o);
-                }
-            }
-
-            // context.cursorPosition = getAbsoluteCursorPosition();
-            bool drawCursor = ((editable || (textInteractionFlags() & Qt::TextSelectableByKeyboard)) &&
-                               context.cursorPosition >= blpos && context.cursorPosition < blpos + bllen);
-
-            // int curPos = getAbsoluteCursorPosition();
-            // drawCursor = curPos >= blpos && curPos < blpos + bllen;
-
-            // drawCursor = drawCursor && m_t.elapsed() % 1000 < 500;
-
-            bool drawCursorAsBlock = drawCursor && overwriteMode();
-
-            if (drawCursorAsBlock) {
-                if (context.cursorPosition == blpos + bllen - 1) {
-                    drawCursorAsBlock = false;
-                } else {
-                    QTextLayout::FormatRange o;
-                    o.start = context.cursorPosition - blpos;
-                    o.length = 1;
-                    o.format.setForeground(palette().base());
-                    o.format.setBackground(palette().text());
-                    selections.append(o);
-                }
-            }
-
-            if (!placeholderText().isEmpty() && document()->isEmpty() && layout->preeditAreaText().isEmpty()) {
-                QColor col = palette().text().color();
-                col.setAlpha(128);
-                painter.setPen(col);
-                const int margin = int(document()->documentMargin());
-                painter.drawText(r.adjusted(margin, 0, 0, 0), Qt::AlignTop | Qt::TextWordWrap, placeholderText());
-            } else {
-                layout->draw(&painter, offset, selections, er);
-            }
-            if ((drawCursor && !drawCursorAsBlock) ||
-                (editable && context.cursorPosition < -1 && !layout->preeditAreaText().isEmpty())) {
-                int cpos = context.cursorPosition;
-                if (cpos < -1)
-                    cpos = layout->preeditAreaPosition() - (cpos + 2);
-                else
-                    cpos -= blpos;
-                layout->drawCursor(&painter, offset, cpos, cursorWidth());
+        QVector<QTextLayout::FormatRange> selections;
+        int blpos = block.position();
+        int bllen = block.length();
+        for (int i = 0; i < context.selections.size(); ++i) {
+            const QAbstractTextDocumentLayout::Selection& range = context.selections.at(i);
+            const int selStart = range.cursor.selectionStart() - blpos;
+            const int selEnd = range.cursor.selectionEnd() - blpos;
+            if (selStart < bllen && selEnd > 0 && selEnd > selStart) {
+                QTextLayout::FormatRange o;
+                o.start = selStart;
+                o.length = selEnd - selStart;
+                o.format = range.format;
+                selections.append(o);
+            } else if (!range.cursor.hasSelection() && range.format.hasProperty(QTextFormat::FullWidthSelection) &&
+                       block.contains(range.cursor.position())) {
+                // for full width selections we don't require an actual selection, just
+                // a position to specify the line. that's more convenience in usage.
+                QTextLayout::FormatRange o;
+                QTextLine l = layout->lineForTextPosition(range.cursor.position() - blpos);
+                o.start = l.textStart();
+                o.length = l.textLength();
+                if (o.start + o.length == bllen - 1)
+                    ++o.length; // include newline
+                o.format = range.format;
+                selections.append(o);
             }
         }
 
-        paintSearchBlock(painter, e->rect(), block);
+        // context.cursorPosition = getAbsoluteCursorPosition();
+        bool drawCursor = ((editable || (textInteractionFlags() & Qt::TextSelectableByKeyboard)) &&
+                           context.cursorPosition >= blpos && context.cursorPosition < blpos + bllen);
+
+        // int curPos = getAbsoluteCursorPosition();
+        // drawCursor = curPos >= blpos && curPos < blpos + bllen;
+
+        // drawCursor = drawCursor && m_t.elapsed() % 1000 < 500;
+
+        bool drawCursorAsBlock = drawCursor && overwriteMode();
+
+        if (drawCursorAsBlock) {
+            if (context.cursorPosition == blpos + bllen - 1) {
+                drawCursorAsBlock = false;
+            } else {
+                QTextLayout::FormatRange o;
+                o.start = context.cursorPosition - blpos;
+                o.length = 1;
+                o.format.setForeground(palette().base());
+                o.format.setBackground(palette().text());
+                selections.append(o);
+            }
+        }
+
+        if (!placeholderText().isEmpty() && document()->isEmpty() && layout->preeditAreaText().isEmpty()) {
+            QColor col = palette().text().color();
+            col.setAlpha(128);
+            painter.setPen(col);
+            const int margin = int(document()->documentMargin());
+            painter.drawText(r.adjusted(margin, 0, 0, 0), Qt::AlignTop | Qt::TextWordWrap, placeholderText());
+        } else {
+            layout->draw(&painter, offset, selections, er);
+        }
+        if ((drawCursor && !drawCursorAsBlock) ||
+            (editable && context.cursorPosition < -1 && !layout->preeditAreaText().isEmpty())) {
+            int cpos = context.cursorPosition;
+            if (cpos < -1)
+                cpos = layout->preeditAreaPosition() - (cpos + 2);
+            else
+                cpos -= blpos;
+            layout->drawCursor(&painter, offset, cpos, cursorWidth());
+        }
 
         offset.ry() += r.height();
         if (offset.y() > viewportRect.height())
@@ -1283,8 +1275,25 @@ void TextEdit::paintEvent(QPaintEvent* e)
         block = block.next();
     }
 
-    if (firstBlock.isValid()) {
-        QTextBlock db = firstBlock;
+    const QTextBlock& endBlock = block;
+    block = beginBlock;
+    auto curr = std::upper_bound(
+        m_editorLabels.begin(), m_editorLabels.end(), block.position(), [](int val, const EditorLabelPtr& ptr) {
+            return val < ptr->m_absPos;
+        });
+
+    while (beginBlock.isValid()) {
+        if (!block.isVisible())
+            continue;
+
+        auto blockEndPos = block.position() + block.length();
+        for (; curr != m_editorLabels.end() && curr->get()->m_absPos <= blockEndPos; ++curr) {
+            // draw curr
+        }
+    }
+
+    if (beginBlock.isValid()) {
+        QTextBlock db = beginBlock;
         int bc = 1;
 
         while (bc-- > 0) {
@@ -1462,6 +1471,30 @@ void TextEdit::toggleFold(const QTextBlock& startBlock)
 
     // update scrollbars
     emit document()->documentLayout()->documentSizeChanged(document()->documentLayout()->documentSize());
+}
+
+std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit::getEditorLabelsInRange(
+    int begin, int end)
+{
+    const auto lower =
+        std::upper_bound(m_editorLabels.begin(), m_editorLabels.end(), begin, [](int val, const EditorLabelPtr& ptr) {
+            return val < ptr->m_absPos;
+        });
+
+    if (lower == m_editorLabels.end())
+        return {lower, lower};
+
+    const auto upper =
+        std::find_if(lower, m_editorLabels.end(), [end](const EditorLabelPtr& ptr) { return ptr->m_absPos > end; });
+    return {lower, upper};
+}
+
+std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit::getEditorLabelsInBlock(
+    const QTextBlock& block)
+{
+    const auto begin = block.position();
+    const auto end = begin + block.length();
+    return getEditorLabelsInRange(begin, end);
 }
 
 WeakEditorLabelPtr TextEdit::getEditorLabelAtPos(int pos)
