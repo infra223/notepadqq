@@ -1153,6 +1153,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
     }
 
     QTextBlock beginBlock = block;
+    QTextBlock endBlock;
 
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
@@ -1167,6 +1168,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
         if (r.top() > er.bottom())
             break;
 
+        endBlock = block;
         QTextBlockFormat blockFormat = block.blockFormat();
 
         QBrush bg = blockFormat.background();
@@ -1275,64 +1277,6 @@ void TextEdit::paintEvent(QPaintEvent* e)
         block = block.next();
     }
 
-    const QTextBlock& endBlock = block;
-    block = beginBlock;
-    auto curr = std::upper_bound(
-        m_editorLabels.begin(), m_editorLabels.end(), block.position(), [](int val, const EditorLabelPtr& ptr) {
-            return val < ptr->m_absPos;
-        });
-
-    while (beginBlock.isValid()) {
-        if (!block.isVisible())
-            continue;
-
-        auto blockEndPos = block.position() + block.length();
-        for (; curr != m_editorLabels.end() && curr->get()->m_absPos <= blockEndPos; ++curr) {
-            // draw curr
-        }
-    }
-
-    if (beginBlock.isValid()) {
-        QTextBlock db = beginBlock;
-        int bc = 1;
-
-        while (bc-- > 0) {
-            auto prev = db.previous();
-            if (!prev.isValid())
-                break;
-            db = prev;
-        }
-
-        int startingPos = db.position();
-        auto lower = std::upper_bound(
-            m_editorLabels.begin(), m_editorLabels.end(), startingPos, [](int val, const EditorLabelPtr& ptr) {
-                return val < ptr->m_absPos;
-            });
-        auto upper = m_editorLabels.end(); // FIXME
-
-        bool wantRepaint = false;
-
-        for (; lower != upper; ++lower) {
-            auto ptr = *lower;
-
-            if (ptr->m_changed) {
-                if (ptr->updateDisplayRect()) {
-                    ptr->updatePixmap();
-                    wantRepaint = true;
-                }
-                ptr->m_changed = false;
-            }
-
-            QTextBlock b = document()->findBlock(ptr->m_absPos);
-            auto op = blockBoundingGeometry(b).translated(contentOffset()).topLeft();
-
-            ptr->draw(painter, op);
-        }
-
-        if (wantRepaint)
-            QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
-    }
-
     if (backgroundVisible() && !block.isValid() && offset.y() <= er.bottom() &&
         (centerOnScroll() || verticalScrollBar()->maximum() == verticalScrollBar()->minimum())) {
         painter.fillRect(QRect(QPoint((int)er.left(), (int)offset.y()), er.bottomRight()), palette().background());
@@ -1341,6 +1285,45 @@ void TextEdit::paintEvent(QPaintEvent* e)
     auto bl = getBlocksInRect(e->rect());
     paintLineBreaks(painter, bl);
     paintLineSuffixes(painter, bl);
+
+    // Paint EditorLabels
+    int numLines = EditorLabel::MAX_LINE_COUNT;
+    while(numLines > 0) {
+        auto prevBlock = beginBlock.previous();
+        if (!prevBlock.isValid())
+            break;
+        beginBlock = prevBlock;
+        if (!prevBlock.isVisible())
+            continue;
+        numLines -= prevBlock.lineCount();
+    }
+
+
+    EditorLabelIterator upper, lower;
+    std::tie(lower, upper) = getEditorLabelsInRange(beginBlock.position(), endBlock.position() + endBlock.length());
+    bool wantRepaint = false;
+
+    for (; lower != upper; ++lower) {
+        const auto ptr = *lower;
+        const QTextBlock b = document()->findBlock(ptr->m_absPos);
+
+        if (!b.isVisible())
+            continue;
+
+        if (ptr->getChanged()) {
+            if (ptr->updateDisplayRect()) {
+                ptr->updatePixmap();
+                wantRepaint = true;
+            }
+            ptr->m_changed = false;
+        }
+
+        const auto op = blockBoundingGeometry(b).translated(contentOffset()).topLeft();
+        ptr->draw(painter, op);
+    }
+
+    if (wantRepaint)
+        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
 }
 
 TextEdit::BlockList TextEdit::getBlocksInViewport() const
@@ -1471,6 +1454,18 @@ void TextEdit::toggleFold(const QTextBlock& startBlock)
 
     // update scrollbars
     emit document()->documentLayout()->documentSizeChanged(document()->documentLayout()->documentSize());
+}
+
+void TextEdit::deleteMarkedEditorLabelsInRange(const TextEdit::EditorLabelRange &range)
+{
+    auto it = std::remove_if(range.first, range.second, [](const EditorLabelPtr& ptr) {
+        return ptr->m_markedForDeletion;
+    });
+    if (it == m_editorLabels.end())
+        return;
+
+    m_editorLabels.erase(it, m_editorLabels.end());
+    QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
 }
 
 std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit::getEditorLabelsInRange(

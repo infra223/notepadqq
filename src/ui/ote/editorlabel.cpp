@@ -6,6 +6,8 @@
 
 namespace ote {
 
+const int EditorLabel::MAX_LINE_COUNT;
+
 void EditorLabel::draw(QPainter& painter, const QPointF& offset)
 {
     painter.save();
@@ -58,15 +60,13 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
 
     auto nb = block.next();
 
-    int numBlocks = MAX_BLOCK_COUNT;
-    int numLines = m_heightInLines > 0 ? m_heightInLines : 99;
+    int numLines = std::min(m_heightInLines, MAX_LINE_COUNT);
 
     if (m_anchor != AnchorBelowLine) {
-        numBlocks--;
         numLines -= block.lineCount();
     }
 
-    while (nb.isValid() && nb.isVisible() && numBlocks > 0 && numLines > 0) {
+    while (nb.isValid() && nb.isVisible() && numLines > 0) {
         auto lay = nb.layout();
 
         if (!m_overlap && lay->lineCount() > 0) {
@@ -75,8 +75,6 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
                 break;
             numLines--;
         }
-
-        numBlocks--;
 
         rectEnd.ry() += nb.layout()->boundingRect().height();
         nb = nb.next();

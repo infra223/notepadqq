@@ -135,9 +135,12 @@ public:
 
     // Editor labels
     typedef std::vector<EditorLabelPtr>::iterator EditorLabelIterator;
+    typedef std::pair<EditorLabelIterator, EditorLabelIterator> EditorLabelRange;
 
-    std::pair<EditorLabelIterator, EditorLabelIterator> getEditorLabelsInRange(int begin, int end);
-    std::pair<EditorLabelIterator, EditorLabelIterator> getEditorLabelsInBlock(const QTextBlock& block);
+    EditorLabelRange getEditorLabelsInRange(int begin, int end);
+    EditorLabelRange getEditorLabelsInBlock(const QTextBlock& block);
+
+    void deleteMarkedEditorLabelsInRange(const EditorLabelRange& range);
 
     WeakEditorLabelPtr getEditorLabelAtPos(int pos);
     void removeEditorLabel(WeakEditorLabelPtr label);

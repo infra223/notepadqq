@@ -36,7 +36,7 @@ public:
     AnchorPoint getAnchorPoint() const { return m_anchor; }
 
 
-    void setHeightInLines(int lines) { m_heightInLines = lines; }
+    void setHeightInLines(int lines) { m_heightInLines = std::min(lines, MAX_LINE_COUNT); }
 
     void setTextOverlap(bool allow) { m_overlap = allow; }
 
@@ -44,7 +44,9 @@ public:
     void setChanged() { m_changed = true; }
     bool getChanged() const { return m_changed; }
 
+    void markForDeletion() { m_markedForDeletion = true; }
 
+    int getTypeId() const { return m_typeId; }
 
 protected:
     QTextBlock getTextBlock() const;
@@ -54,10 +56,11 @@ protected:
 
 private:
     friend class TextEdit;
-    static const int MAX_BLOCK_COUNT = 2;
+    static const int MAX_LINE_COUNT = 3;
 
 
-    int m_heightInLines = 0;
+    int m_typeId = -1;
+    int m_heightInLines = MAX_LINE_COUNT;
     int m_absPos = 0;
 
     QRectF m_displayRect;
@@ -65,6 +68,7 @@ private:
     AnchorPoint m_anchor;
     bool m_overlap = false;
     bool m_changed = true;
+    bool m_markedForDeletion = false;
 };
 
 
