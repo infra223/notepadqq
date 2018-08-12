@@ -8,18 +8,9 @@
 namespace ote {
 
 TeXLabel::TeXLabel(TextEdit* te, int pos)
-    : EditorLabel(te, pos)
+    : EditorLabel(te, pos, TYPE_ID)
 {
-    QFont f;
-    QString name = f.family() + " " + f.styleName();
-
-    QFontMetrics fm(f);
-    // qDebug() << fm.inFont(QChar(0x03B3).unicode()) << fm.inFontUcs4(0x03B3);
-
     jkMath.useASANA();
-
-    jkMath.set_fontColor(Qt::white);
-    jkMath.set_fontSize(15);
 }
 
 TeXLabel::~TeXLabel() {}
@@ -34,18 +25,14 @@ void TeXLabel::updatePixmap()
         return;
     }
 
-    const auto m_displayRectSize = displayRect.size();
-    const auto currentSize = m_pixmap.size();
-    const bool largeEnough = !currentSize.isEmpty() && m_displayRectSize.height() >= currentSize.height() &&
-                             m_displayRectSize.width() >= currentSize.height();
-
-    if (!m_pixmapIsSquished && largeEnough && !m_needToRecalc) {
-        qDebug() << "Don't update pixmap";
+    const bool largeEnough = displayRect.contains(m_pixmap.rect());
+    if (!m_pixmapIsSquished && largeEnough) {
         return;
     }
 
-    m_needToRecalc = false;
-    jkMath.parse(mathFormula);
+    const auto* te = getTextEdit();
+    jkMath.set_fontColor(te->getTheme().textColor(Theme::Normal));
+    jkMath.set_fontSize(te->font().pointSize());
 
     QPainter painter;
     auto size = jkMath.getSize(painter).toSize();
@@ -57,27 +44,10 @@ void TeXLabel::updatePixmap()
     if (scale < 1)
         drawRect.setHeight(drawRect.height() + (lineHeight - ::fmod(drawRect.height(), lineHeight)));
 
-    if (m_renderDebugInfo)
-        qDebug() << "Drawing pixmap";
-
-    m_pixmap = QPixmap(drawRect.size().toSize()); // W x H
-
-    if (m_renderDebugInfo)
-        m_pixmap.fill(Qt::blue);
-    else
-        m_pixmap.fill(qApp->palette().base().color());
-
+    m_pixmap = QPixmap(drawRect.size().toSize());
+    m_pixmap.fill(te->getTheme().editorColor(Theme::BackgroundColor));
     painter.begin(&m_pixmap);
-
-    if (m_renderDebugInfo) {
-        auto centerRect = QRectF(QPointF(0, 0), size);
-        centerRect.translate((drawRect.width() - size.width()) / 2, (drawRect.height() - size.height()) / 2);
-        painter.setPen(Qt::yellow);
-        painter.drawRect(centerRect);
-    }
-
     jkMath.draw(painter, Qt::AlignLeft | Qt::AlignVCenter, drawRect, false);
-
     painter.end();
 
     if (scale > 1)
@@ -90,9 +60,9 @@ void TeXLabel::setLatexString(const QString& text)
     if (mathFormula == text)
         return;
 
-    m_needToRecalc = true;
-    setChanged();
     mathFormula = text;
+    jkMath.parse(mathFormula);
+    markForRedraw();
 }
 
 LatexPlugin::LatexPlugin(TextEdit* te)
@@ -106,37 +76,48 @@ void LatexPlugin::onBlockChanged(const QTextBlock& block)
     static QRegularExpression regex("\\$(.*)\\$");
     regex.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
 
-    const auto blockStart = block.position();
     const auto& text = block.text();
-
-    // QTextCharFormat fmt;
-    // fmt.setTextOutline(QPen(Qt::yellow));
+    const int blockStartPos = block.position();
 
     auto te = getTextEdit();
+    std::vector<QRegularExpressionMatch> matches;
 
     auto it = regex.globalMatch(text);
     while (it.hasNext()) {
         auto m = it.next();
 
-        if (m.captured(1).isEmpty())
-            continue;
+        if (!m.captured(1).isEmpty())
+            matches.push_back(std::move(m));
+    }
 
-        const QString string = m.captured(1);
-        const auto pos = blockStart + m.capturedStart() + 1;
-        const auto wp = te->getEditorLabelAtPos(pos);
+    const auto& range = te->getEditorLabelsInBlock(block);
 
-        if (wp.expired()) {
-            auto l = std::make_shared<TeXLabel>(te, pos);
-            l->setAnchorPoint(EditorLabel::AnchorBelowLine);
-            l->setLatexString(string);
-            te->addEditorLabel(l);
+    if (range.first == range.second && matches.empty())
+        return;
+
+    for (auto it = range.first; it != range.second; ++it) {
+        const auto pos = it->get()->getPosition() - blockStartPos;
+
+        auto match = std::find_if(matches.begin(), matches.end(), [pos](const QRegularExpressionMatch& m) {
+            return m.capturedStart(1) == pos;
+        });
+
+        if (match != matches.end()) {
+            auto p = dynamic_cast<TeXLabel*>(it->get());
+            p->setLatexString(match->captured(1));
+            matches.erase(match);
         } else {
-            auto ptr = wp.lock();
-            auto p = dynamic_cast<TeXLabel*>(ptr.get());
-            p->setLatexString(string);
+            it->get()->markForDeletion();
         }
+    }
 
-        // setFormat(m.capturedStart(), m.capturedLength(), fmt);
+    te->deleteMarkedEditorLabelsInRange(range);
+
+    for (const auto& match : matches) {
+        auto l = std::make_shared<TeXLabel>(te, blockStartPos + match.capturedStart(1));
+        l->setAnchorPoint(EditorLabel::AnchorBelowLine);
+        l->setLatexString(match.captured(1));
+        te->addEditorLabel(l);
     }
 }
 

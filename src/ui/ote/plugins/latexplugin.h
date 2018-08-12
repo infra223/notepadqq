@@ -15,10 +15,10 @@ public:
 
     void setLatexString(const QString& text);
 
+    static const int TYPE_ID = getNewTypeId();
+
 private:
-    bool m_needToRecalc = false;
     bool m_pixmapIsSquished = false;
-    bool m_renderDebugInfo = false;
     JKQTmathText jkMath;
     QString mathFormula;
 };

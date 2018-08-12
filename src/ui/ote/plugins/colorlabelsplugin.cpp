@@ -57,32 +57,45 @@ void ColorLabelsPlugin::onCursorPositionChanged()
         te->removeEditorLabel(m_ptr);
     }
 
-    auto c = te->textCursor();
-    auto b = c.block();
-    auto text = b.text();
+    const auto c = te->textCursor();
+    const auto b = c.block();
+    const auto text = b.text();
 
-    static QRegularExpression regex("#[0-9a-fA-F]{6}");
+    if (text.isEmpty())
+        return;
 
-    auto it = regex.globalMatch(text);
-    while (it.hasNext()) {
-        auto m = it.next();
+    int count = 6;
+    int pos = c.positionInBlock();
 
-        if (m.captured(0).isEmpty())
-            continue;
-
-        if (m.capturedStart() >= c.positionInBlock() || c.positionInBlock() >= m.capturedEnd())
-            return;
-
-        const QString string = m.captured(0);
-
-        auto l = std::make_shared<ColorLabel>(te, b.position() + m.capturedEnd());
-        l->setColor(QColor(string));
-        l->setTextOverlap(true);
-        l->setAnchorPoint(EditorLabel::AnchorOnLine);
-        l->setHeightInLines(1);
-
-        m_ptr = te->addEditorLabel(l);
+    while (--pos >= 0 && count > 0) {
+        if (text[pos] == '#')
+            break;
+        count--;
     }
+
+    if (pos < 0 || text[pos] != '#')
+        return;
+    if (pos + 6 >= text.length())
+        return;
+    const int startPos = pos;
+    const int endPos = startPos + 6;
+
+    count = 0;
+    while (++pos <= endPos) {
+        const auto c = text[pos];
+        if (c.isDigit() || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))
+            count++;
+        else
+            return;
+    }
+
+    auto l = std::make_shared<ColorLabel>(te, b.position() + endPos + 1);
+    l->setColor(QColor(text.mid(startPos, 1 + count)));
+    l->setTextOverlap(true);
+    l->setAnchorPoint(EditorLabel::AnchorOnLine);
+    l->setHeightInLines(1);
+
+    m_ptr = te->addEditorLabel(l);
 }
 
 } // namespace ote

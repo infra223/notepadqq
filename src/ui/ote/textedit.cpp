@@ -23,7 +23,7 @@ namespace ote {
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
-    , m_highlighter(new SyntaxHighlighter(document()))
+    , m_highlighter(new SyntaxHighlighter(nullptr))
 {
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
@@ -40,6 +40,7 @@ TextEdit::TextEdit(QWidget* parent)
     connect(document(), &QTextDocument::contentsChange, this, &TextEdit::onContentsChange);
 
     connect(m_highlighter, &ote::SyntaxHighlighter::blockChanged, this, &TextEdit::blockChanged);
+    m_highlighter->setDocument(document()); // Important to set this *after* the blockChanged connect
 
     setWordWrap(false);
     setCenterOnScroll(false);
@@ -66,6 +67,11 @@ void TextEdit::setTheme(const Theme& theme)
 
     onCursorPositionChanged();
     onSelectionChanged();
+
+    for (const auto& it : m_editorLabels) {
+        it->m_changed = true;
+        it->markForRedraw();
+    }
 }
 
 void TextEdit::highlightCurrentLine()
@@ -385,6 +391,11 @@ void TextEdit::setZoomTo(int value)
     QPlainTextEdit::setFont(f);
 
     updateSidebarGeometry();
+
+    for (const auto& it : m_editorLabels) {
+        it->m_changed = true;
+        it->markForRedraw();
+    }
 }
 
 void TextEdit::zoomIn()
@@ -699,9 +710,8 @@ void TextEdit::onCursorPositionChanged()
     else
         qDebug() << "Is not inside comment";*/
 
-
     // Try to match brackets
-    m_extraSelections[ESMatchingBrackets].clear();
+    // m_extraSelections[ESMatchingBrackets].clear();
 
     /*auto pair = m_highlighter->m_bracketMatcher->findMatchingBracketPosition(textCursor());
 
@@ -747,7 +757,11 @@ void TextEdit::onSelectionChanged()
 void TextEdit::onContentsChange(int position, int removed, int added)
 {
     auto& lbls = m_editorLabels;
-    auto it = std::remove_if(lbls.begin(), lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
+    auto lowerBound = std::lower_bound(lbls.begin(), lbls.end(), position, [](const EditorLabelPtr& ptr, int position) {
+        return ptr->m_absPos >= position;
+    });
+
+    auto it = std::remove_if(lowerBound, lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
         if (ptr->m_absPos >= position && ptr->m_absPos <= position + removed) {
             return true;
         }
@@ -1310,12 +1324,12 @@ void TextEdit::paintEvent(QPaintEvent* e)
         if (!b.isVisible())
             continue;
 
-        if (ptr->getChanged()) {
-            if (ptr->updateDisplayRect()) {
+        if (ptr->m_changed || ptr->m_wantRedraw) {
+            if (ptr->updateDisplayRect() || ptr->m_wantRedraw) {
                 ptr->updatePixmap();
                 wantRepaint = true;
+                ptr->m_wantRedraw = false;
             }
-            ptr->m_changed = false;
         }
 
         const auto op = blockBoundingGeometry(b).translated(contentOffset()).topLeft();
@@ -1468,8 +1482,7 @@ void TextEdit::deleteMarkedEditorLabelsInRange(const TextEdit::EditorLabelRange 
     QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
 }
 
-std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit::getEditorLabelsInRange(
-    int begin, int end)
+TextEdit::EditorLabelRange TextEdit::getEditorLabelsInRange(int begin, int end)
 {
     const auto lower =
         std::upper_bound(m_editorLabels.begin(), m_editorLabels.end(), begin, [](int val, const EditorLabelPtr& ptr) {
@@ -1484,8 +1497,7 @@ std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit
     return {lower, upper};
 }
 
-std::pair<TextEdit::EditorLabelIterator, TextEdit::EditorLabelIterator> TextEdit::getEditorLabelsInBlock(
-    const QTextBlock& block)
+TextEdit::EditorLabelRange TextEdit::getEditorLabelsInBlock(const QTextBlock& block)
 {
     const auto begin = block.position();
     const auto end = begin + block.length();

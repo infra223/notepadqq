@@ -20,7 +20,7 @@ public:
         AnchorBelowLine
     };
 
-    EditorLabel(TextEdit* te, int pos);
+    EditorLabel(TextEdit* parent, int pos, int typeId);
     virtual ~EditorLabel() {}
 
 
@@ -34,6 +34,7 @@ public:
 
     void setAnchorPoint(AnchorPoint p) { m_anchor = p; }
     AnchorPoint getAnchorPoint() const { return m_anchor; }
+    int getPosition() const { return m_absPos; }
 
 
     void setHeightInLines(int lines) { m_heightInLines = std::min(lines, MAX_LINE_COUNT); }
@@ -41,9 +42,7 @@ public:
     void setTextOverlap(bool allow) { m_overlap = allow; }
 
 
-    void setChanged() { m_changed = true; }
-    bool getChanged() const { return m_changed; }
-
+    void markForRedraw() { m_wantRedraw = true; }
     void markForDeletion() { m_markedForDeletion = true; }
 
     int getTypeId() const { return m_typeId; }
@@ -51,6 +50,7 @@ public:
 protected:
     QTextBlock getTextBlock() const;
     TextEdit* getTextEdit() const;
+    static constexpr int getNewTypeId() { return __COUNTER__; }
 
     QPixmap m_pixmap;
 
@@ -59,15 +59,16 @@ private:
     static const int MAX_LINE_COUNT = 3;
 
 
-    int m_typeId = -1;
+    const int m_typeId;
     int m_heightInLines = MAX_LINE_COUNT;
-    int m_absPos = 0;
+    int m_absPos;
 
     QRectF m_displayRect;
 
     AnchorPoint m_anchor;
     bool m_overlap = false;
     bool m_changed = true;
+    bool m_wantRedraw = false;
     bool m_markedForDeletion = false;
 };
 

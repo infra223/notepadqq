@@ -10,13 +10,15 @@ namespace ote {
 
 class ColorLabel : public EditorLabel {
 public:
-    ColorLabel(TextEdit* te, int pos) : EditorLabel(te, pos) {}
+    ColorLabel(TextEdit* te, int pos) : EditorLabel(te, pos, TYPE_ID) {}
 
     void setColor(QColor c);
 
 
 public:
     void updatePixmap();
+
+    static const int TYPE_ID = getNewTypeId();
 
 private:
     QColor m_color;

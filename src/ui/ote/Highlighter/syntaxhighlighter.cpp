@@ -63,13 +63,6 @@ FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlo
     return FoldingRegion();
 }
 
-SyntaxHighlighter::SyntaxHighlighter(QObject* parent)
-    : QSyntaxHighlighter(parent)
-    , AbstractHighlighter(new SyntaxHighlighterPrivate)
-{
-    qRegisterMetaType<QTextBlock>();
-}
-
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument* document)
     : QSyntaxHighlighter(document)
     , AbstractHighlighter(new SyntaxHighlighterPrivate)

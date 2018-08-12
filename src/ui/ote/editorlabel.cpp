@@ -2,6 +2,7 @@
 
 #include "textedit.h"
 
+#include <QDebug>
 #include <QTextDocument>
 
 namespace ote {
@@ -21,6 +22,8 @@ void EditorLabel::draw(QPainter& painter, const QPointF& offset)
 
 bool EditorLabel::updateDisplayRect(qreal rightBorder)
 {
+    m_changed = false;
+
     TextEdit* te = dynamic_cast<TextEdit*>(parent());
 
     const QTextBlock block = te->document()->findBlock(m_absPos);
@@ -32,7 +35,8 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
     }
 
     const auto layoutBoundingRect = layout->boundingRect();
-    const QTextLine l = layout->lineForTextPosition(m_absPos - block.position());
+    const int positionInBlock = m_absPos - block.position();
+    const QTextLine l = layout->lineForTextPosition(positionInBlock);
 
     if (!l.isValid()) {
         m_displayRect = QRectF();
@@ -43,13 +47,7 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
     if (m_anchor == AnchorEndOfLine) {
         rectStart.rx() = l.naturalTextRect().right();
     } else {
-        // TODO: Perhaps cache the fontmetrics object?
-        QFont f = block.document()->defaultFont();
-        QFontMetrics fm(f);
-        const auto begin = l.textStart();
-        const auto length = m_absPos - block.position();
-        auto adv = fm.horizontalAdvance(block.text().mid(begin, length));
-        rectStart.rx() += adv; // Set left border
+        rectStart.rx() = l.cursorToX(positionInBlock);
     }
 
     auto rectEnd = layoutBoundingRect.bottomLeft();
@@ -84,15 +82,12 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
     const bool rectChanged = m_displayRect != newDisplayRect;
     m_displayRect = newDisplayRect;
 
-    /*if (m_renderDebugInfo) {
-        qDebug() << m_displayRect << rectChanged;
-    }*/
-
-    return rectChanged || m_changed; // TODO: m_changed here needed?
+    return rectChanged;
 }
 
-EditorLabel::EditorLabel(TextEdit* te, int pos)
-    : QObject(te)
+EditorLabel::EditorLabel(TextEdit* parent, int pos, int typeId)
+    : QObject(parent)
+    , m_typeId(typeId)
     , m_absPos(pos)
 {
 }
