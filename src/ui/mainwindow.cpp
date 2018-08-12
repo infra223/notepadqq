@@ -66,12 +66,6 @@ MainWindow::MainWindow(const QString &workingDirectory, const QStringList &argum
 
     loadIcons();
 
-    // Printing a WebEnginePage not supported prior to 5.8
-#if QT_VERSION < QT_VERSION_CHECK(5,8,0)
-    ui->actionPrint->setEnabled(false);
-    ui->actionPrint->setVisible(false);
-#endif
-
     // Context menu initialization
     m_tabContextMenu = new QMenu(this);
     QAction *separator = new QAction(this);
@@ -2604,6 +2598,19 @@ void MainWindow::on_actionShow_Menubar_toggled(bool arg1)
 void MainWindow::on_actionShow_Toolbar_toggled(bool arg1)
 {
     m_mainToolBar->setVisible(arg1);
+}
+
+void MainWindow::on_actionShow_Whitespace_triggered(bool checked)
+{
+    if (!updateSymbols(checked)) {
+        m_settings.General.setWhitespaceVisible(checked);
+    }
+
+    m_topEditorContainer->forEachEditor(
+        [&](const int /*tabWidgetId*/, const int /*editorId*/, EditorTabWidget* /*tabWidget*/, Editor* editor) {
+            editor->setWhitespaceVisible(checked);
+            return true;
+        });
 }
 
 void MainWindow::on_actionToggle_To_Former_Tab_triggered()

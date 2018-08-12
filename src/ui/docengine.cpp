@@ -187,7 +187,7 @@ void DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
             }
 
             emit this->documentLoaded(tabW, openPos.second, true, rememberLastSelectedDir);
-            return _continue;
+            continue;
         }
 
         const int warnAtSize = NqqSettings::getInstance().General.getWarnIfFileLargerThan() * 1024 * 1024;
@@ -247,9 +247,7 @@ void DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
 
         QFile file(localFileName);
         if (file.exists()) {
-            QPromise<void> readResult = this->read(&file, editor, codec, bom).wait(); // FIXME To async!
-
-            while (readResult.isRejected()) {
+            if (!read(&file, editor, codec, bom)) {
                 // Handle error
                 QMessageBox msgBox;
                 msgBox.setWindowTitle(QCoreApplication::applicationName());
@@ -308,10 +306,10 @@ void DocEngine::loadDocuments(const DocEngine::DocumentLoader& docLoader)
             editor->detectAndSetLanguage();
         }
 
-        this->monitorDocument(editor);
+        monitorDocument(editor);
 
-        if (*isFirstDocument) {
-            *isFirstDocument = false;
+        if (isFirstDocument) {
+            isFirstDocument = false;
             tabWidget->setCurrentIndex(tabIndex);
             tabWidget->editor(tabIndex)->setFocus();
         }
