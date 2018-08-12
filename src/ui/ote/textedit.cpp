@@ -1400,28 +1400,15 @@ void TextEdit::resizeEvent(QResizeEvent* event)
 {
     QPlainTextEdit::resizeEvent(event);
     updateSidebarGeometry();
+
+    if (wordWrapMode() != QTextOption::NoWrap)
+        for (const auto& it : m_editorLabels)
+            it->m_changed = true;
 }
 
 QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
 {
     return m_highlighter->findFoldingRegionEnd(startBlock);
-
-    /*int depth = 1;
-    auto currBlock = startBlock.next();
-
-    while (currBlock.isValid()) {
-        if (currBlock.text().startsWith("}"))
-            depth--;
-        else if (currBlock.text().startsWith("{"))
-            depth++;
-
-        if (depth == 0)
-            return currBlock;
-
-        currBlock = currBlock.next();
-    }
-
-    return QTextBlock();*/
 }
 
 bool TextEdit::isFoldable(const QTextBlock& block) const
