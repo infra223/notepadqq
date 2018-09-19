@@ -23,7 +23,7 @@ namespace ote {
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
-    , m_highlighter(new SyntaxHighlighter(nullptr))
+    , m_highlighter(new SyntaxHighlighter(this))
 {
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 

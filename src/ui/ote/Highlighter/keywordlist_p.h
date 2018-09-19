@@ -1,27 +1,34 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_KEYWORDLIST_P_H
-#define OTE_KEYWORDLIST_P_H
+#ifndef KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H
+#define KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H
 
 #include <QSet>
 #include <QString>
 #include <QVector>
+
+#include <vector>
 
 class QXmlStreamReader;
 
@@ -30,27 +37,63 @@ namespace ote {
 class KeywordList
 {
 public:
-    KeywordList();
-    ~KeywordList();
+    KeywordList() = default;
+    ~KeywordList() = default;
 
-    bool isEmpty() const;
+    bool isEmpty() const
+    {
+        return m_keywords.isEmpty();
+    }
 
-    QString name() const;
+    const QString &name() const
+    {
+        return m_name;
+    }
+
+    const QStringList &keywords() const
+    {
+        return m_keywords;
+    }
 
     /** Checks if @p str is a keyword in this list. */
-    bool contains(const QStringRef &str) const;
+    bool contains(const QStringRef &str) const
+    {
+        return contains(str, m_caseSensitive);
+    }
+
     /** Checks if @p str is a keyword in this list, overriding the global case-sensitivity setting. */
-    bool contains(const QStringRef &str, Qt::CaseSensitivity caseSensitivityOverride) const;
+    bool contains(const QStringRef &str, Qt::CaseSensitivity caseSensitive) const;
 
     void load(QXmlStreamReader &reader);
     void setCaseSensitivity(Qt::CaseSensitivity caseSensitive);
+    void initLookupForCaseSensitivity(Qt::CaseSensitivity caseSensitive);
 
 private:
+    /**
+     * name of keyword list as in XML
+     */
     QString m_name;
-    QSet<QString> m_keywords;
-    mutable QSet<QString> m_lowerCaseKeywords;
-    Qt::CaseSensitivity m_caseSensitive;
+
+    /**
+     * raw list of keywords, as seen in XML (but trimmed)
+     */
+    QStringList m_keywords;
+
+    /**
+     * default case-sensitivity setting
+     */
+    Qt::CaseSensitivity m_caseSensitive = Qt::CaseSensitive;
+
+    /**
+     * case-sensitive sorted string references to m_keywords for lookup
+     */
+    std::vector<QStringRef> m_keywordsSortedCaseSensitive;
+
+    /**
+     * case-insensitive sorted string references to m_keywords for lookup
+     */
+    std::vector<QStringRef> m_keywordsSortedCaseInsensitive;
 };
 }
 
-#endif // OTE_KEYWORDLIST_P_H
+#endif // KSYNTAXHIGHLIGHTING_KEYWORDLIST_P_H

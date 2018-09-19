@@ -1,33 +1,38 @@
-
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "syntaxhighlighter.h"
 
 #include "abstracthighlighter_p.h"
 #include "definition.h"
+#include "fmtrangelist.h"
 #include "foldingregion.h"
 #include "format.h"
 #include "state.h"
 #include "theme.h"
-#include "fmtrangelist.h"
 
 #include <QDebug>
+#include <QTextDocument>
 
 Q_DECLARE_METATYPE(QTextBlock)
 
@@ -39,7 +44,7 @@ public:
     State state;
     QVector<FoldingRegion> foldingRegions;
     FmtRangeList commentRangeList;
-    bool forceRehighlight = false;
+    bool forceRehighlighting = false;
 };
 
 class SyntaxHighlighterPrivate : public AbstractHighlighterPrivate {
@@ -48,8 +53,6 @@ public:
     QVector<FoldingRegion> foldingRegions;
     FmtRangeList commentRangeList;
 };
-
-} // namespace ote
 
 FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlock)
 {
@@ -63,6 +66,13 @@ FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlo
     return FoldingRegion();
 }
 
+SyntaxHighlighter::SyntaxHighlighter(QObject* parent)
+    : QSyntaxHighlighter(parent)
+    , AbstractHighlighter(new SyntaxHighlighterPrivate)
+{
+    qRegisterMetaType<QTextBlock>();
+}
+
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument* document)
     : QSyntaxHighlighter(document)
     , AbstractHighlighter(new SyntaxHighlighterPrivate)
@@ -72,22 +82,12 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument* document)
 
 SyntaxHighlighter::~SyntaxHighlighter() {}
 
-void SyntaxHighlighter::setTheme(const Theme& theme)
-{
-    if (theme == this->theme())
-        return;
-
-    AbstractHighlighter::setTheme(theme);
-    startRehighlighting();
-}
-
 void SyntaxHighlighter::setDefinition(const Definition& def)
 {
     const auto needsRehighlight = definition() != def;
     AbstractHighlighter::setDefinition(def);
-    if (needsRehighlight) {
+    if (needsRehighlight)
         startRehighlighting();
-    }
 }
 
 bool SyntaxHighlighter::startsFoldingRegion(const QTextBlock& startBlock) const
@@ -125,7 +125,8 @@ bool SyntaxHighlighter::isPositionInComment(int absPos, int len) const
 {
     const auto& block = document()->findBlock(absPos);
     auto data = dynamic_cast<TextBlockUserData*>(block.userData());
-    if(!data) return false;
+    if (!data)
+        return false;
     return data->commentRangeList.isInRange(absPos - block.position(), len);
 }
 
@@ -134,7 +135,7 @@ void SyntaxHighlighter::startRehighlighting()
     const auto firstBlock = document()->firstBlock();
     auto data = dynamic_cast<TextBlockUserData*>(firstBlock.userData());
     if (data)
-        data->forceRehighlight = true;
+        data->forceRehighlighting = true;
 
     if (firstBlock.isValid())
         QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
@@ -145,7 +146,6 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     Q_D(SyntaxHighlighter);
 
     State state;
-
     if (currentBlock().position() > 0) {
         const auto prevBlock = currentBlock().previous();
         const auto prevData = dynamic_cast<TextBlockUserData*>(prevBlock.userData());
@@ -168,33 +168,31 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     }
     emit blockChanged(currentBlock()); // TODO: Put into scope guard
 
-    bool forceRehighlighting = data->forceRehighlight;
+    const bool forceRehighlighting = data->forceRehighlighting;
 
-    if (!forceRehighlighting && data->state == state &&
-        data->foldingRegions == d->foldingRegions &&
+    if (!forceRehighlighting && data->state == state && data->foldingRegions == d->foldingRegions &&
         data->commentRangeList == d->commentRangeList) // we ended up in the same state, so we are done here
         return;
-
     data->state = state;
     data->foldingRegions = d->foldingRegions;
     data->commentRangeList = d->commentRangeList;
-    data->forceRehighlight = false;
+    data->forceRehighlighting = false;
 
     const auto nextBlock = currentBlock().next();
     if (!nextBlock.isValid())
         return;
 
-    if (forceRehighlighting) {
+    if (forceRehighlighting) { // Proliferate rehighlighting to next block if needed
         auto nextData = dynamic_cast<TextBlockUserData*>(nextBlock.userData());
         if (!nextData)
             nextData = new TextBlockUserData;
-        nextData->forceRehighlight = true;
+        nextData->forceRehighlighting = true;
     }
 
     QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
 }
 
-void SyntaxHighlighter::applyFormat(int offset, int length, const ote::Format& format)
+void SyntaxHighlighter::applyFormat(int offset, int length, const Format& format)
 {
     if (format.isDefaultTextStyle(theme()) || length == 0)
         return;
@@ -214,7 +212,7 @@ void SyntaxHighlighter::applyFormat(int offset, int length, const ote::Format& f
     if (format.isStrikeThrough(theme()))
         tf.setFontStrikeOut(true);
 
-    if (format.isComment()){
+    if (format.isComment()) {
         Q_D(SyntaxHighlighter);
         d->commentRangeList.addRange(offset, length);
     }
@@ -241,3 +239,5 @@ void SyntaxHighlighter::applyFolding(int offset, int length, FoldingRegion regio
         d->foldingRegions.push_back(region);
     }
 }
+
+} // namespace ote

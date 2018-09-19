@@ -1,19 +1,24 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "context_p.h"
@@ -29,15 +34,6 @@
 
 using namespace ote;
 
-Context::Context()
-    : m_resolveState(Unknown)
-    , m_fallthrough(false)
-    , m_noIndentationBasedFolding(false)
-{
-}
-
-Context::~Context() {}
-
 Definition Context::definition() const
 {
     return m_def.definition();
@@ -48,66 +44,12 @@ void Context::setDefinition(const DefinitionRef& def)
     m_def = def;
 }
 
-QString Context::name() const
-{
-    return m_name;
-}
-
-QString Context::attribute() const
-{
-    return m_attribute;
-}
-
-ContextSwitch Context::lineEndContext() const
-{
-    return m_lineEndContext;
-}
-
-ContextSwitch Context::lineEmptyContext() const
-{
-    return m_lineEmptyContext;
-}
-
-bool Context::fallthrough() const
-{
-    return m_fallthrough;
-}
-
-ContextSwitch Context::fallthroughContext() const
-{
-    return m_fallthroughContext;
-}
-
 bool Context::indentationBasedFoldingEnabled() const
 {
     if (m_noIndentationBasedFolding)
         return false;
 
     return m_def.definition().indentationBasedFoldingEnabled();
-}
-
-QVector<Rule::Ptr> Context::rules() const
-{
-    return m_rules;
-}
-
-Format Context::formatByName(const QString& name) const
-{
-    auto defData = DefinitionData::get(m_def.definition());
-    auto format = defData->formatByName(name);
-    if (format.isValid())
-        return format;
-
-    // TODO we can avoid multiple lookups in the same definition here, many rules will share definitions
-    foreach (const auto& rule, m_rules) {
-        auto defData = DefinitionData::get(rule->definition());
-        format = defData->formatByName(name);
-        if (format.isValid())
-            return format;
-    }
-
-    qWarning() << "Unknown format" << name << "in context" << m_name << "of definition" << m_def.definition().name();
-    return format;
 }
 
 void Context::load(QXmlStreamReader& reader)
@@ -156,14 +98,14 @@ void Context::resolveContexts()
     m_lineEndContext.resolve(def);
     m_lineEmptyContext.resolve(def);
     m_fallthroughContext.resolve(def);
-    foreach (const auto& rule, m_rules)
+    for (const auto& rule : m_rules)
         rule->resolveContext();
 }
 
 Context::ResolveState Context::resolveState()
 {
     if (m_resolveState == Unknown) {
-        foreach (const auto& rule, m_rules) {
+        for (const auto& rule : m_rules) {
             auto inc = std::dynamic_pointer_cast<IncludeRules>(rule);
             if (inc) {
                 m_resolveState = Unresolved;
@@ -219,15 +161,51 @@ void Context::resolveIncludes()
             continue;
         }
         context->resolveIncludes();
+
+        /**
+         * handle included attribute
+         * transitive closure: we might include attributes included from somewhere else
+         */
         if (inc->includeAttribute()) {
-            m_attribute = context->attribute();
+            m_attribute = context->m_attribute;
+            m_attributeContext = context->m_attributeContext ? context->m_attributeContext : context;
         }
+
         it = m_rules.erase(it);
-        foreach (const auto& rule, context->rules()) {
+        for (const auto& rule : context->rules()) {
             it = m_rules.insert(it, rule);
             ++it;
         }
     }
 
     m_resolveState = Resolved;
+}
+
+void Context::resolveAttributeFormat()
+{
+    /**
+     * try to get our format from the definition we stem from
+     * we need to handle included attributes via m_attributeContext
+     */
+    if (!m_attribute.isEmpty()) {
+        const auto def = m_attributeContext ? m_attributeContext->m_def.definition() : m_def.definition();
+        m_attributeFormat = DefinitionData::get(def)->formatByName(m_attribute);
+        if (!m_attributeFormat.isValid()) {
+            if (m_attributeContext) {
+                qWarning() << "Context: Unknown format" << m_attribute << "in context" << m_name << "of definition"
+                           << m_def.definition().name() << "from included context" << m_attributeContext->m_name
+                           << "of definition" << def.name();
+            } else {
+                qWarning() << "Context: Unknown format" << m_attribute << "in context" << m_name << "of definition"
+                           << m_def.definition().name();
+            }
+        }
+    }
+
+    /**
+     * lookup formats for our rules
+     */
+    for (const auto& rule : m_rules) {
+        rule->resolveAttributeFormat(this);
+    }
 }

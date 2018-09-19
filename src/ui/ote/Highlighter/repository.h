@@ -1,23 +1,28 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_REPOSITORY_H
-#define OTE_REPOSITORY_H
+#ifndef KSYNTAXHIGHLIGHTING_REPOSITORY_H
+#define KSYNTAXHIGHLIGHTING_REPOSITORY_H
 
 #include <qglobal.h>
 #include <memory>
@@ -71,42 +76,51 @@ class Theme;
  * @section repo_search_paths Search Paths
  *
  * All highlighting Definition and Theme files are compiled into the shared
- * OTE library by using the Qt resource system. Loading
+ * KSyntaxHighlighting library by using the Qt resource system. Loading
  * additional files from disk is supported as well.
  *
  * Loading syntax Definition files works as follows:
+ *
  * -# First, all syntax highlighting files are loaded that are located in
  *    QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("org.kde.syntax-highlighting/syntax"), QStandardPaths::LocateDirectory);
  *    Under Unix, this uses $XDG_DATA_HOME and $XDG_DATA_DIRS, which could
  *    map to $HOME/.local5/share/org.kde.syntax-highlighting/syntax and
  *    /usr/share/org.kde.syntax-highlighting/syntax.
+ *
  * -# Next, for backwards compatibility with Kate, all syntax highlighting
  *    files are loaded that are located in
  *    QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("katepart5/syntax"), QStandardPaths::LocateDirectory);
  *    Again, under Unix, this uses $XDG_DATA_HOME and $XDG_DATA_DIRS, which
  *    could map to $HOME/.local5/share/katepart5/syntax and
  *    /usr/share/katepart5/syntax.
+ *
  * -# Then, all files compiled into the library through resources are loaded.
  *    The internal resource path is ":/org.kde.syntax-highlighting/syntax".
  *    This path should never be touched by other applications.
+ *
  * -# Finally, the search path can be extended by calling addCustomSearchPath().
  *    A custom search path can either be a path on disk or again a path to
- *    a Qt resoruce.
+ *    a Qt resource.
  *
  * Similarly, loading Theme files works as follows:
+ *
  * -# First, all Theme files are loaded that are located in
  *    QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("org.kde.syntax-highlighting/themes"), QStandardPaths::LocateDirectory);
  *    Under Unix, this uses $XDG_DATA_HOME and $XDG_DATA_DIRS, which could
  *    map to $HOME/.local5/share/org.kde.syntax-highlighting/themes and
  *    /usr/share/org.kde.syntax-highlighting/themes.
+ *
  * -# Then, all files compiled into the library through resources are loaded.
  *    The internal resource path is ":/org.kde.syntax-highlighting/themes".
  *    This path should never be touched by other applications.
+ *
  * -# Finally, all Theme%s located in the paths added addCustomSearchPath()
  *    are loaded.
  *
  * @note Whenever a Definition or a Theme exists twice, the variant with
  *       higher version is used.
+ *
+ * @note The QStandardPaths lookup can be disabled by compiling the framework with the -DNO_STANDARD_PATHS define.
  *
  * @see Definition, Theme, AbstractHighlighter
  * @since 5.28
@@ -121,7 +135,7 @@ public:
      * recommended to keep a single instance of Repository around as long
      * as you need highlighting in your application.
      */
-    Repository(const QString& dataPath);
+    Repository(const QString &dataPath);
     ~Repository();
 
     /**
@@ -140,21 +154,27 @@ public:
     /**
      * Returns the best matching Definition for the file named @p fileName.
      * The match is performed based on the \e extensions and @e mimetype of
-     * the definition files, as well as a number of known common file names.
-     * If multiple matches are found, the one with the highest priority
-     * is returned.
+     * the definition files. If multiple matches are found, the one with the
+     * highest priority is returned.
      *
      * If no match is found, Definition::isValid() of the returned instance
      * returns false.
      */
     Definition definitionForFileName(const QString &fileName) const;
-    
+
     /**
-     * Returns the best matching Definition for the string @p content.
-     * The match is performed based the first non-empty line of the string.
+     * Returns the best matching Definition to the type named @p mimeType
      *
      * If no match is found, Definition::isValid() of the returned instance
      * returns false.
+     *
+     * @since 5.50
+     */
+    Definition definitionForMimeType(const QString &mimeType) const;
+
+    /**
+     * Returns the best matching Definition for the string @p content.
+     * The match is performed based on the first non-empty line.
      */
     Definition definitionForContent(const QString& content) const;
 
@@ -213,6 +233,8 @@ public:
      *       Theme%s. Do not append @e syntax or @e themes to @p path
      *       yourself.
      *
+     * @note Calling this triggers a reload() of the repository.
+     *
      * @since 5.39
      */
     void addCustomSearchPath(const QString &path);
@@ -234,4 +256,4 @@ private:
 
 }
 
-#endif // OTE_REPOSITORY_H
+#endif // KSYNTAXHIGHLIGHTING_REPOSITORY_H

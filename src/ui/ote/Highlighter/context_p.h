@@ -1,31 +1,38 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_CONTEXT_P_H
-#define OTE_CONTEXT_P_H
+#ifndef KSYNTAXHIGHLIGHTING_CONTEXT_P_H
+#define KSYNTAXHIGHLIGHTING_CONTEXT_P_H
 
 #include "rule_p.h"
 #include "contextswitch_p.h"
 #include "definition.h"
 #include "definitionref_p.h"
+#include "format.h"
 
 #include <QString>
-#include <QVector>
+
+#include <vector>
 
 class QXmlStreamReader;
 
@@ -34,19 +41,46 @@ namespace ote {
 class Context
 {
 public:
-    Context();
-    ~Context();
+    Context() = default;
+    ~Context() = default;
 
     Definition definition() const;
     void setDefinition(const DefinitionRef &def);
 
-    QString name() const;
-    QString attribute() const;
-    ContextSwitch lineEndContext() const;
-    ContextSwitch lineEmptyContext() const;
+    const QString &name() const
+    {
+        return m_name;
+    }
 
-    bool fallthrough() const;
-    ContextSwitch fallthroughContext() const;
+    const ContextSwitch &lineEndContext() const
+    {
+        return m_lineEndContext;
+    }
+
+    const ContextSwitch &lineEmptyContext() const
+    {
+        return m_lineEmptyContext;
+    }
+
+    bool fallthrough() const
+    {
+        return m_fallthrough;
+    }
+
+    const ContextSwitch &fallthroughContext() const
+    {
+        return m_fallthroughContext;
+    }
+
+    const Format &attributeFormat() const
+    {
+        return m_attributeFormat;
+    }
+
+    const std::vector<Rule::Ptr> &rules() const
+    {
+        return m_rules;
+    }
 
     /**
      * Returns @c true, when indentationBasedFolding is enabled for the
@@ -54,17 +88,10 @@ public:
      */
     bool indentationBasedFoldingEnabled() const;
 
-    QVector<Rule::Ptr> rules() const;
-
-    /** Attempts to find the format named @p name in the
-     *  enclosing definition, or the source definition of any
-     *  included rule.
-     */
-    Format formatByName(const QString &name) const;
-
     void load(QXmlStreamReader &reader);
     void resolveContexts();
     void resolveIncludes();
+    void resolveAttributeFormat();
 
 private:
     Q_DISABLE_COPY(Context)
@@ -79,17 +106,32 @@ private:
 
     DefinitionRef m_def;
     QString m_name;
+
+    /**
+     * attribute name, to lookup our format
+     */
     QString m_attribute;
+
+    /**
+     * context to use for lookup, if != this context
+     */
+    const Context *m_attributeContext = nullptr;
+
+    /**
+     * resolved format for our attribute, done in resolveAttributeFormat
+     */
+    Format m_attributeFormat;
+
     ContextSwitch m_lineEndContext;
     ContextSwitch m_lineEmptyContext;
     ContextSwitch m_fallthroughContext;
 
-    QVector<Rule::Ptr> m_rules;
+    std::vector<Rule::Ptr> m_rules;
 
-    ResolveState m_resolveState;
-    bool m_fallthrough;
-    bool m_noIndentationBasedFolding;
+    ResolveState m_resolveState = Unknown;
+    bool m_fallthrough = false;
+    bool m_noIndentationBasedFolding = false;
 };
 }
 
-#endif // OTE_CONTEXT_P_H
+#endif // KSYNTAXHIGHLIGHTING_CONTEXT_P_H

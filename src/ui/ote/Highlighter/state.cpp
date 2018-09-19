@@ -1,19 +1,25 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
+    Copyright (C) 2018 Christoph Cullmann <cullmann@kde.org>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "state.h"
@@ -25,11 +31,6 @@
 
 using namespace ote;
 
-StateData::StateData()
-    : m_defData(nullptr)
-{
-}
-
 StateData* StateData::get(State& state)
 {
     state.d.detach();
@@ -38,46 +39,40 @@ StateData* StateData::get(State& state)
 
 bool StateData::isEmpty() const
 {
-    Q_ASSERT(m_contextStack.size() == m_captureStack.size());
     return m_contextStack.isEmpty();
 }
 
 void StateData::clear()
 {
     m_contextStack.clear();
-    m_captureStack.clear();
 }
 
 int StateData::size() const
 {
-    Q_ASSERT(m_contextStack.size() == m_captureStack.size());
     return m_contextStack.size();
 }
 
 void StateData::push(Context* context, const QStringList& captures)
 {
     Q_ASSERT(context);
-    m_contextStack.push(context);
-    m_captureStack.push(captures);
-    Q_ASSERT(m_contextStack.size() == m_captureStack.size());
+    m_contextStack.push_back(qMakePair(context, captures));
 }
 
 void StateData::pop()
 {
-    m_contextStack.pop();
-    m_captureStack.pop();
+    m_contextStack.pop_back();
 }
 
 Context* StateData::topContext() const
 {
     Q_ASSERT(!isEmpty());
-    return m_contextStack.top();
+    return m_contextStack.last().first;
 }
 
-QStringList StateData::topCaptures() const
+const QStringList& StateData::topCaptures() const
 {
     Q_ASSERT(!isEmpty());
-    return m_captureStack.top();
+    return m_contextStack.last().second;
 }
 
 State::State()
@@ -100,8 +95,8 @@ State& State::operator=(const State& other)
 
 bool State::operator==(const State& other) const
 {
-    return d->m_contextStack == other.d->m_contextStack && d->m_captureStack == other.d->m_captureStack &&
-           d->m_defData == other.d->m_defData;
+    // use pointer equal as shortcut for shared states
+    return (d == other.d) || (d->m_contextStack == other.d->m_contextStack && d->m_defRef == other.d->m_defRef);
 }
 
 bool State::operator!=(const State& other) const
@@ -113,5 +108,5 @@ bool State::indentationBasedFoldingEnabled() const
 {
     if (d->m_contextStack.isEmpty())
         return false;
-    return d->m_contextStack.top()->indentationBasedFoldingEnabled();
+    return d->m_contextStack.last().first->indentationBasedFoldingEnabled();
 }

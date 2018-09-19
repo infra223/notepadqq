@@ -1,19 +1,24 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "keywordlist_p.h"
@@ -21,41 +26,25 @@
 #include <QDebug>
 #include <QXmlStreamReader>
 
+#include <algorithm>
+
 using namespace ote;
 
-KeywordList::KeywordList()
-    : m_caseSensitive(Qt::CaseSensitive)
+bool KeywordList::contains(const QStringRef& str, Qt::CaseSensitivity caseSensitive) const
 {
-}
+    /**
+     * get right vector to search in
+     */
+    const auto& vectorToSearch =
+        (caseSensitive == Qt::CaseSensitive) ? m_keywordsSortedCaseSensitive : m_keywordsSortedCaseInsensitive;
 
-KeywordList::~KeywordList() {}
-
-bool KeywordList::isEmpty() const
-{
-    return m_keywords.isEmpty();
-}
-
-QString KeywordList::name() const
-{
-    return m_name;
-}
-
-bool KeywordList::contains(const QStringRef& str) const
-{
-    return contains(str, m_caseSensitive);
-}
-
-bool KeywordList::contains(const QStringRef& str, Qt::CaseSensitivity caseSensitivityOverride) const
-{
-    if (Q_UNLIKELY(caseSensitivityOverride == Qt::CaseInsensitive && m_lowerCaseKeywords.isEmpty())) {
-        foreach (const auto& kw, m_keywords)
-            m_lowerCaseKeywords.insert(kw.toLower());
-    }
-
-    // TODO avoid the copy in toString!
-    if (caseSensitivityOverride == Qt::CaseSensitive)
-        return m_keywords.contains(str.toString());
-    return m_lowerCaseKeywords.contains(str.toString().toLower());
+    /**
+     * search with right predicate
+     */
+    return std::binary_search(
+        vectorToSearch.begin(), vectorToSearch.end(), str, [caseSensitive](const QStringRef& a, const QStringRef& b) {
+            return a.compare(b, caseSensitive) < 0;
+        });
 }
 
 void KeywordList::load(QXmlStreamReader& reader)
@@ -69,7 +58,7 @@ void KeywordList::load(QXmlStreamReader& reader)
         switch (reader.tokenType()) {
         case QXmlStreamReader::StartElement:
             if (reader.name() == QLatin1String("item")) {
-                m_keywords.insert(reader.readElementText().trimmed());
+                m_keywords.append(reader.readElementText().trimmed());
                 reader.readNextStartElement();
                 break;
             }
@@ -87,5 +76,36 @@ void KeywordList::load(QXmlStreamReader& reader)
 
 void KeywordList::setCaseSensitivity(Qt::CaseSensitivity caseSensitive)
 {
+    /**
+     * remember default case-sensitivity and init lookup for it
+     */
     m_caseSensitive = caseSensitive;
+    initLookupForCaseSensitivity(m_caseSensitive);
+}
+
+void KeywordList::initLookupForCaseSensitivity(Qt::CaseSensitivity caseSensitive)
+{
+    /**
+     * get right vector to sort, if non-empty, we are done
+     */
+    auto& vectorToSort =
+        (caseSensitive == Qt::CaseSensitive) ? m_keywordsSortedCaseSensitive : m_keywordsSortedCaseInsensitive;
+    if (!vectorToSort.empty()) {
+        return;
+    }
+
+    /**
+     * fill vector with refs to keywords
+     */
+    vectorToSort.reserve(m_keywords.size());
+    for (const auto& keyword : qAsConst(m_keywords)) {
+        vectorToSort.push_back(&keyword);
+    }
+
+    /**
+     * sort with right predicate
+     */
+    std::sort(vectorToSort.begin(), vectorToSort.end(), [caseSensitive](const QStringRef& a, const QStringRef& b) {
+        return a.compare(b, caseSensitive) < 0;
+    });
 }

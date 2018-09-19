@@ -1,19 +1,26 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
+    Copyright (C) 2018 Dominik Haumann <dhaumann@kde.org>
+    Copyright (C) 2018 Christoph Cullmann <cullmann@kde.org>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "definition.h"
@@ -41,14 +48,8 @@
 using namespace ote;
 
 DefinitionData::DefinitionData()
-    : repo(nullptr)
-    , delimiters(QStringLiteral("\t !%&()*+,-./:;<=>?[\\]^{|}~"))
-    , // must be sorted!
-    indentationBasedFolding(false)
-    , caseSensitive(Qt::CaseSensitive)
-    , version(0.0f)
-    , priority(0)
-    , hidden(false)
+    : wordDelimiters(QStringLiteral("\t !%&()*+,-./:;<=>?[\\]^{|}~")) // must be sorted!
+    , wordWrapDelimiters(wordDelimiters)
 {
 }
 
@@ -171,6 +172,36 @@ QString Definition::license() const
     return d->license;
 }
 
+bool Definition::isWordDelimiter(QChar c) const
+{
+    d->load();
+    return d->isWordDelimiter(c);
+}
+
+bool Definition::isWordWrapDelimiter(QChar c) const
+{
+    d->load();
+    return std::binary_search(d->wordWrapDelimiters.constBegin(), d->wordWrapDelimiters.constEnd(), c);
+}
+
+bool Definition::foldingEnabled() const
+{
+    d->load();
+    if (d->hasFoldingRegions || indentationBasedFoldingEnabled()) {
+        return true;
+    }
+
+    // check included definitions
+    for (const auto& def : includedDefinitions()) {
+        if (def.foldingEnabled()) {
+            d->hasFoldingRegions = true;
+            break;
+        }
+    }
+
+    return d->hasFoldingRegions;
+}
+
 bool Definition::indentationBasedFoldingEnabled() const
 {
     d->load();
@@ -181,6 +212,104 @@ QStringList Definition::foldingIgnoreList() const
 {
     d->load();
     return d->foldingIgnoreList;
+}
+
+QStringList Definition::keywordLists() const
+{
+    d->load();
+    return d->keywordLists.keys();
+}
+
+QStringList Definition::keywordList(const QString& name) const
+{
+    d->load();
+    const auto list = d->keywordList(name);
+    return list ? list->keywords() : QStringList();
+}
+
+QVector<Format> Definition::formats() const
+{
+    d->load();
+
+    // sort formats so that the order matches the order of the itemDatas in the xml files.
+    auto formatList = QVector<Format>::fromList(d->formats.values());
+    std::sort(
+        formatList.begin(), formatList.end(), [](const Format& lhs, const Format& rhs) { return lhs.id() < rhs.id(); });
+
+    return formatList;
+}
+
+QVector<Definition> Definition::includedDefinitions() const
+{
+    d->load();
+
+    // init worklist and result used as guard with this definition
+    QVector<Definition> queue{*this};
+    QVector<Definition> definitions{*this};
+    while (!queue.isEmpty()) {
+        // Iterate all context rules to find associated Definitions. This will
+        // automatically catch other Definitions referenced with IncludeRuldes or ContextSwitch.
+        const auto definition = queue.takeLast();
+        for (const auto& context : definition.d->contexts) {
+            // handle context switch attributes of this context itself
+            for (const auto switchContext : {context->lineEndContext().context(),
+                     context->lineEmptyContext().context(),
+                     context->fallthroughContext().context()}) {
+                if (switchContext) {
+                    if (!definitions.contains(switchContext->definition())) {
+                        queue.push_back(switchContext->definition());
+                        definitions.push_back(switchContext->definition());
+                    }
+                }
+            }
+
+            // handle the embedded rules
+            for (const auto& rule : context->rules()) {
+                // handle include rules like inclusion
+                if (!definitions.contains(rule->definition())) {
+                    queue.push_back(rule->definition());
+                    definitions.push_back(rule->definition());
+                }
+
+                // handle context switch context inclusion
+                if (auto switchContext = rule->context().context()) {
+                    if (!definitions.contains(switchContext->definition())) {
+                        queue.push_back(switchContext->definition());
+                        definitions.push_back(switchContext->definition());
+                    }
+                }
+            }
+        }
+    }
+
+    // remove the 1st entry, since it is this Definition
+    definitions.pop_front();
+
+    return definitions;
+}
+
+QString Definition::singleLineCommentMarker() const
+{
+    d->load();
+    return d->singleLineCommentMarker;
+}
+
+CommentPosition Definition::singleLineCommentPosition() const
+{
+    d->load();
+    return d->singleLineCommentPosition;
+}
+
+QPair<QString, QString> Definition::multiLineCommentMarker() const
+{
+    d->load();
+    return {d->multiLineCommentStartMarker, d->multiLineCommentEndMarker};
+}
+
+QVector<QPair<QChar, QString>> Definition::characterEncodings() const
+{
+    d->load();
+    return d->characterEncodings;
 }
 
 Context* DefinitionData::initialContext() const
@@ -198,14 +327,15 @@ Context* DefinitionData::contextByName(const QString& name) const
     return nullptr;
 }
 
-KeywordList DefinitionData::keywordList(const QString& name) const
+KeywordList* DefinitionData::keywordList(const QString& name)
 {
-    return keywordLists.value(name);
+    auto it = keywordLists.find(name);
+    return (it == keywordLists.end()) ? nullptr : &it.value();
 }
 
-bool DefinitionData::isDelimiter(QChar c) const
+bool DefinitionData::isWordDelimiter(QChar c) const
 {
-    return std::binary_search(delimiters.constBegin(), delimiters.constEnd(), c);
+    return std::binary_search(wordDelimiters.constBegin(), wordDelimiters.constEnd(), c);
 }
 
 Format DefinitionData::formatByName(const QString& name) const
@@ -224,10 +354,12 @@ bool DefinitionData::isLoaded() const
 
 bool DefinitionData::load()
 {
+    if (fileName.isEmpty())
+        return false;
+
     if (isLoaded())
         return true;
 
-    Q_ASSERT(!fileName.isEmpty());
     QFile file(fileName);
     if (!file.open(QFile::ReadOnly))
         return false;
@@ -251,9 +383,10 @@ bool DefinitionData::load()
     foreach (auto context, contexts) {
         context->resolveContexts();
         context->resolveIncludes();
+        context->resolveAttributeFormat();
     }
 
-    Q_ASSERT(std::is_sorted(delimiters.constBegin(), delimiters.constEnd()));
+    Q_ASSERT(std::is_sorted(wordDelimiters.constBegin(), wordDelimiters.constEnd()));
     return true;
 }
 
@@ -273,7 +406,8 @@ void DefinitionData::clear()
     license.clear();
     mimetypes.clear();
     extensions.clear();
-    delimiters = QStringLiteral("\t !%&()*+,-./:;<=>?[\\]^{|}~"); // must be sorted!
+    wordDelimiters = QStringLiteral("\t !%&()*+,-./:;<=>?[\\]^{|}~"); // must be sorted!
+    wordWrapDelimiters = wordDelimiters;
     caseSensitive = Qt::CaseSensitive;
     version = 0.0f;
     priority = 0;
@@ -420,7 +554,7 @@ void DefinitionData::loadItemData(QXmlStreamReader& reader)
         case QXmlStreamReader::StartElement:
             if (reader.name() == QLatin1String("itemData")) {
                 Format f;
-                auto formatData = FormatPrivate::get(f);
+                auto formatData = FormatPrivate::detachAndGet(f);
                 formatData->definition = q;
                 formatData->load(reader);
                 formatData->id = RepositoryPrivate::get(repo)->nextFormatId();
@@ -457,18 +591,30 @@ void DefinitionData::loadGeneral(QXmlStreamReader& reader)
                     caseSensitive = Xml::attrToBool(reader.attributes().value(QStringLiteral("casesensitive")))
                                         ? Qt::CaseSensitive
                                         : Qt::CaseInsensitive;
-                delimiters += reader.attributes().value(QStringLiteral("additionalDeliminator"));
-                std::sort(delimiters.begin(), delimiters.end());
-                auto it = std::unique(delimiters.begin(), delimiters.end());
-                delimiters.truncate(std::distance(delimiters.begin(), it));
+
+                // adapt sorted wordDelimiters
+                wordDelimiters += reader.attributes().value(QStringLiteral("additionalDeliminator"));
+                std::sort(wordDelimiters.begin(), wordDelimiters.end());
+                auto it = std::unique(wordDelimiters.begin(), wordDelimiters.end());
+                wordDelimiters.truncate(std::distance(wordDelimiters.begin(), it));
                 foreach (const auto c, reader.attributes().value(QLatin1String("weakDeliminator")))
-                    delimiters.remove(c);
+                    wordDelimiters.remove(c);
+
+                // adaptWordWrapDelimiters, and sort
+                wordWrapDelimiters = reader.attributes().value(QStringLiteral("wordWrapDeliminator")).toString();
+                std::sort(wordWrapDelimiters.begin(), wordWrapDelimiters.end());
+                if (wordWrapDelimiters.isEmpty())
+                    wordWrapDelimiters = wordDelimiters;
             } else if (reader.name() == QLatin1String("folding")) {
                 if (reader.attributes().hasAttribute(QStringLiteral("indentationsensitive")))
                     indentationBasedFolding =
                         Xml::attrToBool(reader.attributes().value(QStringLiteral("indentationsensitive")));
             } else if (reader.name() == QLatin1String("emptyLines")) {
                 loadFoldingIgnoreList(reader);
+            } else if (reader.name() == QLatin1String("comments")) {
+                loadComments(reader);
+            } else if (reader.name() == QLatin1String("spellchecking")) {
+                loadSpellchecking(reader);
             } else {
                 reader.skipCurrentElement();
             }
@@ -478,6 +624,50 @@ void DefinitionData::loadGeneral(QXmlStreamReader& reader)
             --elementRefCounter;
             if (elementRefCounter == 0)
                 return;
+            reader.readNext();
+            break;
+        default:
+            reader.readNext();
+            break;
+        }
+    }
+}
+
+void DefinitionData::loadComments(QXmlStreamReader& reader)
+{
+    Q_ASSERT(reader.name() == QLatin1String("comments"));
+    Q_ASSERT(reader.tokenType() == QXmlStreamReader::StartElement);
+    reader.readNext();
+
+    // reference counter to count XML child elements, to not return too early
+    int elementRefCounter = 1;
+
+    while (!reader.atEnd()) {
+        switch (reader.tokenType()) {
+        case QXmlStreamReader::StartElement:
+            ++elementRefCounter;
+            if (reader.name() == QLatin1String("comment")) {
+                const bool isSingleLine =
+                    reader.attributes().value(QStringLiteral("name")) == QStringLiteral("singleLine");
+                if (isSingleLine) {
+                    singleLineCommentMarker = reader.attributes().value(QStringLiteral("start")).toString();
+                    const bool afterWhiteSpace = reader.attributes().value(QStringLiteral("position")).toString() ==
+                                                 QStringLiteral("afterwhitespace");
+                    singleLineCommentPosition =
+                        afterWhiteSpace ? CommentPosition::AfterWhitespace : CommentPosition::StartOfLine;
+                } else {
+                    multiLineCommentStartMarker = reader.attributes().value(QStringLiteral("start")).toString();
+                    multiLineCommentEndMarker = reader.attributes().value(QStringLiteral("end")).toString();
+                }
+            }
+            reader.readNext();
+            break;
+        case QXmlStreamReader::EndElement:
+            --elementRefCounter;
+            if (elementRefCounter == 0)
+                return;
+            reader.readNext();
+            break;
         default:
             reader.readNext();
             break;
@@ -507,6 +697,43 @@ void DefinitionData::loadFoldingIgnoreList(QXmlStreamReader& reader)
             --elementRefCounter;
             if (elementRefCounter == 0)
                 return;
+            reader.readNext();
+            break;
+        default:
+            reader.readNext();
+            break;
+        }
+    }
+}
+
+void DefinitionData::loadSpellchecking(QXmlStreamReader& reader)
+{
+    Q_ASSERT(reader.name() == QLatin1String("spellchecking"));
+    Q_ASSERT(reader.tokenType() == QXmlStreamReader::StartElement);
+    reader.readNext();
+
+    // reference counter to count XML child elements, to not return too early
+    int elementRefCounter = 1;
+
+    while (!reader.atEnd()) {
+        switch (reader.tokenType()) {
+        case QXmlStreamReader::StartElement:
+            ++elementRefCounter;
+            if (reader.name() == QLatin1String("encoding")) {
+                const auto charRef = reader.attributes().value(QStringLiteral("char"));
+                if (!charRef.isEmpty()) {
+                    const auto str = reader.attributes().value(QStringLiteral("string")).toString();
+                    characterEncodings.push_back({charRef[0], str});
+                }
+            }
+            reader.readNext();
+            break;
+        case QXmlStreamReader::EndElement:
+            --elementRefCounter;
+            if (elementRefCounter == 0)
+                return;
+            reader.readNext();
+            break;
         default:
             reader.readNext();
             break;
@@ -524,18 +751,19 @@ bool DefinitionData::checkKateVersion(const QStringRef& verStr)
     const auto major = verStr.left(idx).toInt();
     const auto minor = verStr.mid(idx + 1).toInt();
 
-    // TODO:
     /*
     if (major > SyntaxHighlighting_VERSION_MAJOR || (major == SyntaxHighlighting_VERSION_MAJOR && minor >
-    SyntaxHighlighting_VERSION_MINOR)) { qCWarning(Log) << "Skipping" << fileName << "due to being too new, version:" <<
+    SyntaxHighlighting_VERSION_MINOR)) { qWarning() << "Skipping" << fileName << "due to being too new, version:" <<
     verStr; return false;
-    }*/
+    }
+    */
 
     return true;
 }
 
 quint16 DefinitionData::foldingRegionId(const QString& foldName)
 {
+    hasFoldingRegions = true;
     return RepositoryPrivate::get(repo)->foldingRegionId(name, foldName);
 }
 
@@ -559,4 +787,13 @@ Definition DefinitionRef::definition() const
     if (!d.expired())
         return Definition(d.lock());
     return Definition();
+}
+
+bool DefinitionRef::operator==(const DefinitionRef& other) const
+{
+    if (d.expired() != other.d.expired()) {
+        return false;
+    }
+
+    return d.expired() || d.lock().get() == other.d.lock().get();
 }

@@ -1,43 +1,113 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_MATCHRESULT_P_H
-#define OTE_MATCHRESULT_P_H
+#ifndef KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H
+#define KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H
 
 #include <QStringList>
 
 namespace ote {
 
+/**
+ * Storage for match result of a Rule.
+ * Heavily used internally during highlightLine, therefore completely inline.
+ */
 class MatchResult
 {
 public:
-    MatchResult(int offset, const QStringList &captures = QStringList()); // implicit
-    explicit MatchResult(int offset, int skipOffset);
+    /**
+     * Match at given offset found.
+     * @param offset offset of match
+     */
+    MatchResult(const int offset)
+        : m_offset(offset)
+    {
+    }
 
-    int offset() const;
-    int skipOffset() const;
-    QStringList captures() const;
+    /**
+     * Match at given offset found with additional skip offset.
+     */
+    explicit MatchResult(const int offset, const int skipOffset)
+        : m_offset(offset)
+        , m_skipOffset(skipOffset)
+    {
+    }
+
+    /**
+     * Match at given offset found with additional captures.
+     * @param offset offset of match
+     * @param captures captures of the match
+     */
+    explicit MatchResult(const int offset, const QStringList &captures)
+        : m_offset(offset)
+        , m_captures(captures)
+    {
+    }
+
+    /**
+     * Offset of the match
+     * @return offset of the match
+     */
+    int offset() const
+    {
+        return m_offset;
+    }
+
+
+    /**
+     * Skip offset of the match
+     * @return skip offset of the match, no match possible until this offset is reached
+     */
+    int skipOffset() const
+    {
+        return m_skipOffset;
+    }
+
+    /**
+     * Captures of the match.
+     * @return captured text of this match
+     */
+    const QStringList &captures() const
+    {
+        return m_captures;
+    }
 
 private:
-    QStringList m_captures;
+    /**
+     * match offset, filled in all constructors
+     */
     int m_offset;
-    int m_skipOffset;
+
+    /**
+     * skip offset, optional
+     */
+    int m_skipOffset = 0;
+
+    /**
+     * captures, optional
+     */
+    QStringList m_captures;
 };
 }
 
-#endif // OTE_MATCHRESULT_P_H
+#endif // KSYNTAXHIGHLIGHTING_MATCHRESULT_P_H

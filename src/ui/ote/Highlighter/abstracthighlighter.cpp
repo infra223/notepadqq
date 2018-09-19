@@ -1,19 +1,24 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "abstracthighlighter.h"
@@ -51,20 +56,6 @@ void AbstractHighlighterPrivate::ensureDefinitionLoaded()
 
     if (m_definition.isValid())
         defData->load();
-}
-
-/**
- * Returns the index of the first non-space character. If the line is empty,
- * or only contains white spaces, -1 is returned.
- */
-static inline int firstNonSpaceChar(const QString& text)
-{
-    for (int i = 0; i < text.length(); ++i) {
-        if (!text[i].isSpace()) {
-            return i;
-        }
-    }
-    return -1;
 }
 
 AbstractHighlighter::AbstractHighlighter()
@@ -105,6 +96,20 @@ void AbstractHighlighter::setTheme(const Theme& theme)
     d->m_theme = theme;
 }
 
+/**
+ * Returns the index of the first non-space character. If the line is empty,
+ * or only contains white spaces, text.size() is returned.
+ */
+static inline int firstNonSpaceChar(const QString& text)
+{
+    for (int i = 0; i < text.length(); ++i) {
+        if (!text[i].isSpace()) {
+            return i;
+        }
+    }
+    return text.size();
+}
+
 State AbstractHighlighter::highlightLine(const QString& text, const State& state)
 {
     Q_D(AbstractHighlighter);
@@ -120,57 +125,99 @@ State AbstractHighlighter::highlightLine(const QString& text, const State& state
     auto defData = DefinitionData::get(d->m_definition);
     auto newState = state;
     auto stateData = StateData::get(newState);
-    if (stateData->m_defData && defData != stateData->m_defData) {
+    const DefinitionRef currentDefRef(d->m_definition);
+    if (!stateData->isEmpty() && (stateData->m_defRef != currentDefRef)) {
         qDebug() << "Got invalid state, resetting.";
         stateData->clear();
     }
     if (stateData->isEmpty()) {
         stateData->push(defData->initialContext(), QStringList());
-        stateData->m_defData = defData;
+        stateData->m_defRef = currentDefRef;
     }
 
     // process empty lines
     if (text.isEmpty()) {
         while (!stateData->topContext()->lineEmptyContext().isStay())
             d->switchContext(stateData, stateData->topContext()->lineEmptyContext(), QStringList());
-        applyFormat(0, 0, Format());
+        auto context = stateData->topContext();
+        applyFormat(0, 0, context->attributeFormat());
         return newState;
     }
 
-    Q_ASSERT(!stateData->isEmpty());
-    int firstNonSpace = firstNonSpaceChar(text);
-    if (firstNonSpace < 0) {
-        firstNonSpace = text.size();
-    }
     int offset = 0, beginOffset = 0;
-    auto currentLookupContext = stateData->topContext();
-    auto currentFormat = currentLookupContext->attribute();
     bool lineContinuation = false;
     QHash<Rule*, int> skipOffsets;
+
+    /**
+     * current active format
+     * stored as pointer to avoid deconstruction/constructions inside the internal loop
+     * the pointers are stable, the formats are either in the contexts or rules
+     */
+    auto currentFormat = &stateData->topContext()->attributeFormat();
+
+    /**
+     * cached first non-space character, needs to be computed if < 0
+     */
+    int firstNonSpace = -1;
 
     do {
         bool isLookAhead = false;
         int newOffset = 0;
-        QString newFormat;
-        auto newLookupContext = currentLookupContext;
-        foreach (const auto& rule, stateData->topContext()->rules()) {
-            if (skipOffsets.value(rule.get()) > offset)
-                continue;
 
-            // filter out rules that only match for leading whitespace
-            if (rule->firstNonSpace() && (offset > firstNonSpace)) {
-                continue;
-            }
+        /**
+         * next format to use
+         */
+        const Format* newFormat = nullptr;
 
-            // filter out rules that require a specific column
+        /**
+         * try to match all rules in the context in order of declaration in XML
+         */
+        for (const auto& rule : stateData->topContext()->rules()) {
+            /**
+             * filter out rules that require a specific column
+             */
             if ((rule->requiredColumn() >= 0) && (rule->requiredColumn() != offset)) {
                 continue;
             }
 
-            const auto newResult = rule->match(text, offset, stateData->topCaptures());
+            /**
+             * filter out rules that only match for leading whitespace
+             */
+            if (rule->firstNonSpace()) {
+                /**
+                 * compute the first non-space lazy
+                 * avoids computing it for contexts without any such rules
+                 */
+                if (firstNonSpace < 0) {
+                    firstNonSpace = firstNonSpaceChar(text);
+                }
+
+                /**
+                 * can we skip?
+                 */
+                if (offset > firstNonSpace) {
+                    continue;
+                }
+            }
+
+            /**
+             * shall we skip application of this rule? two cases:
+             *   - rule can't match at all => currentSkipOffset < 0
+             *   - rule will only match for some higher offset => currentSkipOffset > offset
+             */
+            const auto currentSkipOffset = skipOffsets.value(rule.get());
+            if (currentSkipOffset < 0 || currentSkipOffset > offset)
+                continue;
+
+            const auto newResult = rule->doMatch(text, offset, stateData->topCaptures());
             newOffset = newResult.offset();
-            if (newResult.skipOffset() > newOffset)
+
+            /**
+             * update skip offset if new one rules out any later match or is larger than current one
+             */
+            if (newResult.skipOffset() < 0 || newResult.skipOffset() > currentSkipOffset)
                 skipOffsets.insert(rule.get(), newResult.skipOffset());
+
             if (newOffset <= offset)
                 continue;
 
@@ -187,9 +234,9 @@ State AbstractHighlighter::highlightLine(const QString& text, const State& state
                 break;
             }
 
-            newLookupContext = stateData->topContext();
             d->switchContext(stateData, rule->context(), newResult.captures());
-            newFormat = rule->attribute().isEmpty() ? stateData->topContext()->attribute() : rule->attribute();
+            newFormat = rule->attributeFormat().isValid() ? &rule->attributeFormat()
+                                                          : &stateData->topContext()->attributeFormat();
             if (newOffset == text.size() && std::dynamic_pointer_cast<LineContinue>(rule))
                 lineContinuation = true;
             break;
@@ -204,24 +251,34 @@ State AbstractHighlighter::highlightLine(const QString& text, const State& state
             }
 
             newOffset = offset + 1;
-            newLookupContext = stateData->topContext();
-            newFormat = newLookupContext->attribute();
+            newFormat = &stateData->topContext()->attributeFormat();
         }
 
-        if (newFormat != currentFormat /*|| currentLookupDef != newLookupDef*/) {
+        /**
+         * if we arrive here, some new format has to be set!
+         */
+        Q_ASSERT(newFormat);
+
+        /**
+         * on format change, apply the last one and switch to new one
+         */
+        if (newFormat != currentFormat && newFormat->id() != currentFormat->id()) {
             if (offset > 0)
-                applyFormat(beginOffset, offset - beginOffset, currentLookupContext->formatByName(currentFormat));
+                applyFormat(beginOffset, offset - beginOffset, *currentFormat);
             beginOffset = offset;
             currentFormat = newFormat;
-            currentLookupContext = newLookupContext;
         }
+
+        /**
+         * we must have made progress if we arrive here!
+         */
         Q_ASSERT(newOffset > offset);
         offset = newOffset;
 
     } while (offset < text.size());
 
     if (beginOffset < offset)
-        applyFormat(beginOffset, text.size() - beginOffset, currentLookupContext->formatByName(currentFormat));
+        applyFormat(beginOffset, text.size() - beginOffset, *currentFormat);
 
     while (!stateData->topContext()->lineEndContext().isStay() && !lineContinuation) {
         if (!d->switchContext(stateData, stateData->topContext()->lineEndContext(), QStringList()))

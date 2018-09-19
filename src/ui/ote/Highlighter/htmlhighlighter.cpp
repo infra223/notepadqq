@@ -1,19 +1,25 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
+    Copyright (C) 2018 Christoph Cullmann <cullmann@kde.org>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "htmlhighlighter.h"
@@ -27,6 +33,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTextStream>
+#include <QVarLengthArray>
 
 using namespace ote;
 
@@ -61,32 +68,46 @@ void HtmlHighlighter::setOutputFile(FILE* fileHandle)
     d->out->setCodec("UTF-8");
 }
 
-void HtmlHighlighter::highlightFile(const QString& fileName)
+void HtmlHighlighter::highlightFile(const QString& fileName, const QString& title)
 {
-    if (!d->out) {
-        qWarning() << "No output stream defined!";
-        return;
-    }
-
+    QFileInfo fi(fileName);
     QFile f(fileName);
     if (!f.open(QFile::ReadOnly)) {
         qWarning() << "Failed to open input file" << fileName << ":" << f.errorString();
         return;
     }
 
+    if (title.isEmpty())
+        highlightData(&f, fi.fileName());
+    else
+        highlightData(&f, title);
+}
+
+void HtmlHighlighter::highlightData(QIODevice* dev, const QString& title)
+{
+    if (!d->out) {
+        qWarning() << "No output stream defined!";
+        return;
+    }
+
+    QString htmlTitle;
+    if (title.isEmpty())
+        htmlTitle = QStringLiteral("Kate Syntax Highlighter");
+    else
+        htmlTitle = title.toHtmlEscaped();
+
     State state;
     *d->out << "<!DOCTYPE html>\n";
     *d->out << "<html><head>\n";
     *d->out << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n";
-    QFileInfo fi(fileName);
-    *d->out << "<title>" << fi.fileName() << "</title>\n";
+    *d->out << "<title>" << htmlTitle << "</title>\n";
     *d->out << "<meta name=\"generator\" content=\"KF5::SyntaxHighlighting (" << definition().name() << ")\"/>\n";
     *d->out << "</head><body";
     if (theme().textColor(Theme::Normal))
         *d->out << " style=\"color:" << QColor(theme().textColor(Theme::Normal)).name() << "\"";
     *d->out << "><pre>\n";
 
-    QTextStream in(&f);
+    QTextStream in(dev);
     in.setCodec("UTF-8");
     while (!in.atEnd()) {
         d->currentLine = in.readLine();
@@ -103,25 +124,36 @@ void HtmlHighlighter::highlightFile(const QString& fileName)
 
 void HtmlHighlighter::applyFormat(int offset, int length, const Format& format)
 {
-    if (!format.isDefaultTextStyle(theme())) {
+    if (length == 0)
+        return;
+
+    // collect potential output, cheaper than thinking about "is there any?"
+    QVarLengthArray<QString, 16> formatOutput;
+    if (format.hasTextColor(theme()))
+        formatOutput << QStringLiteral("color:") << format.textColor(theme()).name() << QStringLiteral(";");
+    if (format.hasBackgroundColor(theme()))
+        formatOutput << QStringLiteral("background-color:") << format.backgroundColor(theme()).name()
+                     << QStringLiteral(";");
+    if (format.isBold(theme()))
+        formatOutput << QStringLiteral("font-weight:bold;");
+    if (format.isItalic(theme()))
+        formatOutput << QStringLiteral("font-style:italic;");
+    if (format.isUnderline(theme()))
+        formatOutput << QStringLiteral("text-decoration:underline;");
+    if (format.isStrikeThrough(theme()))
+        formatOutput << QStringLiteral("text-decoration:line-through;");
+
+    if (!formatOutput.isEmpty()) {
         *d->out << "<span style=\"";
-        if (format.hasTextColor(theme()))
-            *d->out << "color:" << format.textColor(theme()).name() << ";";
-        if (format.hasBackgroundColor(theme()))
-            *d->out << "background-color:" << format.backgroundColor(theme()).name() << ";";
-        if (format.isBold(theme()))
-            *d->out << "font-weight:bold;";
-        if (format.isItalic(theme()))
-            *d->out << "font-style:italic;";
-        if (format.isUnderline(theme()))
-            *d->out << "text-decoration:underline;";
-        if (format.isStrikeThrough(theme()))
-            *d->out << "text-decoration:line-through;";
+        for (const auto& out : qAsConst(formatOutput)) {
+            *d->out << out;
+        }
         *d->out << "\">";
     }
 
     *d->out << d->currentLine.mid(offset, length).toHtmlEscaped();
 
-    if (!format.isDefaultTextStyle(theme()))
+    if (!formatOutput.isEmpty()) {
         *d->out << "</span>";
+    }
 }

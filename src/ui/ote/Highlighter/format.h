@@ -1,26 +1,37 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_FORMAT_H
-#define OTE_FORMAT_H
+#pragma once
+
+#ifndef KSYNTAXHIGHLIGHTING_FORMAT_H
+#define KSYNTAXHIGHLIGHTING_FORMAT_H
+
+
+#include "theme.h"
 
 #include <QExplicitlySharedDataPointer>
 #include <QTypeInfo>
+
 
 class QColor;
 class QString;
@@ -30,7 +41,6 @@ namespace ote {
 
 class DefinitionRef;
 class FormatPrivate;
-class Theme;
 
 /** Describes the format to be used for a specific text fragment.
  *  The actual format used for displaying is merged from the format information
@@ -64,6 +74,15 @@ public:
      *  Definition anyway).
      */
     quint16 id() const;
+
+    /** Returns the underlying TextStyle of this Format.
+     *  Every Theme::TextStyle is visually defined by a Theme. A Format uses one
+     *  of the Theme::TextStyle%s and on top allows modifications such as setting
+     *  a different foreground color etc.
+     *  @see Theme::TextStyle
+     *  @since 5.49
+     */
+    Theme::TextStyle textStyle() const;
 
     /** Returns @c true if the combination of this format and the theme @p theme
      *  do not change the default text format in any way.
@@ -117,14 +136,15 @@ public:
     bool isStrikeThrough(const Theme &theme) const;
 
     /**
+     * Returns whether this format is that of a comment. This is not 100% accurate
+     * since Definitions can assign a comment-format to anything they want.
+     */
+    bool isComment() const;
+
+    /**
      * Returns whether characters with this format should be spell checked.
      */
     bool spellCheck() const;
-
-    /**
-     * Returns whether this format has a "Comment"-name. This might not be 100% accurate.
-     */
-    bool isComment() const;
 
 private:
     friend class FormatPrivate;
@@ -134,4 +154,4 @@ private:
 
 Q_DECLARE_TYPEINFO(ote::Format, Q_MOVABLE_TYPE);
 
-#endif // OTE_FORMAT_H
+#endif // KSYNTAXHIGHLIGHTING_FORMAT_H

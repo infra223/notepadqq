@@ -1,28 +1,34 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_RULE_P_H
-#define OTE_RULE_P_H
+#ifndef KSYNTAXHIGHLIGHTING_RULE_P_H
+#define KSYNTAXHIGHLIGHTING_RULE_P_H
 
 #include "contextswitch_p.h"
 #include "definition.h"
 #include "definitionref_p.h"
 #include "foldingregion.h"
+#include "format.h"
 #include "keywordlist_p.h"
 #include "matchresult_p.h"
 
@@ -39,50 +45,77 @@ namespace ote {
 class Rule
 {
 public:
-    Rule();
-    virtual ~Rule();
+    Rule() = default;
+    virtual ~Rule() = default;
 
     typedef std::shared_ptr<Rule> Ptr;
 
     Definition definition() const;
     void setDefinition(const Definition &def);
 
-    QString attribute() const;
-    ContextSwitch context() const;
-    bool isLookAhead() const;
-    bool isDynamic() const;
-    bool firstNonSpace() const;
-    int requiredColumn() const;
+    const Format &attributeFormat() const
+    {
+        return m_attributeFormat;
+    }
 
-    FoldingRegion beginRegion() const;
-    FoldingRegion endRegion() const;
+    const ContextSwitch &context() const
+    {
+        return m_context;
+    }
+
+    bool isLookAhead() const
+    {
+        return m_lookAhead;
+    }
+
+    bool firstNonSpace() const
+    {
+        return m_firstNonSpace;
+    }
+
+    int requiredColumn() const
+    {
+        return m_column;
+    }
+
+    const FoldingRegion &beginRegion() const
+    {
+        return m_beginRegion;
+    }
+
+    const FoldingRegion &endRegion() const
+    {
+        return m_endRegion;
+    }
 
     bool load(QXmlStreamReader &reader);
     void resolveContext();
+    void resolveAttributeFormat(Context *lookupContext);
 
-    MatchResult match(const QString &text, int offset, const QStringList &captures);
+    virtual MatchResult doMatch(const QString &text, int offset, const QStringList &captures) const = 0;
 
     static Rule::Ptr create(const QStringRef &name);
 
 protected:
     virtual bool doLoad(QXmlStreamReader &reader);
-    virtual MatchResult doMatch(const QString &text, int offset, const QStringList &captures) = 0;
 
-    bool isDelimiter(QChar c) const;
+    bool isWordDelimiter(QChar c) const;
 
 private:
     Q_DISABLE_COPY(Rule)
 
     DefinitionRef m_def;
     QString m_attribute;
+    Format m_attributeFormat;
     ContextSwitch m_context;
-    QVector<Rule::Ptr> m_subRules;
-    int m_column;
+    int m_column = -1;
     FoldingRegion m_beginRegion;
     FoldingRegion m_endRegion;
-    bool m_firstNonSpace;
-    bool m_lookAhead;
-    bool m_dynamic;
+    bool m_firstNonSpace = false;
+    bool m_lookAhead = false;
+
+    // cache for DefinitionData::wordDelimiters, is accessed VERY often
+    QStringRef m_wordDelimiter;
 };
 
 
@@ -90,7 +123,7 @@ class AnyChar : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 
 private:
     QString m_chars;
@@ -100,18 +133,19 @@ class DetectChar : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 
 private:
     QChar m_char;
-    int m_captureIndex;
+    bool m_dynamic = false;
+    int m_captureIndex = 0;
 };
 
 class Detect2Char : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 
 private:
     QChar m_char1;
@@ -121,19 +155,19 @@ private:
 class DetectIdentifier : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class DetectSpaces : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class Float : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class IncludeRules : public Rule
@@ -145,7 +179,7 @@ public:
 
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 
 private:
     QString m_contextName;
@@ -156,42 +190,41 @@ private:
 class Int : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 };
 
 class HlCChar : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class HlCHex : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class HlCOct : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class HlCStringChar : public Rule
 {
 protected:
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 };
 
 class KeywordListRule : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 
 private:
-    QString m_listName;
-    KeywordList m_keywordList;
+    KeywordList *m_keywordList;
     bool m_hasCaseSensitivityOverride;
     Qt::CaseSensitivity m_caseSensitivityOverride;
 };
@@ -200,7 +233,7 @@ class LineContinue : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 
 private:
     QChar m_char;
@@ -210,7 +243,7 @@ class RangeDetect : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList&) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList&) const override;
 
 private:
     QChar m_begin;
@@ -221,29 +254,30 @@ class RegExpr : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 
 private:
-    QString m_pattern;
     QRegularExpression m_regexp;
+    bool m_dynamic = false;
 };
 
 class StringDetect : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 
 private:
     QString m_string;
     Qt::CaseSensitivity m_caseSensitivity;
+    bool m_dynamic = false;
 };
 
 class WordDetect : public Rule
 {
 protected:
     bool doLoad(QXmlStreamReader & reader) override;
-    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) override;
+    MatchResult doMatch(const QString & text, int offset, const QStringList &captures) const override;
 
 private:
     QString m_word;
@@ -252,4 +286,4 @@ private:
 
 }
 
-#endif // OTE_RULE_P_H
+#endif // KSYNTAXHIGHLIGHTING_RULE_P_H

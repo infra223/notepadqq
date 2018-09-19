@@ -1,23 +1,28 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_REPOSITORY_P_H
-#define OTE_REPOSITORY_P_H
+#ifndef KSYNTAXHIGHLIGHTING_REPOSITORY_P_H
+#define KSYNTAXHIGHLIGHTING_REPOSITORY_P_H
 
 #include <QHash>
 #include <QVector>
@@ -29,37 +34,37 @@ class QString;
 
 namespace ote {
 
-
 class Repository;
 class Theme;
 
 class RepositoryPrivate
 {
 public:
-	
+
     struct ContentDetection {
         Definition def;
         QVector<QRegularExpression> rules;
     };
-    
+
     struct FileNameDetection {
         Definition def;
         QVector<QString> fileNames;
     };
-    
-    RepositoryPrivate();
+
+
+    RepositoryPrivate() = default;
 
     static RepositoryPrivate* get(Repository *repo);
 
     void load(Repository *repo);
     void loadSyntaxFolder(Repository *repo, const QString &path);
     bool loadSyntaxFolderFromIndex(Repository *repo, const QString &path);
+
     void addDefinition(const Definition &def);
 
     void loadThemeFolder(const QString &path);
     void addTheme(const Theme &theme);
-    
-    void loadContentDetectionFile(const QString& path);
+    void loadContentDetectionFile(const QString& file);
 
     quint16 foldingRegionId(const QString &defName, const QString &foldName);
     quint16 nextFormatId();
@@ -68,15 +73,15 @@ public:
 
     QHash<QString, Definition> m_defs;
     QVector<Definition> m_sortedDefs;
-    
+
     QVector<ContentDetection> m_contentDetections;
     QVector<FileNameDetection> m_fileNameDetections;
 
     QVector<Theme> m_themes;
 
     QHash<QPair<QString, QString>, quint16> m_foldingRegionIds;
-    quint16 m_foldingRegionId;
-    quint16 m_formatId;
+    quint16 m_foldingRegionId = 0;
+    quint16 m_formatId = 0;
 };
 }
 

@@ -1,28 +1,31 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef OTE_DEFINITION_P_H
-#define OTE_DEFINITION_P_H
+#ifndef KSYNTAXHIGHLIGHTING_DEFINITION_P_H
+#define KSYNTAXHIGHLIGHTING_DEFINITION_P_H
 
 #include "definitionref_p.h"
-
-#include "keywordlist_p.h"
-#include "format.h"
+#include "definition.h"
 
 #include <QHash>
 #include <QString>
@@ -35,9 +38,7 @@ QT_END_NAMESPACE
 
 namespace ote {
 
-class Definition;
 class Repository;
-class Context;
 
 class DefinitionData
 {
@@ -59,11 +60,13 @@ public:
     void loadContexts(QXmlStreamReader &reader);
     void loadItemData(QXmlStreamReader &reader);
     void loadGeneral(QXmlStreamReader &reader);
+    void loadComments(QXmlStreamReader &reader);
     void loadFoldingIgnoreList(QXmlStreamReader &reader);
+    void loadSpellchecking(QXmlStreamReader &reader);
     bool checkKateVersion(const QStringRef &verStr);
 
-    KeywordList keywordList(const QString &name) const;
-    bool isDelimiter(QChar c) const;
+    KeywordList *keywordList(const QString &name);
+    bool isWordDelimiter(QChar c) const;
 
     Context* initialContext() const;
     Context* contextByName(const QString &name) const;
@@ -74,16 +77,23 @@ public:
 
     DefinitionRef q;
 
-    Repository *repo;
+    Repository *repo = nullptr;
     QHash<QString, KeywordList> keywordLists;
     QVector<Context*> contexts;
     QHash<QString, Format> formats;
-    QString delimiters;
-    bool indentationBasedFolding;
+    QString wordDelimiters;
+    QString wordWrapDelimiters;
+    bool hasFoldingRegions = false;
+    bool indentationBasedFolding = false;
     QStringList foldingIgnoreList;
+    QString singleLineCommentMarker;
+    CommentPosition singleLineCommentPosition = CommentPosition::StartOfLine;
+    QString multiLineCommentStartMarker;
+    QString multiLineCommentEndMarker;
+    QVector<QPair<QChar, QString>> characterEncodings;
 
     QString fileName;
-    QString name;
+    QString name = QStringLiteral(QT_TRANSLATE_NOOP("Syntax highlighting", "None"));
     QString section;
     QString style;
     QString indenter;
@@ -91,10 +101,10 @@ public:
     QString license;
     QVector<QString> mimetypes;
     QVector<QString> extensions;
-    Qt::CaseSensitivity caseSensitive;
-    int version;
-    int priority;
-    bool hidden;
+    Qt::CaseSensitivity caseSensitive = Qt::CaseSensitive;
+    int version = 0;
+    int priority = 0;
+    bool hidden = false;
 };
 }
 

@@ -1,19 +1,24 @@
 /*
     Copyright (C) 2016 Volker Krause <vkrause@kde.org>
-    Modified 2018 Julian Bansen <https://github.com/JuBan1>
 
-    This program is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    This program is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
-    License for more details.
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "repository.h"
@@ -32,22 +37,14 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#ifndef NO_STANDARD_PATHS
 #include <QStandardPaths>
+#endif
 
 #include <limits>
 
 using namespace ote;
-
-static void initResource()
-{
-    // Q_INIT_RESOURCE(syntax_data);
-}
-
-RepositoryPrivate::RepositoryPrivate()
-    : m_foldingRegionId(0)
-    , m_formatId(0)
-{
-}
 
 RepositoryPrivate* RepositoryPrivate::get(Repository* repo)
 {
@@ -74,6 +71,19 @@ Definition Repository::definitionForName(const QString& defName) const
     return d->m_defs.value(defName);
 }
 
+static Definition bestCandidate(QVector<Definition>& candidates)
+{
+    if (candidates.isEmpty())
+        return Definition();
+
+    std::partial_sort(
+        candidates.begin(), candidates.begin() + 1, candidates.end(), [](const Definition& lhs, const Definition& rhs) {
+            return lhs.priority() > rhs.priority();
+        });
+
+    return candidates.at(0);
+}
+
 Definition Repository::definitionForFileName(const QString& fileName) const
 {
     QFileInfo fi(fileName);
@@ -90,32 +100,42 @@ Definition Repository::definitionForFileName(const QString& fileName) const
         }
     }
 
-    std::partial_sort( // TODO: std::max
-        candidates.begin(), candidates.begin() + 1, candidates.end(), [](const Definition& lhs, const Definition& rhs) {
-            return lhs.priority() > rhs.priority();
-        });
-
-    if (!candidates.isEmpty())
-        return candidates.at(0);
-
     for (const auto& det : d->m_fileNameDetections) {
-        if (det.fileNames.contains(name))
-            return det.def;
+        if (det.fileNames.contains(name)) {
+            candidates.push_back(det.def);
+            break;
+        }
     }
-    
-    return Definition();
+
+    return bestCandidate(candidates);
 }
 
-Definition Repository::definitionForContent(const QString& content) const 
+Definition Repository::definitionForMimeType(const QString& mimeType) const
+{
+    QVector<Definition> candidates;
+    for (auto it = d->m_defs.constBegin(); it != d->m_defs.constEnd(); ++it) {
+        auto def = it.value();
+        foreach (const auto& matchType, def.mimeTypes()) {
+            if (mimeType == matchType) {
+                candidates.push_back(def);
+                break;
+            }
+        }
+    }
+
+    return bestCandidate(candidates);
+}
+
+Definition Repository::definitionForContent(const QString& content) const
 {
     QString firstLine = content.mid(0, content.indexOf('\n'));
     // FIXME: Test firstLine corner cases, actually get empty line, etc
 
     for (const auto& cd : d->m_contentDetections) {
         for (const auto& rule : cd.rules) {
-            if( firstLine.contains(rule) )
+            if (firstLine.contains(rule))
                 return cd.def;
-        } 
+        }
     }
     return Definition();
 }
@@ -150,51 +170,64 @@ Theme Repository::defaultTheme(Repository::DefaultTheme t) const
 
 void RepositoryPrivate::load(Repository* repo)
 {
-    auto dirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
-        QStringLiteral("org.kde.syntax-highlighting/syntax"),
-        QStandardPaths::LocateDirectory);
-    foreach (const auto& dir, dirs)
-        loadSyntaxFolder(repo, dir);
-    // backward compatibility with Kate
-    dirs = QStandardPaths::locateAll(
-        QStandardPaths::GenericDataLocation, QStringLiteral("katepart5/syntax"), QStandardPaths::LocateDirectory);
-    foreach (const auto& dir, dirs)
+    // always add invalid default "None" highlighting
+    addDefinition(Definition());
+
+    // do lookup in standard paths, if not disabled
+#ifndef NO_STANDARD_PATHS
+    foreach (const auto& dir,
+        QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
+            QStringLiteral("org.kde.syntax-highlighting/syntax"),
+            QStandardPaths::LocateDirectory))
         loadSyntaxFolder(repo, dir);
 
+    // backward compatibility with Kate
+    foreach (const auto& dir,
+        QStandardPaths::locateAll(
+            QStandardPaths::GenericDataLocation, QStringLiteral("katepart5/syntax"), QStandardPaths::LocateDirectory))
+        loadSyntaxFolder(repo, dir);
+#endif
+
+    // default resources are always used
     loadSyntaxFolder(repo, QStringLiteral(":/org.kde.syntax-highlighting/syntax"));
 
+    // user given extra paths
     foreach (const auto& path, m_customSearchPaths)
         loadSyntaxFolder(repo, path + QStringLiteral("/syntax"));
 
     m_sortedDefs.reserve(m_defs.size());
     for (auto it = m_defs.constBegin(); it != m_defs.constEnd(); ++it)
         m_sortedDefs.push_back(it.value());
-
     std::sort(m_sortedDefs.begin(), m_sortedDefs.end(), [](const Definition& left, const Definition& right) {
-        // auto comparison = left.translatedSection().compare(right.translatedSection(), Qt::CaseInsensitive);
-        // if (comparison == 0)
-        auto comparison = left.translatedName().compare(right.translatedName(), Qt::CaseInsensitive);
+        const auto comparison = left.translatedName().compare(right.translatedName(), Qt::CaseInsensitive);
         return comparison < 0;
     });
 
     // load themes
-    dirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
-        QStringLiteral("org.kde.syntax-highlighting/themes"),
-        QStandardPaths::LocateDirectory);
 
-    foreach (const auto& dir, dirs)
+    // do lookup in standard paths, if not disabled
+#ifndef NO_STANDARD_PATHS
+    foreach (const auto& dir,
+        QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
+            QStringLiteral("org.kde.syntax-highlighting/themes"),
+            QStandardPaths::LocateDirectory))
         loadThemeFolder(dir);
+#endif
+
+    // default resources are always used
     loadThemeFolder(QStringLiteral(":/org.kde.syntax-highlighting/themes"));
 
+    // user given extra paths
     foreach (const auto& path, m_customSearchPaths)
         loadThemeFolder(path + QStringLiteral("/themes"));
-        
+
     // load content detection rules. Syntax definitions need to be loaded by this time
     foreach (const auto& path, m_customSearchPaths)
         loadContentDetectionFile(path);
 }
 
-void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
+void RepositoryPrivate::loadContentDetectionFile(const QString& path)
+{
     QFile file(path + QStringLiteral("/contentDetection.json"));
     if (!file.open(QFile::ReadOnly))
         return;
@@ -211,13 +244,13 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
             qDebug() << "Found content detection rules for an unknown definition: " << key;
             continue;
         }
-        
+
         const auto& content = obj["content"];
         if (content.isArray()) {
             ContentDetection d;
             d.def = *it;
 
-            for (const auto& rule : content.toArray())
+            for (QJsonValueRef rule : content.toArray())
                 d.rules.push_back(QRegularExpression(rule.toString()));
 
             m_contentDetections.push_back(d);
@@ -228,7 +261,7 @@ void RepositoryPrivate::loadContentDetectionFile(const QString& path) {
             FileNameDetection fd;
             fd.def = *it;
 
-            for (const auto& name : fileNames.toArray())
+            for (const QJsonValueRef name : fileNames.toArray())
                 fd.fileNames.push_back(name.toString());
 
             m_fileNameDetections.push_back(fd);
@@ -332,6 +365,7 @@ quint16 RepositoryPrivate::nextFormatId()
 
 void Repository::reload()
 {
+    qDebug() << "Reloading syntax definitions!";
     foreach (const auto& def, d->m_sortedDefs)
         DefinitionData::get(def)->clear();
     d->m_defs.clear();
