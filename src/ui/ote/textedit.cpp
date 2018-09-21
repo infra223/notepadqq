@@ -3,6 +3,7 @@
 #include "texteditgutter.h"
 
 #include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QFontDatabase>
@@ -13,7 +14,6 @@
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QTextBlock>
-#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -27,11 +27,7 @@ TextEdit::TextEdit(QWidget* parent)
 {
     setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
-    // We probably shouldn't call this here.
-    /*setTheme((palette().color(QPalette::Base).lightness() < 128)
-                 ? getRepository().defaultTheme(Repository::DarkTheme)
-                 : getRepository().defaultTheme(Repository::LightTheme));*/
-
+    connect(&m_cursorTimer, &QTimer::timeout, this, &TextEdit::onCursorRepaint);
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
     connect(this, &QPlainTextEdit::updateRequest, this, &TextEdit::updateSidebarArea);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::onCursorPositionChanged); // slot
@@ -703,12 +699,29 @@ void TextEdit::onCursorPositionChanged()
 {
     // Highlight current line
     highlightCurrentLine();
-/*
-    auto pos = textCursor().position();
-    if (m_highlighter->isPositionInComment(pos))
-        qDebug() << "Is inside comment";
-    else
-        qDebug() << "Is not inside comment";*/
+
+    auto c = textCursor();
+
+    const auto numCursors = m_cursors.size();
+    if (numCursors == 0)
+        m_cursors.push_back(c);
+    else if (numCursors == 1)
+        m_cursors[0] = c;
+
+    qDebug() << "cursorpos changed" << m_cursors.size();
+
+    m_drawCursorsOn = false;
+
+    const int flashTime = QApplication::cursorFlashTime();
+    m_cursorTimer.start(flashTime / 2);
+    onCursorRepaint();
+
+    /*
+        auto pos = textCursor().position();
+        if (m_highlighter->isPositionInComment(pos))
+            qDebug() << "Is inside comment";
+        else
+            qDebug() << "Is not inside comment";*/
 
     // Try to match brackets
     // m_extraSelections[ESMatchingBrackets].clear();
@@ -800,7 +813,271 @@ void TextEdit::createParenthesisSelection(int pos)
     m_extraSelections[ESMatchingBrackets] << QTextEdit::ExtraSelection{cursor, f};
 }
 
-void TextEdit::keyPressEvent(QKeyEvent* e)
+void TextEdit::mousePressEvent(QMouseEvent* evt)
+{
+    if (!(evt->modifiers() & (Qt::ShiftModifier | Qt::AltModifier))) {
+        m_cursors.clear();
+        mcsAddCursor(textCursor());
+    } else if (evt->button() == Qt::LeftButton)
+        mcsAddCursor(cursorForPosition(evt->pos()));
+
+    QPlainTextEdit::mousePressEvent(evt);
+}
+
+static inline bool isPrintableText(const QString& text)
+{
+    return !text.isEmpty() && (text[0].isPrint() || text[0] == '\t' || text[0] == '\r');
+}
+
+bool TextEdit::mcsMoveOperation(QKeyEvent* evt)
+{
+    QTextCursor::MoveOperation op = QTextCursor::NoMove;
+    QTextCursor::MoveMode mode = QTextCursor::MoveAnchor;
+
+    if (evt == QKeySequence::MoveToNextChar) { // Handle up,down,left,right
+        op = QTextCursor::Right;
+    } else if (evt == QKeySequence::MoveToPreviousChar) {
+        op = QTextCursor::Left;
+    } else if (evt == QKeySequence::MoveToNextLine) {
+        op = QTextCursor::Down;
+    } else if (evt == QKeySequence::MoveToPreviousLine) {
+        op = QTextCursor::Up;
+    } else if (evt == QKeySequence::MoveToEndOfLine) { // Handle begin/end of line
+        op = QTextCursor::EndOfLine;
+    } else if (evt == QKeySequence::MoveToStartOfLine) {
+        op = QTextCursor::StartOfLine;
+    } else if (evt == QKeySequence::MoveToNextWord) { // Handle next/prev word
+        op = QTextCursor::NextWord;
+    } else if (evt == QKeySequence::MoveToPreviousWord) {
+        op = QTextCursor::PreviousWord;
+    } else if (evt == QKeySequence::MoveToEndOfDocument) { // Handle begin/end document
+        op = QTextCursor::End;
+    } else if (evt == QKeySequence::MoveToStartOfDocument) {
+        op = QTextCursor::Start;
+    } else if (evt == QKeySequence::SelectNextChar) { // Now the same with SHIFT pressed
+        op = QTextCursor::Right;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectPreviousChar) {
+        op = QTextCursor::Left;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectNextLine) {
+        op = QTextCursor::Down;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectPreviousLine) {
+        op = QTextCursor::Up;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectEndOfLine) { // Handle begin/end of line
+        op = QTextCursor::EndOfLine;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectStartOfLine) {
+        op = QTextCursor::StartOfLine;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectNextWord) { // Handle next/prev word
+        op = QTextCursor::NextWord;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectPreviousWord) {
+        op = QTextCursor::PreviousWord;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectEndOfDocument) { // Handle begin/end document
+        op = QTextCursor::End;
+        mode = QTextCursor::KeepAnchor;
+    } else if (evt == QKeySequence::SelectStartOfDocument) {
+        op = QTextCursor::Start;
+        mode = QTextCursor::KeepAnchor;
+    } else
+        return false;
+
+    const auto currentCursor = textCursor();
+    for (auto& c : m_cursors) {
+        const bool setcc = (c == currentCursor);
+        c.movePosition(op, mode);
+        if (setcc)
+            setTextCursor(c);
+    }
+
+    mcsEnsureUniqueCursors();
+    return true;
+}
+
+void TextEdit::mcsInsertText(const QString& text)
+{
+    auto cc = textCursor();
+    cc.beginEditBlock();
+    for (auto& c : m_cursors) {
+        if (c.hasSelection()) {
+            cc.setPosition(c.selectionStart());
+            cc.setPosition(c.selectionEnd(), QTextCursor::KeepAnchor);
+            cc.removeSelectedText();
+        } else {
+            cc.setPosition(c.position());
+            if (overwriteMode() && !cc.atBlockEnd())
+                cc.deleteChar();
+        }
+        cc.insertText(text);
+    }
+    cc.endEditBlock();
+}
+
+bool TextEdit::mcsAddCursor(const QTextCursor& c)
+{
+    const auto it = std::lower_bound(
+        m_cursors.begin(), m_cursors.end(), c.position(), [](const QTextCursor& c, int p) { return c.position() < p; });
+
+    if (it != m_cursors.end() && it->position() == c.position())
+        return false;
+
+    m_cursors.insert(it, c);
+    return true;
+}
+
+void TextEdit::mcsEnsureUniqueCursors()
+{
+    // TODO: don't allow overlapping selections.
+    auto pos = std::unique(m_cursors.begin(), m_cursors.end(), [](const QTextCursor& a, const QTextCursor& b) {
+        return a.position() == b.position();
+    });
+    m_cursors.erase(pos, m_cursors.end());
+}
+
+void TextEdit::onCursorRepaint()
+{
+    // If we only have a single cursor it'll be updated by QPlainTextEdit's default mechanism.
+    // For more than one cursor we'll just update the whole viewport.
+    // Possible optimization: find the first/last visible cursor and update only the area between them.
+    if (m_cursors.size() > 1)
+        viewport()->update();
+
+    m_drawCursorsOn = !m_drawCursorsOn;
+}
+
+void TextEdit::keyPressEvent(QKeyEvent* event)
+{
+    const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
+
+    if ((event->modifiers() & shiftAlt) == shiftAlt) {
+        QTextCursor::MoveOperation op = QTextCursor::NoMove;
+        switch (event->key()) {
+        case Qt::Key_Up:
+            op = QTextCursor::Up;
+            break;
+        case Qt::Key_Down:
+            op = QTextCursor::Down;
+            break;
+        }
+
+        if (op != QTextCursor::NoMove) {
+            auto c = textCursor();
+            c.movePosition(op);
+            mcsAddCursor(c);
+            setTextCursor(c);
+        }
+
+        return;
+    }
+
+    if (m_cursors.size() <= 1)
+        return singleCursorKeyPressEvent(event);
+
+    if (event == QKeySequence::Undo)
+        return undo();
+    if (event == QKeySequence::Redo)
+        return redo();
+
+    if (event->key() == Qt::Key_Escape) {
+        m_cursors.clear();
+        // setExtraSelections({});
+        m_extraSelections[ESCursorSelection].clear();
+
+        viewport()->update(); // Need a full update to visually remove existing cursors
+        return;
+    }
+
+    const QString eventText = event->text();
+    if (isPrintableText(eventText)) {
+        mcsInsertText(eventText);
+        return;
+    }
+    if (mcsMoveOperation(event)) {
+        auto& sels = m_extraSelections[ESCursorSelection];
+        sels.clear();
+
+        QTextEdit::ExtraSelection es;
+        es.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
+
+        for (const auto& c : m_cursors) {
+            if (!c.hasSelection())
+                continue;
+            es.cursor = c;
+            sels << es;
+        }
+        setExtraSelections(sels);
+        return;
+    }
+
+    if (event == QKeySequence::Copy || event == QKeySequence::Cut) {
+        const bool cut = event == QKeySequence::Cut;
+        QString text;
+
+        for (auto& c : m_cursors) {
+            text += c.selectedText() + '\n';
+            if (cut)
+                c.removeSelectedText();
+        }
+        if (text.isEmpty())
+            return;
+
+        text.chop(1);
+        QGuiApplication::clipboard()->setText(text);
+
+        if (cut)
+            mcsEnsureUniqueCursors();
+        return;
+    }
+    if (event == QKeySequence::Paste) {
+        const QString text = QGuiApplication::clipboard()->text();
+        const size_t numLines = static_cast<size_t>(text.count('\n')) + 1;
+
+        if (numLines == m_cursors.size()) {
+            const auto arr = text.split('\n');
+
+            int i = 0;
+            for (auto& c : m_cursors) {
+                c.insertText(arr[i++]);
+            }
+        } else {
+            mcsInsertText(text);
+        }
+        return;
+    }
+
+    if (event == QKeySequence::Delete) {
+        for (auto& c : m_cursors) {
+            if (c.hasSelection()) {
+                c.removeSelectedText();
+            } else {
+                c.deleteChar();
+            }
+        }
+
+        mcsEnsureUniqueCursors();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Backspace) {
+        for (auto& c : m_cursors) {
+            if (c.hasSelection()) {
+                c.removeSelectedText();
+            } else {
+                c.deletePreviousChar();
+            }
+        }
+
+        mcsEnsureUniqueCursors();
+        return;
+    }
+}
+
+void TextEdit::singleCursorKeyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key_Tab && m_tabToSpaces) {
         auto cursor = textCursor();
@@ -1104,7 +1381,6 @@ void TextEdit::compositeExtraSelections()
         fullList << list;
 
     setExtraSelections(fullList);
-    // setExtraSelections( m_extraSelections[ESSearchRange] );
 }
 
 static void fillBackground(QPainter* p, const QRectF& rect, QBrush brush, const QRectF& gradientRect = QRectF())
@@ -1136,22 +1412,45 @@ void TextEdit::paintEvent(QPaintEvent* e)
     QPointF offset(contentOffset());
 
     QRect er = e->rect();
-    QRect viewportRect = viewport()->rect();
-
-    bool editable = !isReadOnly();
-
+    const QRect viewportRect = viewport()->rect();
     QTextBlock block = firstVisibleBlock();
-    qreal maximumWidth = document()->documentLayout()->documentSize().width();
+    const qreal maximumWidth = document()->documentLayout()->documentSize().width();
 
     // Set a brush origin so that the WaveUnderline knows where the wave started
     painter.setBrushOrigin(offset);
 
     // keep right margin clean from full-width selection
-    int maxX = offset.x() + qMax((qreal)viewportRect.width(), maximumWidth) - document()->documentMargin();
+    const int maxX = offset.x() + qMax((qreal)viewportRect.width(), maximumWidth) - document()->documentMargin();
     er.setRight(qMin(er.right(), maxX));
     painter.setClipRect(er);
 
     QAbstractTextDocumentLayout::PaintContext context = getPaintContext();
+
+    const bool drawCursor =
+        m_drawCursorsOn && hasFocus() && ((!isReadOnly() || (textInteractionFlags() & Qt::TextSelectableByKeyboard)));
+    const bool drawCursorAsBlock = drawCursor && overwriteMode();
+
+    // In some cases the main textCursor isn't properly added to the cursor vector. We pretty much don't ever want this
+    // empty
+    if (m_cursors.empty())
+        m_cursors.push_back(textCursor());
+
+    // TODO: single selction handled differently for now. Since it's added by Qt itself we've got to catch it and change
+    // it Single-cursor doesn't ever call the code for creating text highlights. That should have to happen in
+    // onCursorChange() I guess.
+    if (m_cursors.size() > 1)
+        context.selections.pop_back();
+    else if (!context.selections.isEmpty() && textCursor().hasSelection()) {
+        auto& s = context.selections.last();
+
+        s.format.clearForeground();
+        s.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
+    }
+
+    std::vector<QTextCursor const*> cursorsInBlock;
+    auto cursorIt = m_cursors.cbegin();
+    while (drawCursor && cursorIt != m_cursors.cend() && cursorIt->position() < block.position())
+        ++cursorIt;
 
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
@@ -1193,35 +1492,17 @@ void TextEdit::paintEvent(QPaintEvent* e)
             fillBackground(&painter, contentsRect, bg);
         }
 
-        // The last selection is the text selection added by Qt. Since the original one removes
-        // foregroundColor we've got to intercept it.
-        if (context.selections.size() > 0 && textCursor().hasSelection()) {
-            auto& s = context.selections.last();
-
-            s.format.clearForeground();
-            s.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
-
-            // context.selections.pop_back();
-
-            /*QAbstractTextDocumentLayout::Selection selection;
-            selection.cursor = textCursor();
-
-            //QPalette::ColorGroup cg = d->hasFocus ? QPalette::Active : QPalette::Inactive;
-            selection.format.setBackground(
-            QBrush(getTheme().editorColor(Theme::CurrentLine)) );
-            //selection.format.setBackground(m_currentTheme.getColor(Theme::TextEditActiveBackground));
-            selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-            context.selections.push_back(selection);*/
-        }
-
         QVector<QTextLayout::FormatRange> selections;
-        int blpos = block.position();
-        int bllen = block.length();
+        const int blockStart = block.position();
+        const int blockLength = block.length();
+        const int blockEnd = blockStart + blockLength;
+
+        // Collect selections for this block
         for (int i = 0; i < context.selections.size(); ++i) {
             const QAbstractTextDocumentLayout::Selection& range = context.selections.at(i);
-            const int selStart = range.cursor.selectionStart() - blpos;
-            const int selEnd = range.cursor.selectionEnd() - blpos;
-            if (selStart < bllen && selEnd > 0 && selEnd > selStart) {
+            const int selStart = range.cursor.selectionStart() - blockStart;
+            const int selEnd = range.cursor.selectionEnd() - blockStart;
+            if (selStart < blockLength && selEnd > 0 && selEnd > selStart) {
                 QTextLayout::FormatRange o;
                 o.start = selStart;
                 o.length = selEnd - selStart;
@@ -1232,57 +1513,60 @@ void TextEdit::paintEvent(QPaintEvent* e)
                 // for full width selections we don't require an actual selection, just
                 // a position to specify the line. that's more convenience in usage.
                 QTextLayout::FormatRange o;
-                QTextLine l = layout->lineForTextPosition(range.cursor.position() - blpos);
+                QTextLine l = layout->lineForTextPosition(range.cursor.position() - blockStart);
+
                 o.start = l.textStart();
                 o.length = l.textLength();
-                if (o.start + o.length == bllen - 1)
+                if (o.start + o.length == blockLength - 1)
                     ++o.length; // include newline
                 o.format = range.format;
                 selections.append(o);
             }
         }
 
-        // context.cursorPosition = getAbsoluteCursorPosition();
-        bool drawCursor = ((editable || (textInteractionFlags() & Qt::TextSelectableByKeyboard)) &&
-                           context.cursorPosition >= blpos && context.cursorPosition < blpos + bllen);
+        // Collect cursors for this block and add selections for block-cursors (when overwriteMode is enabled)
+        if (drawCursor) {
+            cursorsInBlock.clear();
+            while (cursorIt != m_cursors.cend()) {
+                const auto& c = *cursorIt;
+                auto cpos = c.position();
+                if (cpos < blockStart || cpos >= blockEnd)
+                    break;
+                cursorsInBlock.push_back(&c);
+                ++cursorIt;
+            }
 
-        // int curPos = getAbsoluteCursorPosition();
-        // drawCursor = curPos >= blpos && curPos < blpos + bllen;
+            if (drawCursorAsBlock) {
+                for (auto& c : cursorsInBlock) {
+                    if (c->position() == blockEnd - 1)
+                        continue;
 
-        // drawCursor = drawCursor && m_t.elapsed() % 1000 < 500;
-
-        bool drawCursorAsBlock = drawCursor && overwriteMode();
-
-        if (drawCursorAsBlock) {
-            if (context.cursorPosition == blpos + bllen - 1) {
-                drawCursorAsBlock = false;
-            } else {
-                QTextLayout::FormatRange o;
-                o.start = context.cursorPosition - blpos;
-                o.length = 1;
-                o.format.setForeground(palette().base());
-                o.format.setBackground(palette().text());
-                selections.append(o);
+                    QTextLayout::FormatRange o;
+                    o.start = c->position() - blockStart;
+                    o.length = 1;
+                    o.format.setForeground(palette().base());
+                    o.format.setBackground(palette().text());
+                    selections.append(o);
+                    c = nullptr;
+                }
             }
         }
 
-        if (!placeholderText().isEmpty() && document()->isEmpty() && layout->preeditAreaText().isEmpty()) {
-            QColor col = palette().text().color();
-            col.setAlpha(128);
-            painter.setPen(col);
-            const int margin = int(document()->documentMargin());
-            painter.drawText(r.adjusted(margin, 0, 0, 0), Qt::AlignTop | Qt::TextWordWrap, placeholderText());
-        } else {
-            layout->draw(&painter, offset, selections, er);
-        }
-        if ((drawCursor && !drawCursorAsBlock) ||
-            (editable && context.cursorPosition < -1 && !layout->preeditAreaText().isEmpty())) {
-            int cpos = context.cursorPosition;
-            if (cpos < -1)
-                cpos = layout->preeditAreaPosition() - (cpos + 2);
-            else
-                cpos -= blpos;
-            layout->drawCursor(&painter, offset, cpos, cursorWidth());
+        layout->draw(&painter, offset, selections, er);
+
+        // Draw non-block cursors now
+        if (drawCursor) {
+            for (const auto c : cursorsInBlock) {
+                if (c == nullptr)
+                    continue;
+
+                auto cpos = c->position();
+                if (cpos < -1)
+                    cpos = layout->preeditAreaPosition() - (cpos + 2);
+                else
+                    cpos -= block.position();
+                layout->drawCursor(&painter, offset, cpos, cursorWidth());
+            }
         }
 
         offset.ry() += r.height();

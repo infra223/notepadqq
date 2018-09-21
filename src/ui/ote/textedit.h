@@ -3,6 +3,7 @@
 
 #include <QPlainTextEdit>
 #include <QTextBlock>
+#include <QTimer>
 
 #include <vector>
 
@@ -155,6 +156,7 @@ signals:
     void urlsDropped(const QList<QUrl>& urls);
 
 protected:
+    void mousePressEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent *e) override;
     void wheelEvent(QWheelEvent* event) override;
     void dropEvent(QDropEvent *event) override;
@@ -166,6 +168,20 @@ protected:
     
 private:
     friend class TextEditGutter;
+
+    // Multiple-cursor selection
+    bool mcsMoveOperation(QKeyEvent *evt);
+    void mcsInsertText(const QString& text);
+    bool mcsAddCursor(const QTextCursor& c);
+    void mcsEnsureUniqueCursors();
+
+    std::vector<QTextCursor> m_cursors;
+    QTimer m_cursorTimer;
+    bool m_drawCursorsOn = true;
+    void onCursorRepaint();
+    void singleCursorKeyPressEvent(QKeyEvent* e);
+
+
     
     QTextBlock blockAtPosition(int y) const;
     void updateSidebarGeometry();
@@ -183,6 +199,7 @@ private:
     enum ESType {
         ESLineHighlight = 0,
         ESSameItems,
+        ESCursorSelection,
         ESMatchingBrackets,
     };
 
