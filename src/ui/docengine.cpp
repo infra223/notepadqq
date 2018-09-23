@@ -32,7 +32,7 @@ DocEngine::~DocEngine()
 int DocEngine::addNewDocument(QString name, bool setFocus, EditorTabWidget *tabWidget)
 {
     int tab = tabWidget->addEditorTab(setFocus, name);
-    tabWidget->editor(tab)->setLanguage("plaintext");
+    // tabWidget->editor(tab)->setLanguage("plaintext");
     return tab;
 }
 

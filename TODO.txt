@@ -1,8 +1,21 @@
-- Multiple cursor selection doesn't work. Meaning "Find All" functionality doesn't work either.
+== Miscellaneous ==
 - One Whitespace function not implemented.
-- Add documentation to code.
-- Add light themes.
+- Add more documentation to code.
+- Add more themes.
+- Make sure we're not doing too many useless redraw operations.
+- Fix qDebug warnings.
+- Don't composite extra events on *every* repaint.
+- Rebase to upstream master.
+- Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
 - Do last: Bump version (see Wiki).
+
+== Multi-Cursor Selection ==
+- Make sure the read-only attribute is respected during mcs operations
+- Filter cursor array to remove overlapping selections (selections that touch each other are fine)
+- Implement inputmethodevent
++ Need to update viewport on mouse click if it cancels mcs (impl. function for clearing mcs)
++ Implement getSelections(). Need setSelections()?
+- Implement "Find All", "Replace All"
 
 == Folding ==
 - Show tooltip when hovering over folding markers if the end-block is outside the viewport.

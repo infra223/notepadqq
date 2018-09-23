@@ -31,8 +31,6 @@ public:
     void setDefinition(const Definition& d);
     Definition getDefinition() const { return m_highlighter->definition(); }
 
-    //void setSyntaxHighlightingEnabled(bool enabled);
-
     // Various text formatting and display options
     void setEndOfLineMarkersVisible(bool enable);
     void setWhitespaceVisible(bool show);
@@ -56,29 +54,38 @@ public:
     int getCharCount() const;
 
     // Cursor Positioning
-    // Note that these functions take input starting from 0. First line, first character is {0,0}
-    struct CursorPos {
-        int line = 0;
-        int column = 0;
-    };
+    // Note that these functions take input starting from 0.
+
+    using CursorPos = int;
+    std::pair<int,int> getLineColumnForCursorPos(const CursorPos& p);
+    CursorPos getCursorPosForLineColumn(int line, int column);
 
     struct Selection {
-        CursorPos start;
-        CursorPos end;
+        Selection() = default;
+        Selection(int start, int end) : start(start), end(end) {}
+
+        CursorPos start = 0;
+        CursorPos end = 0;
+
+        bool isValid() const { return start >= 0 && end >= start; }
+        bool length() const { return end-start; }
+        bool hasSelection() const { return length() > 0; }
     };
 
     void setCursorPosition(int line, int column);
     void setCursorPosition(const CursorPos& pos);
     CursorPos getCursorPosition() const;
 
-    void setAbsoluteCursorPosition(int pos);
-    int getAbsoluteCursorPosition() const;
-
     // Selection
+    QStringList getSelectedTexts() const;
+
     QString getSelectedText() const;
     Selection getSelection() const;
+    std::vector<Selection> getSelections() const;
     void setSelection(const Selection& sel);
+    void setSelections(const std::vector<Selection>& selections);
     void setTextInSelection(const QString& text, bool keepSelection=true);
+    void setTextInSelections(const QStringList& texts, bool keepSelection=true);
 
     // Scrolling
     QPoint getScrollPosition() const;
@@ -92,6 +99,7 @@ public:
     bool findTentative(const QString& term, FindFlags flags = FindFlags());
     bool find(const QString& term, FindFlags flags = FindFlags());
     bool find(const QString& term, int startPos, int endPos=-1, FindFlags flags = FindFlags(), bool wrapAround=true);
+    std::vector<Selection> findAll(const QString& term, int startPos=0, int endPos=-1, FindFlags flags = FindFlags());
 
     //bool find(const QRegExp &exp, QTextDocument::FindFlags options = QTextDocument::FindFlags()) = delete;
 
@@ -174,14 +182,17 @@ private:
     void mcsInsertText(const QString& text);
     bool mcsAddCursor(const QTextCursor& c);
     void mcsEnsureUniqueCursors();
+    void mcsUpdateSelectionHighlights();
+    void mcsClearAllCursors(bool updateViewport=true);
+
+    void mcsPaste(const QStringList& list);
+    void mcsPaste(const QString& text);
 
     std::vector<QTextCursor> m_cursors;
     QTimer m_cursorTimer;
     bool m_drawCursorsOn = true;
     void onCursorRepaint();
     void singleCursorKeyPressEvent(QKeyEvent* e);
-
-
     
     QTextBlock blockAtPosition(int y) const;
     void updateSidebarGeometry();
@@ -190,6 +201,8 @@ private:
     void onCursorPositionChanged();
     void onSelectionChanged();
     void onContentsChange(int position, int removed, int added);
+
+    void ensureSelectionUnfolded(const Selection& sel);
 
     struct BlockData {
         QTextBlock block;
@@ -215,8 +228,6 @@ private:
 
     BlockList getBlocksInViewport() const;
     BlockList getBlocksInRect(QRect rect) const;
-
-    int cursorPosToAbsolutePos(const CursorPos& pos) const;
 
     void resizeEvent(QResizeEvent* event) override;
     QTextBlock findClosingBlock(const QTextBlock& startBlock) const;

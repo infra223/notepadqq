@@ -51,7 +51,7 @@ void AbstractHighlighterPrivate::ensureDefinitionLoaded()
         defData = DefinitionData::get(m_definition);
     }
 
-    if (Q_UNLIKELY(!defData->repo && !defData->name.isEmpty()))
+    if (Q_UNLIKELY(!defData->repo && !defData->name.isEmpty() && defData->name != "None"))
         qCritical() << "Repository got deleted while a highlighter is still active!";
 
     if (m_definition.isValid())

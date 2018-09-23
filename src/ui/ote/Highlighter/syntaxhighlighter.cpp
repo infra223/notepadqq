@@ -84,10 +84,11 @@ SyntaxHighlighter::~SyntaxHighlighter() {}
 
 void SyntaxHighlighter::setDefinition(const Definition& def)
 {
-    const auto needsRehighlight = definition() != def;
+    if (definition() == def)
+        return;
+
     AbstractHighlighter::setDefinition(def);
-    if (needsRehighlight)
-        startRehighlighting();
+    startRehighlighting();
 }
 
 bool SyntaxHighlighter::startsFoldingRegion(const QTextBlock& startBlock) const

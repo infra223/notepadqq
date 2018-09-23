@@ -162,12 +162,6 @@ namespace EditorNS
 
     void Editor::setLanguage(ote::Definition def)
     {
-        qDebug() << "Setting language to " << def.name();
-
-        if (!def.isValid()) {
-            def = m_textEditor.getRepository().definitionForFileName(".txt");
-        }
-
         // We use setLanguage() also when changing indentation modes, so this needs to be up here.
         if (!m_customIndentationMode)
             setIndentationMode(def);
@@ -176,8 +170,6 @@ namespace EditorNS
             return;
 
         m_textEditor.setDefinition(def);
-
-        // FIXME
         emit currentLanguageChanged(def.name());
     }
 
@@ -308,17 +300,8 @@ namespace EditorNS
 
     void Editor::setSelectionsText(const QStringList &texts, SelectMode mode)
     {
-        /*QVariantMap data {{"text", texts}};
-        switch (mode) {
-            case SelectMode::After:
-                data.insert("select", "after"); break;
-            case SelectMode::Before:
-                data.insert("select", "before"); break;
-            default:
-                data.insert("select", "selected"); break;
-        }*/
-        // FIXME - can only select one selection, also doesn't care about other select modes
-        m_textEditor.setTextInSelection(texts.first(), mode == SelectMode::Selected);
+        // FIXME doesn't care about other select modes
+        m_textEditor.setTextInSelections(texts, mode == SelectMode::Selected);
     }
 
     void Editor::setSelectionsText(const QStringList &texts)
@@ -369,16 +352,13 @@ namespace EditorNS
 
     QPair<int, int> Editor::cursorPosition()
     {
-        auto p = m_textEditor.getCursorPosition();
-        return {p.line, p.column};
-        // QList<QVariant> cursor = asyncSendMessageWithResult("C_FUN_GET_CURSOR").get().toList();
-        // return {cursor[0].toInt(), cursor[1].toInt()};
+        auto p = m_textEditor.getLineColumnForCursorPos(m_textEditor.getCursorPosition());
+        return {p.first, p.second};
     }
 
     void Editor::setCursorPosition(const int line, const int column)
     {
         m_textEditor.setCursorPosition(line, column);
-        // asyncSendMessageWithResultP("C_CMD_SET_CURSOR", QList<QVariant>{line, column});
     }
 
     void Editor::setCursorPosition(const QPair<int, int> &position)
@@ -393,22 +373,20 @@ namespace EditorNS
 
     void Editor::setSelection(int fromLine, int fromCol, int toLine, int toCol)
     {
-        // asyncSendMessageWithResultP("C_CMD_SET_SELECTION", QVariant(arg));
-        m_textEditor.setSelection({{fromLine, fromCol}, {toLine, toCol}});
+        ote::TextEdit::Selection s{m_textEditor.getCursorPosForLineColumn(fromLine, fromCol),
+            m_textEditor.getCursorPosForLineColumn(toLine, toCol)};
+        m_textEditor.setSelection(s);
     }
 
     QPair<int, int> Editor::scrollPosition()
     {
         auto p = m_textEditor.getScrollPosition();
         return {p.x(), p.y()};
-        // QVariantList scroll = asyncSendMessageWithResult("C_FUN_GET_SCROLL_POS").get().toList();
-        // return {scroll[0].toInt(), scroll[1].toInt()};
     }
 
     void Editor::setScrollPosition(const int left, const int top)
     {
         m_textEditor.setScrollPosition(QPoint{left, top});
-        // asyncSendMessageWithResultP("C_CMD_SET_SCROLL_POS", QVariantList{left, top});
     }
 
     void Editor::setScrollPosition(const QPair<int, int> &position)
@@ -453,8 +431,6 @@ namespace EditorNS
 
     void Editor::setTheme(const ote::Theme& theme)
     {
-        // TODO: This is called way too often
-        // qDebug() << "Setting theme to " << theme.name();
         m_textEditor.setTheme(theme);
     }
 
@@ -466,18 +442,22 @@ namespace EditorNS
 
     QList<Editor::Selection> Editor::selections()
     {
-        // FIXME returns only one selection
-        const auto& pos = m_textEditor.getSelection();
-        return QList<Selection>() << Selection{{pos.start.line, pos.start.column}, {pos.end.line, pos.end.column}};
+        // TODO: Do we want to do this conversion?
+        const auto& sels = m_textEditor.getSelections();
+        QList<Editor::Selection> selList;
+
+        for (const auto& sel : sels) {
+            const auto& start = m_textEditor.getLineColumnForCursorPos(sel.start);
+            const auto& end = m_textEditor.getLineColumnForCursorPos(sel.end);
+            selList << Selection{{start.first, start.second}, {end.first, end.second}};
+        }
+
+        return selList;
     }
 
     QStringList Editor::selectedTexts()
     {
-        // FIXME
-        return QStringList() << m_textEditor.getSelectedText();
-
-        /*return asyncSendMessageWithResultP("C_FUN_GET_SELECTIONS_TEXT")
-                .then([](QVariant text){ return text.toStringList(); });*/
+        return m_textEditor.getSelectedTexts();
     }
 
     void Editor::setOverwrite(bool overwrite)

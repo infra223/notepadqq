@@ -203,12 +203,12 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
         replacement = SearchString::unescape(replacement);
     }
 
-    te.setAbsoluteCursorPosition(0);
+    te.setCursorPosition(0);
 
     int n = 0;
     int pos = 0;
     while (te.find(term, pos, -1, flags, false)) {
-        pos = te.getAbsoluteCursorPosition();
+        pos = te.getCursorPosition();
         te.setTextInSelection(replacement);
         ++n;
     }
@@ -217,16 +217,19 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
 }
 
 int frmSearchReplace::selectAll(QString string, SearchHelpers::SearchMode searchMode, SearchHelpers::SearchOptions searchOptions) {
-    /*QString rawSearch = SearchString::format(string, searchMode, searchOptions);
+    auto& te = currentEditor()->textEditor();
 
-    QList<QVariant> data = QList<QVariant>();
-    data.append(rawSearch);
-    data.append(regexModifiersFromSearchOptions(searchOptions));*/
+    QString term = ui->cmbSearch->currentText();
+    QTextDocument::FindFlags flags;
+    setFlag(flags, QTextDocument::FindCaseSensitively, ui->chkMatchCase->isChecked());
+    setFlag(flags, QTextDocument::FindWholeWords, ui->chkMatchWholeWord->isChecked());
 
-    // FIXME
-    /*QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_SEARCH_SELECT_ALL",
-    QVariant::fromValue(data)).get(); return count.toInt();*/
-    return 0;
+    term = SearchString::format(term, searchMode, searchOptions);
+
+    auto sels = te.findAll(string, 0, -1, flags);
+    te.setSelections(sels);
+
+    return static_cast<int>(sels.size());
 }
 
 SearchHelpers::SearchMode frmSearchReplace::searchModeFromUI()

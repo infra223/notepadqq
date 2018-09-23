@@ -99,14 +99,6 @@ void TextEdit::setDefinition(const Definition& d)
     m_highlighter->setDefinition(d);
 }
 
-/*void TextEdit::setSyntaxHighlightingEnabled(bool enabled)
-{
-    if (enabled && m_highlighter->document() == nullptr)
-        m_highlighter->setDocument(document());
-    else
-        m_highlighter->setDocument(nullptr);
-}*/
-
 void TextEdit::setEndOfLineMarkersVisible(bool enable)
 {
     if (enable == m_showEndOfLineMarkers)
@@ -234,32 +226,50 @@ int TextEdit::getCharCount() const
     return document()->characterCount();
 }
 
+std::pair<int, int> TextEdit::getLineColumnForCursorPos(const TextEdit::CursorPos& p)
+{
+    QTextCursor c(document());
+    c.setPosition(p);
+    return {c.blockNumber(), c.positionInBlock()};
+}
+
+ote::TextEdit::CursorPos ote::TextEdit::getCursorPosForLineColumn(int line, int column)
+{
+    const auto& block = document()->findBlockByNumber(line);
+    return block.position() + std::min(column, block.length());
+}
+
 void TextEdit::setCursorPosition(int line, int column)
 {
-    setAbsoluteCursorPosition(cursorPosToAbsolutePos({line, column}));
+    const auto& block = document()->findBlockByNumber(line);
+    const auto col = std::max(0, std::min(column, block.length() - 1));
+    setCursorPosition(block.position() + col);
 }
 
 void TextEdit::setCursorPosition(const TextEdit::CursorPos& pos)
 {
-    setCursorPosition(pos.line, pos.column);
+    auto c = textCursor();
+    c.setPosition(pos);
+
+    if (isFolded(c.block()))
+        toggleFold(c.block());
+
+    setTextCursor(c);
 }
 
 TextEdit::CursorPos TextEdit::getCursorPosition() const
 {
-    const auto& c = textCursor();
-    return {c.blockNumber(), c.positionInBlock()};
-}
-
-void TextEdit::setAbsoluteCursorPosition(int pos)
-{
-    auto c = textCursor();
-    c.setPosition(pos);
-    setTextCursor(c);
-}
-
-int TextEdit::getAbsoluteCursorPosition() const
-{
     return textCursor().position();
+}
+
+QStringList TextEdit::getSelectedTexts() const
+{
+    QStringList texts;
+    for (const auto& c : m_cursors)
+        if (c.hasSelection())
+            texts << c.selectedText();
+
+    return texts;
 }
 
 QString TextEdit::getSelectedText() const
@@ -269,37 +279,76 @@ QString TextEdit::getSelectedText() const
 
 TextEdit::Selection TextEdit::getSelection() const
 {
-    Selection s;
-    auto cursor = textCursor();
-    auto c = cursor;
-    c.setPosition(cursor.selectionStart());
-    s.start = {c.blockNumber(), c.positionInBlock()};
-    c.setPosition(cursor.selectionEnd());
-    s.end = {c.blockNumber(), c.positionInBlock()};
+    auto c = textCursor();
+    return {c.selectionStart(), c.selectionEnd()};
+}
 
-    return s;
+std::vector<TextEdit::Selection> TextEdit::getSelections() const
+{
+    std::vector<Selection> sels;
+    for (const auto& c : m_cursors)
+        if (c.hasSelection()) {
+            sels.emplace_back(c.selectionStart(), c.selectionEnd());
+        }
+
+    return sels;
 }
 
 void TextEdit::setSelection(const TextEdit::Selection& sel)
 {
-    auto cur = textCursor();
-    cur.setPosition(cursorPosToAbsolutePos(sel.start));
-    cur.setPosition(cursorPosToAbsolutePos(sel.end), QTextCursor::KeepAnchor);
+    bool mcsEnabled = m_cursors.size() > 1;
+
+    if (mcsEnabled) {
+        mcsClearAllCursors();
+    }
+
+    ensureSelectionUnfolded(sel);
+
+    auto cur = QTextCursor(document());
+    cur.setPosition(sel.start);
+    cur.setPosition(sel.end, QTextCursor::KeepAnchor);
     setTextCursor(cur);
+}
+
+void TextEdit::setSelections(const std::vector<TextEdit::Selection>& selections)
+{
+    if (selections.empty())
+        return;
+
+    m_cursors.clear();
+    for (const auto& sel : selections) {
+        ensureSelectionUnfolded(sel);
+
+        QTextCursor c(document());
+        c.setPosition(sel.start);
+        c.setPosition(sel.end, QTextCursor::KeepAnchor);
+        mcsAddCursor(c);
+    }
+
+    mcsUpdateSelectionHighlights();
+    setTextCursor(m_cursors.back());
 }
 
 void TextEdit::setTextInSelection(const QString& text, bool keepSelection)
 {
     auto c = textCursor();
 
+    if (keepSelection)
+        c.setKeepPositionOnInsert(true);
+
     c.insertText(text);
 
-    if (keepSelection && !text.isEmpty()) {
+    /*if (keepSelection && !text.isEmpty()) {
         c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, text.length());
         setTextCursor(c);
-    }
+    }*/
+}
 
-    // textCursor().insertText(text);
+void TextEdit::setTextInSelections(const QStringList& texts, bool keepSelection)
+{
+    // TODO: unused variable
+    Q_UNUSED(keepSelection);
+    mcsPaste(texts);
 }
 
 QPoint TextEdit::getScrollPosition() const
@@ -356,12 +405,27 @@ bool TextEdit::find(const QString& term, int regionStart, int regionEnd, TextEdi
     }
 
     if (!c.isNull() && c.selectionEnd() <= regionEnd && c.selectionStart() >= regionStart) {
-        setTextCursor(c);
+        setSelection({c.selectionStart(), c.selectionEnd()});
         m_findTermSelected = true;
         return true;
     }
 
     return false;
+}
+
+std::vector<TextEdit::Selection> TextEdit::findAll(
+    const QString& term, int startPos, int endPos, TextEdit::FindFlags flags)
+{
+    std::vector<Selection> selections;
+
+    endPos = endPos == -1 ? document()->characterCount() - 1 : endPos;
+
+    setCursorPosition(startPos);
+    while (find(term, startPos, -1, flags, false)) {
+        startPos = getCursorPosition();
+        selections.push_back(getSelection());
+    }
+    return selections;
 }
 
 void TextEdit::resetZoom()
@@ -708,8 +772,6 @@ void TextEdit::onCursorPositionChanged()
     else if (numCursors == 1)
         m_cursors[0] = c;
 
-    qDebug() << "cursorpos changed" << m_cursors.size();
-
     m_drawCursorsOn = false;
 
     const int flashTime = QApplication::cursorFlashTime();
@@ -801,6 +863,22 @@ void TextEdit::onContentsChange(int position, int removed, int added)
     }
 }
 
+void TextEdit::ensureSelectionUnfolded(const TextEdit::Selection& sel)
+{
+    auto block = document()->findBlock(sel.start);
+    const auto& endBlock = document()->findBlock(sel.end);
+
+    do {
+        if (isFolded(block))
+            toggleFold(block);
+
+        if (block == endBlock)
+            break;
+
+        block = block.next();
+    } while (true);
+}
+
 void TextEdit::createParenthesisSelection(int pos)
 {
     QTextCursor cursor = textCursor();
@@ -815,9 +893,12 @@ void TextEdit::createParenthesisSelection(int pos)
 
 void TextEdit::mousePressEvent(QMouseEvent* evt)
 {
-    if (!(evt->modifiers() & (Qt::ShiftModifier | Qt::AltModifier))) {
-        m_cursors.clear();
-        mcsAddCursor(textCursor());
+    const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
+
+    if ((evt->modifiers() & shiftAlt) != shiftAlt) {
+        if (m_cursors.size() > 1) {
+            mcsClearAllCursors();
+        }
     } else if (evt->button() == Qt::LeftButton)
         mcsAddCursor(cursorForPosition(evt->pos()));
 
@@ -939,6 +1020,61 @@ void TextEdit::mcsEnsureUniqueCursors()
     m_cursors.erase(pos, m_cursors.end());
 }
 
+void TextEdit::mcsUpdateSelectionHighlights()
+{
+    auto& sels = m_extraSelections[ESCursorSelection];
+    sels.clear();
+
+    QTextEdit::ExtraSelection es;
+    es.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
+
+    for (const auto& c : m_cursors) {
+        if (!c.hasSelection())
+            continue;
+        es.cursor = c;
+        sels << es;
+    }
+    setExtraSelections(sels);
+}
+
+void TextEdit::mcsClearAllCursors(bool updateViewport)
+{
+    m_cursors.clear();
+    m_extraSelections[ESCursorSelection].clear();
+    if (updateViewport)
+        viewport()->update();
+}
+
+void TextEdit::mcsPaste(const QStringList& list)
+{
+    const size_t numLines = size_t(list.size());
+
+    if (numLines == m_cursors.size()) {
+        int i = 0;
+        for (auto& c : m_cursors) {
+            c.insertText(list[i++]);
+        }
+    } else {
+        mcsInsertText(list.join('\n'));
+    }
+}
+
+void TextEdit::mcsPaste(const QString& text)
+{
+    const size_t numLines = size_t(text.count('\n')) + 1;
+
+    if (numLines == m_cursors.size()) {
+        const auto arr = text.split('\n');
+
+        int i = 0;
+        for (auto& c : m_cursors) {
+            c.insertText(arr[i++]);
+        }
+    } else {
+        mcsInsertText(text);
+    }
+}
+
 void TextEdit::onCursorRepaint()
 {
     // If we only have a single cursor it'll be updated by QPlainTextEdit's default mechanism.
@@ -984,11 +1120,7 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
         return redo();
 
     if (event->key() == Qt::Key_Escape) {
-        m_cursors.clear();
-        // setExtraSelections({});
-        m_extraSelections[ESCursorSelection].clear();
-
-        viewport()->update(); // Need a full update to visually remove existing cursors
+        mcsClearAllCursors();
         return;
     }
 
@@ -998,25 +1130,17 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
         return;
     }
     if (mcsMoveOperation(event)) {
-        auto& sels = m_extraSelections[ESCursorSelection];
-        sels.clear();
-
-        QTextEdit::ExtraSelection es;
-        es.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
-
-        for (const auto& c : m_cursors) {
-            if (!c.hasSelection())
-                continue;
-            es.cursor = c;
-            sels << es;
-        }
-        setExtraSelections(sels);
+        mcsUpdateSelectionHighlights();
         return;
     }
 
     if (event == QKeySequence::Copy || event == QKeySequence::Cut) {
         const bool cut = event == QKeySequence::Cut;
         QString text;
+        QTextCursor blockCursor(document());
+
+        if (cut)
+            blockCursor.beginEditBlock();
 
         for (auto& c : m_cursors) {
             text += c.selectedText() + '\n';
@@ -1029,28 +1153,20 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
         text.chop(1);
         QGuiApplication::clipboard()->setText(text);
 
-        if (cut)
+        if (cut) {
+            blockCursor.endEditBlock();
             mcsEnsureUniqueCursors();
+        }
         return;
     }
     if (event == QKeySequence::Paste) {
-        const QString text = QGuiApplication::clipboard()->text();
-        const size_t numLines = static_cast<size_t>(text.count('\n')) + 1;
-
-        if (numLines == m_cursors.size()) {
-            const auto arr = text.split('\n');
-
-            int i = 0;
-            for (auto& c : m_cursors) {
-                c.insertText(arr[i++]);
-            }
-        } else {
-            mcsInsertText(text);
-        }
+        mcsPaste(QGuiApplication::clipboard()->text());
         return;
     }
 
     if (event == QKeySequence::Delete) {
+        QTextCursor blockCursor(document());
+        blockCursor.beginEditBlock();
         for (auto& c : m_cursors) {
             if (c.hasSelection()) {
                 c.removeSelectedText();
@@ -1058,12 +1174,15 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
                 c.deleteChar();
             }
         }
+        blockCursor.endEditBlock();
 
         mcsEnsureUniqueCursors();
         return;
     }
 
     if (event->key() == Qt::Key_Backspace) {
+        QTextCursor blockCursor(document());
+        blockCursor.beginEditBlock();
         for (auto& c : m_cursors) {
             if (c.hasSelection()) {
                 c.removeSelectedText();
@@ -1071,6 +1190,7 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
                 c.deletePreviousChar();
             }
         }
+        blockCursor.endEditBlock();
 
         mcsEnsureUniqueCursors();
         return;
@@ -1651,13 +1771,6 @@ TextEdit::BlockList TextEdit::getBlocksInRect(QRect rect) const
     // m_blockListCounter += bl.size();
     // qDebug() << m_blockListCounter << bl.size(); // << rect << contentOff << viewport()->height();
     return bl;
-}
-
-int TextEdit::cursorPosToAbsolutePos(const TextEdit::CursorPos& pos) const
-{
-    const auto& block = document()->findBlockByNumber(pos.line);
-    const auto col = std::max(0, std::min(pos.column, block.length() - 1));
-    return block.position() + col;
 }
 
 QTextBlock TextEdit::blockAtPosition(int y) const
