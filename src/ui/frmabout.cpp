@@ -14,16 +14,27 @@ frmAbout::frmAbout(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->lblIcon->setPixmap(IconProvider::fromTheme("notepadqq")
-                           .pixmap(ui->lblIcon->width(),
-                                   ui->lblIcon->height()));
+    auto size = std::max(ui->lblIcon->width(), ui->lblIcon->height());
+    ui->lblIcon->setPixmap(IconProvider::fromTheme("notepadqq").pixmap(size, size));
 
-    ui->lblVersion->setText("v" + QApplication::applicationVersion());
-    ui->lblCopyright->setText(Notepadqq::copyright());
+    auto makeLink = [](const QString& txt, const QString& link) {
+        const QString linkStyle = "text-decoration: none; color:#606060;";
+        return QString("<a href=\"%1\"><span style=\"" + linkStyle + "\">%2</span></a>").arg(link).arg(txt);
+    };
 
-    QString linkStyle = "text-decoration: none; color:#606060;";
-    ui->lblContributors->setText(tr("Contributors:") + " <a href=\"" + Notepadqq::contributorsUrl + "\"><span style=\"" + linkStyle + "\">" + tr("GitHub Contributors") + "</span></a>");
-    ui->lblWebsite->setText("<a href=\"" + Notepadqq::website + "\"><span style=\"" + linkStyle + "\">" + Notepadqq::website + "</span></a>");
+    QString text;
+    text += "<h1>Notepadqq</h1>";
+    text += "<p><b>v" + QApplication::applicationVersion() + "</b></p>";
+    text += Notepadqq::copyright();
+    text += "<p>" + tr("This program makes use of the following software libraries:");
+    text +=
+        "<ul><li>" + makeLink("KSyntaxHighlighting, KDE e.V.", "https://github.com/KDE/syntax-highlighting") + "</li>";
+    text += "<li>" + makeLink("JKQTPlotter, Jan W. Krieger", "https://github.com/jkriege2/JKQtPlotter") + "</li>";
+    text += "</ul></p>";
+    text += tr("Contributors:") + " " + makeLink(tr("GitHub Contributors"), Notepadqq::contributorsUrl) + "<br/>";
+    text += tr("Website:") + " " + makeLink(Notepadqq::website, Notepadqq::website);
+
+    ui->lblText->setText(text);
 
     setFixedSize(this->width(), this->height());
     setWindowFlags( (windowFlags() | Qt::CustomizeWindowHint) & ~Qt::WindowMaximizeButtonHint);
