@@ -1528,9 +1528,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
     // line-highlighting.
     QPainter painter(viewport());
     Q_ASSERT(qobject_cast<QPlainTextDocumentLayout*>(document()->documentLayout()));
-
     QPointF offset(contentOffset());
-
     QRect er = e->rect();
     const QRect viewportRect = viewport()->rect();
     QTextBlock block = firstVisibleBlock();
@@ -1558,7 +1556,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
     // TODO: single selction handled differently for now. Since it's added by Qt itself we've got to catch it and change
     // it Single-cursor doesn't ever call the code for creating text highlights. That should have to happen in
     // onCursorChange() I guess.
-    if (m_cursors.size() > 1)
+    if (m_cursors.size() > 1 && textCursor().hasSelection())
         context.selections.pop_back();
     else if (!context.selections.isEmpty() && textCursor().hasSelection()) {
         auto& s = context.selections.last();
@@ -1566,11 +1564,6 @@ void TextEdit::paintEvent(QPaintEvent* e)
         s.format.clearForeground();
         s.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
     }
-
-    std::vector<QTextCursor const*> cursorsInBlock;
-    auto cursorIt = m_cursors.cbegin();
-    while (drawCursor && cursorIt != m_cursors.cend() && cursorIt->position() < block.position())
-        ++cursorIt;
 
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
@@ -1584,6 +1577,11 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
         block = block.next();
     }
+
+    std::vector<QTextCursor const*> cursorsInBlock;
+    auto cursorIt = m_cursors.cbegin();
+    while (drawCursor && cursorIt != m_cursors.cend() && cursorIt->position() < block.position())
+        ++cursorIt;
 
     QTextBlock beginBlock = block;
     QTextBlock endBlock;
@@ -1605,7 +1603,10 @@ void TextEdit::paintEvent(QPaintEvent* e)
         QTextBlockFormat blockFormat = block.blockFormat();
 
         QBrush bg = blockFormat.background();
-        // QBrush bg( getTheme().editorColor(Theme::BackgroundColor) );
+        /*QColor cc = bg.color(); // Random coloration
+        cc.setBlue( rand() % 200 );
+        cc.setGreen( rand() % 200 );
+        bg = QBrush(cc);*/
         if (bg != Qt::NoBrush) {
             QRectF contentsRect = r;
             contentsRect.setWidth(qMax(r.width(), maximumWidth));
@@ -1650,7 +1651,8 @@ void TextEdit::paintEvent(QPaintEvent* e)
             while (cursorIt != m_cursors.cend()) {
                 const auto& c = *cursorIt;
                 auto cpos = c.position();
-                if (cpos < blockStart || cpos >= blockEnd)
+                assert(!(cpos < blockStart));
+                if (cpos >= blockEnd)
                     break;
                 cursorsInBlock.push_back(&c);
                 ++cursorIt;
@@ -1715,7 +1717,6 @@ void TextEdit::paintEvent(QPaintEvent* e)
             continue;
         numLines -= prevBlock.lineCount();
     }
-
 
     EditorLabelIterator upper, lower;
     std::tie(lower, upper) = getEditorLabelsInRange(beginBlock.position(), endBlock.position() + endBlock.length());
