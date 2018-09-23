@@ -45,11 +45,6 @@ frmAbout::~frmAbout()
     delete ui;
 }
 
-void frmAbout::on_lblContributors_linkActivated(const QString &link)
-{
-    QDesktopServices::openUrl(QUrl(link, QUrl::TolerantMode));
-}
-
 void frmAbout::on_pushButton_clicked()
 {
     this->close();

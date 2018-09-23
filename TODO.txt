@@ -6,7 +6,7 @@
 + Fix qDebug warnings.
 - Don't composite extra events on *every* repaint.
 - Rebase to upstream master.
-- Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
++ Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
 - Copy changes from syntaxhighlighting over to its own repo
 - Do last: Bump version (see Wiki).
 

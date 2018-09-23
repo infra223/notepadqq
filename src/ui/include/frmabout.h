@@ -16,8 +16,6 @@ public:
     ~frmAbout();
 
 private slots:
-    void on_lblContributors_linkActivated(const QString &link);
-
     void on_pushButton_clicked();
 
     void on_btnLicense_clicked();
