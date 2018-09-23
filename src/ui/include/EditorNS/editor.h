@@ -17,35 +17,15 @@ class EditorTabWidget;
 
 namespace EditorNS
 {
-    /**
-         * @brief Provides a JavaScript CodeMirror instance.
-         *
-         * Communication works by sending messages to the javascript Editor using
-         * the sendMessage() method. On the other side, when a javascript event
-         * occurs, the messageReceived() signal will be emitted.
-         *
-         * In addition to messageReceived(), other signals could be emitted at the
-         * same time, for example currentLineChanged(). This is simply for
-         * convenience, so that the user of this class doesn't need to manually parse
-         * the arguments for pre-defined messages.
-         *
-         */
     class Editor : public QWidget
     {
         Q_OBJECT
     public:
 
-        explicit Editor(const ote::Theme& theme, QWidget *parent = 0);
         explicit Editor(QWidget *parent = 0);
 
-        /**
-             * @brief Efficiently returns a new Editor object from an internal buffer.
-             * @return
-             */
         static QSharedPointer<Editor> getNewEditor(QWidget *parent = 0);
         static Editor *getNewEditorUnmanagedPtr(QWidget *parent);
-
-        static void invalidateEditorBuffer();
 
         struct Cursor {
             int line;
@@ -81,16 +61,6 @@ namespace EditorNS
             bool useTabs;
             int size;
         };
-
-        /**
-             * @brief Adds a new Editor to the internal buffer used by getNewEditor().
-             *        You might want to call this method e.g. as soon as the application
-             *        starts (so that an Editor is ready as soon as it gets required),
-             *        or when the application is idle.
-             * @param howMany specifies how many Editors to add
-             * @return
-             */
-        static void addEditorToBuffer(const int howMany = 1);
 
         /**
              * @brief Give focus to the editor, so that the user can start
@@ -262,7 +232,6 @@ namespace EditorNS
         QString tabName() const;
         void setTabName(const QString& name);
 
-        static QQueue<Editor*> m_editorBuffer;
         QVBoxLayout *m_layout;
 
         ote::TextEdit m_textEditor;
@@ -305,36 +274,7 @@ namespace EditorNS
         void currentLanguageChanged(QString name);
 
     public slots:
-        //void sendMessage(const QString &msg, const QVariant &data);
-        //void sendMessage(const QString &msg);
-
-        /**
-         * @brief asyncSendMessageWithResult
-         * @param msg
-         * @param data
-         * @param callback When set, the result is returned asynchronously via the provided function.
-         *                 If set, you should NOT use the return value of this method.
-         * @return
-         */
-        //QVariant asyncSendMessageWithResultP(const QString &msg, const QVariant &data);
-        //QVariant asyncSendMessageWithResultP(const QString &msg);
-
-        /*std::shared_future<QVariant> asyncSendMessageWithResult(const QString &msg, const QVariant &data, std::function<void(QVariant)> callback = 0);
-        std::shared_future<QVariant> asyncSendMessageWithResult(const QString &msg, std::function<void(QVariant)> callback = 0);*/
-
-        /**
-         * @brief Print the editor. As of Qt 5.11, it produces low-quality, non-vector graphics with big dimension.
-         * @param printer
-         */
         void print(std::shared_ptr<QPrinter> printer);
-
-        /**
-         * @brief Returns the content of the editor layed out in a pdf file that can be directly saved to disk.
-         *        This method produces light, vector graphics.
-         * @param pageLayout
-         * @return
-         */
-        QPromise<QByteArray> printToPdf(const QPageLayout &pageLayout = QPageLayout(QPageSize(QPageSize::A4), QPageLayout::Portrait, QMarginsF()));
     };
 
 }

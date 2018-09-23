@@ -17,9 +17,6 @@
 
 namespace EditorNS
 {
-
-    QQueue<Editor*> Editor::m_editorBuffer = QQueue<Editor*>();
-
     Editor::Editor(QWidget* parent)
         : QWidget(parent)
         , m_textEditor(parent)
@@ -29,13 +26,6 @@ namespace EditorNS
         QString themeName = NqqSettings::getInstance().Appearance.getColorScheme();
         auto theme = repo.theme(themeName);
 
-        fullConstructor(theme);
-    }
-
-    Editor::Editor(const ote::Theme& theme, QWidget* parent)
-        : QWidget(parent)
-        , m_textEditor(parent)
-    {
         fullConstructor(theme);
     }
 
@@ -70,31 +60,7 @@ namespace EditorNS
 
     Editor *Editor::getNewEditorUnmanagedPtr(QWidget *parent)
     {
-        Editor *out;
-
-        if (m_editorBuffer.length() == 0) {
-            m_editorBuffer.enqueue(new Editor());
-            out = new Editor();
-        } else if (m_editorBuffer.length() == 1) {
-            m_editorBuffer.enqueue(new Editor());
-            out = m_editorBuffer.dequeue();
-        } else {
-            out = m_editorBuffer.dequeue();
-        }
-
-        out->setParent(parent);
-        return out;
-    }
-
-    void Editor::addEditorToBuffer(const int howMany)
-    {
-        for (int i = 0; i < howMany; i++)
-            m_editorBuffer.enqueue(new Editor());
-    }
-
-    void Editor::invalidateEditorBuffer()
-    {
-        m_editorBuffer.clear();
+        return new Editor(parent);
     }
 
     void Editor::setFocus()

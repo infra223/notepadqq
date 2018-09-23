@@ -3,10 +3,11 @@
 - Add more documentation to code.
 - Add more themes.
 - Make sure we're not doing too many useless redraw operations.
-- Fix qDebug warnings.
++ Fix qDebug warnings.
 - Don't composite extra events on *every* repaint.
 - Rebase to upstream master.
 - Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
+- Copy changes from syntaxhighlighting over to its own repo
 - Do last: Bump version (see Wiki).
 
 == Multi-Cursor Selection ==
@@ -23,4 +24,4 @@
 == Find & Replace ==
 - Find might behave differently for special chars (\t, \n, ..).
 - Can't search across line boundaries yet.
-- Open folded areas when switching to a result inside one.
++ Open folded areas when switching to a result inside one.
