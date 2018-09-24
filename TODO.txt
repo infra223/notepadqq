@@ -4,7 +4,7 @@
 - Add more themes.
 - Make sure we're not doing too many useless redraw operations.
 + Fix qDebug warnings.
-- Don't composite extra events on *every* repaint.
++ Don't composite extra events on *every* repaint.
 - Rebase to upstream master.
 + Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
 - Copy changes from syntaxhighlighting over to its own repo

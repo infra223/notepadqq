@@ -224,6 +224,9 @@ private:
     typedef QList<QTextEdit::ExtraSelection> ExtraSelectionList;
     typedef QMap<ESType, ExtraSelectionList> ExtraSelectionMap;
 
+    bool m_extraSelectionsModified = false;
+    void setExtraSelections(ESType type, const ExtraSelectionList& list);
+
     // mutable int m_blockListCounter = 0;
 
     BlockList getBlocksInViewport() const;

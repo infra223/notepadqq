@@ -78,9 +78,7 @@ void TextEdit::highlightCurrentLine()
     selection.cursor = textCursor();
     selection.cursor.clearSelection();
 
-    auto& eslh = m_extraSelections[ESLineHighlight];
-    eslh.clear();
-    eslh << selection;
+    setExtraSelections(ESLineHighlight, ExtraSelectionList() << selection);
 }
 
 Repository* TextEdit::s_repository = nullptr;
@@ -804,7 +802,7 @@ void TextEdit::onSelectionChanged()
     const auto& text = cursor.selectedText();
 
     if (text.length() < 2 || text.trimmed().isEmpty()) {
-        m_extraSelections[ESSameItems].clear();
+        setExtraSelections(ESSameItems, {});
         return;
     }
 
@@ -826,7 +824,7 @@ void TextEdit::onSelectionChanged()
         ++j;
     }
 
-    m_extraSelections[ESSameItems] = list;
+    setExtraSelections(ESSameItems, list);
 }
 
 void TextEdit::onContentsChange(int position, int removed, int added)
@@ -879,6 +877,12 @@ void TextEdit::ensureSelectionUnfolded(const TextEdit::Selection& sel)
     } while (true);
 }
 
+void TextEdit::setExtraSelections(TextEdit::ESType type, const TextEdit::ExtraSelectionList& list)
+{
+    m_extraSelectionsModified = true;
+    m_extraSelections[type] = std::move(list);
+}
+
 void TextEdit::createParenthesisSelection(int pos)
 {
     QTextCursor cursor = textCursor();
@@ -888,7 +892,7 @@ void TextEdit::createParenthesisSelection(int pos)
     QTextCharFormat f;
     f.setForeground(QBrush(getTheme().editorColor(Theme::BracketMatching)));
 
-    m_extraSelections[ESMatchingBrackets] << QTextEdit::ExtraSelection{cursor, f};
+    //m_extraSelections[ESMatchingBrackets] << QTextEdit::ExtraSelection{cursor, f};
 }
 
 void TextEdit::mousePressEvent(QMouseEvent* evt)
@@ -1022,9 +1026,7 @@ void TextEdit::mcsEnsureUniqueCursors()
 
 void TextEdit::mcsUpdateSelectionHighlights()
 {
-    auto& sels = m_extraSelections[ESCursorSelection];
-    sels.clear();
-
+    ExtraSelectionList sels;
     QTextEdit::ExtraSelection es;
     es.format.setBackground(QBrush(getTheme().editorColor(Theme::TextSelection)));
 
@@ -1034,13 +1036,13 @@ void TextEdit::mcsUpdateSelectionHighlights()
         es.cursor = c;
         sels << es;
     }
-    setExtraSelections(sels);
+    setExtraSelections(ESCursorSelection, sels);
 }
 
 void TextEdit::mcsClearAllCursors(bool updateViewport)
 {
     m_cursors.clear();
-    m_extraSelections[ESCursorSelection].clear();
+    setExtraSelections(ESCursorSelection, {});
     if (updateViewport)
         viewport()->update();
 }
@@ -1495,12 +1497,16 @@ void TextEdit::paintSearchBlock(QPainter& painter, const QRect& /*eventRect*/, c
 
 void TextEdit::compositeExtraSelections()
 {
+    if (!m_extraSelectionsModified)
+        return;
+
+    m_extraSelectionsModified = false;
     ExtraSelectionList fullList;
 
     for (const auto& list : m_extraSelections)
         fullList << list;
 
-    setExtraSelections(fullList);
+    QPlainTextEdit::setExtraSelections(fullList);
 }
 
 static void fillBackground(QPainter* p, const QRectF& rect, QBrush brush, const QRectF& gradientRect = QRectF())
