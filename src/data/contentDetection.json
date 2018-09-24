@@ -1,13 +1,4 @@
 {
-    "Asterisk":{
-        "fileNames": [
-          "extensions.conf",
-          "extensions_custom.conf",
-          "extensions_general.conf",
-          "extensions_globals.conf"
-        ]
-    },
-    
     "CoffeeScript":{
         "fileNames": [
             "Cakefile"

@@ -11,7 +11,7 @@
 - Do last: Bump version (see Wiki).
 
 == Multi-Cursor Selection ==
-- Make sure the read-only attribute is respected during mcs operations
++ Make sure the read-only attribute is respected during mcs operations
 - Filter cursor array to remove overlapping selections (selections that touch each other are fine)
 - Implement inputmethodevent
 + Need to update viewport on mouse click if it cancels mcs (impl. function for clearing mcs)

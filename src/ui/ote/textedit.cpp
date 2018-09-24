@@ -43,8 +43,6 @@ TextEdit::TextEdit(QWidget* parent)
 
     updateSidebarGeometry();
     onCursorPositionChanged();
-
-    setReadOnly(true);
 }
 
 void TextEdit::setTheme(const Theme& theme)
@@ -1095,13 +1093,13 @@ void TextEdit::mcsPaste(const QString& text)
 
 void TextEdit::onCursorRepaint()
 {
+    m_drawCursorsOn = !m_drawCursorsOn;
+
     // If we only have a single cursor it'll be updated by QPlainTextEdit's default mechanism.
     // For more than one cursor we'll just update the whole viewport.
     // Possible optimization: find the first/last visible cursor and update only the area between them.
     if (m_cursors.size() > 1)
         viewport()->update();
-
-    m_drawCursorsOn = !m_drawCursorsOn;
 }
 
 void TextEdit::keyPressEvent(QKeyEvent* event)
