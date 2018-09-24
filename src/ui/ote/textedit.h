@@ -168,6 +168,7 @@ protected:
     void keyPressEvent(QKeyEvent *e) override;
     void wheelEvent(QWheelEvent* event) override;
     void dropEvent(QDropEvent *event) override;
+    void inputMethodEvent(QInputMethodEvent *) override;
 
     void focusInEvent(QFocusEvent* event) override;
     void paintEvent(QPaintEvent* e) override;

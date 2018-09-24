@@ -1283,6 +1283,23 @@ void TextEdit::dropEvent(QDropEvent* event)
         emit urlsDropped(event->mimeData()->urls());
 }
 
+void TextEdit::inputMethodEvent(QInputMethodEvent* e)
+{
+    // inputMethodEvent is used for languages like Chinese that composite their characters.
+    // This function is almost the same as TextEditorWidget::inputMethodEvent from the qt-creator source.
+    if (e->commitString().isEmpty() && e->preeditString().isEmpty() && e->attributes().isEmpty()) {
+        e->accept();
+        return;
+    }
+
+    if (m_cursors.size()>1) {
+        if (!e->commitString().isEmpty())
+            mcsInsertText(e->commitString());
+        return;
+    }
+    QPlainTextEdit::inputMethodEvent(e);
+}
+
 void TextEdit::focusInEvent(QFocusEvent* event)
 {
     emit gotFocus();
