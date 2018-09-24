@@ -43,6 +43,8 @@ TextEdit::TextEdit(QWidget* parent)
 
     updateSidebarGeometry();
     onCursorPositionChanged();
+
+    setReadOnly(true);
 }
 
 void TextEdit::setTheme(const Theme& theme)
@@ -493,6 +495,8 @@ void TextEdit::setModified(bool modified)
 
 void TextEdit::moveSelectedBlocksUp()
 {
+    if (isReadOnly()) return;
+
     bool success;
 
     // Selects the line above the selected blocks.
@@ -526,6 +530,8 @@ void TextEdit::moveSelectedBlocksUp()
 
 void TextEdit::moveSelectedBlocksDown()
 {
+    if (isReadOnly()) return;
+
     auto c = textCursor();
 
     bool success;
@@ -550,6 +556,8 @@ void TextEdit::moveSelectedBlocksDown()
 
 void TextEdit::duplicateSelectedBlocks()
 {
+    if (isReadOnly()) return;
+
     auto c = textCursor();
     auto blockCursor = c;
 
@@ -583,6 +591,8 @@ void TextEdit::duplicateSelectedBlocks()
 
 void TextEdit::deleteSelectedBlocks()
 {
+    if (isReadOnly()) return;
+
     auto c = textCursor();
     auto ce = c;
 
@@ -625,6 +635,8 @@ QPair<int, int> getLeadingWSLength(const QStringRef& ref, int tabWidth)
 
 void TextEdit::convertLeadingWhitespaceToTabs()
 {
+    if (isReadOnly()) return;
+
     // TODO: Might be more efficient using a block-based approach?
     QString plaintext = toPlainText();
     auto lines = plaintext.splitRef('\n');
@@ -655,6 +667,8 @@ void TextEdit::convertLeadingWhitespaceToTabs()
 
 void TextEdit::convertLeadingWhitespaceToSpaces()
 {
+    if (isReadOnly()) return;
+
     // TODO: Might be more efficient using a block-based approach?
     QString plaintext = toPlainText();
     auto lines = plaintext.splitRef('\n');
@@ -703,6 +717,8 @@ int findLastNonWS(const QStringRef& ref)
 
 void TextEdit::trimWhitespace(bool leading, bool trailing)
 {
+    if (isReadOnly()) return;
+
     if (!leading && !trailing)
         return;
 
@@ -1116,23 +1132,28 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
     if (m_cursors.size() <= 1)
         return singleCursorKeyPressEvent(event);
 
-    if (event == QKeySequence::Undo)
-        return undo();
-    if (event == QKeySequence::Redo)
-        return redo();
-
     if (event->key() == Qt::Key_Escape) {
         mcsClearAllCursors();
         return;
     }
 
+    if (mcsMoveOperation(event)) {
+        mcsUpdateSelectionHighlights();
+        return;
+    }
+
+    // All following actions except Copy are mutating. Skip if read-only
+    if (isReadOnly() && !(event == QKeySequence::Copy))
+        return singleCursorKeyPressEvent(event);
+
+    if (event == QKeySequence::Undo)
+        return undo();
+    if (event == QKeySequence::Redo)
+        return redo();
+
     const QString eventText = event->text();
     if (isPrintableText(eventText)) {
         mcsInsertText(eventText);
-        return;
-    }
-    if (mcsMoveOperation(event)) {
-        mcsUpdateSelectionHighlights();
         return;
     }
 
@@ -1201,6 +1222,11 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
 
 void TextEdit::singleCursorKeyPressEvent(QKeyEvent* e)
 {
+    // All following actions modify the text in some way. Just skip them if read-only.
+    if (isReadOnly()) {
+        return QPlainTextEdit::keyPressEvent(e);
+    }
+
     if (e->key() == Qt::Key_Tab && m_tabToSpaces) {
         auto cursor = textCursor();
         auto numSpaces = m_tabWidth - cursor.positionInBlock() % m_tabWidth;
