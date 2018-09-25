@@ -45,8 +45,13 @@ void TeXLabel::updatePixmap()
         drawRect.setHeight(drawRect.height() + (lineHeight - ::fmod(drawRect.height(), lineHeight)));
 
     m_pixmap = QPixmap(drawRect.size().toSize());
-    m_pixmap.fill(te->getTheme().editorColor(Theme::BackgroundColor));
+
     painter.begin(&m_pixmap);
+    painter.setBrush(QBrush(te->getTheme().editorColor(Theme::BackgroundColor)));
+    QPen pen(te->getTheme().editorColor(Theme::IconBorder));
+    pen.setWidth(2);
+    painter.setPen(pen);
+    painter.drawRect(m_pixmap.rect());
     jkMath.draw(painter, Qt::AlignLeft | Qt::AlignVCenter, drawRect, false);
     painter.end();
 

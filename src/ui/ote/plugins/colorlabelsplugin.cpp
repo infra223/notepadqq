@@ -31,16 +31,12 @@ void ColorLabel::updatePixmap()
     m_pixmap = QPixmap(square.toSize());
 
     QPainter p(&m_pixmap);
-    p.save();
-
     QPen pen;
     pen.setWidth(2);
-    pen.setColor(qApp->palette().window().color());
+    pen.setColor(getTextEdit()->getTheme().editorColor(Theme::IconBorder));
     p.setPen(pen);
     p.setBrush(QBrush(m_color));
     p.drawRect(QRectF(QPointF(0, 0), square));
-
-    p.restore();
 }
 
 ColorLabelsPlugin::ColorLabelsPlugin(TextEdit* te)
