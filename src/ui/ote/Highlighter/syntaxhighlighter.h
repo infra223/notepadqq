@@ -32,6 +32,11 @@
 
 namespace ote {
 
+class PluginBlockData {
+public:
+    virtual ~PluginBlockData() = default;
+};
+
 class SyntaxHighlighterPrivate;
 
 /** A QSyntaxHighlighter implementation for use with QTextDocument.
@@ -78,9 +83,19 @@ public:
     bool isPositionInComment(int absPos, int len=0) const;
 
     /**
+     * Returns whether the range [absPos,absPos+len] is inside a string-formatted section.
+     */
+    bool isPositionInString(int absPos, int len=0) const;
+
+    /**
      * Starts an asynchronous rehighighting job for the whole document.
      */
     void startRehighlighting();
+
+
+    void setPluginBlockData(const QTextBlock& block, int id, std::unique_ptr<PluginBlockData> data);
+    PluginBlockData* getPluginBlockData(const QTextBlock& block, int id);
+    const PluginBlockData* getPluginBlockData(const QTextBlock& block, int id) const;
 
 signals:
     /**

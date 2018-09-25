@@ -31,6 +31,9 @@ public:
     void setDefinition(const Definition& d);
     Definition getDefinition() const { return m_highlighter->definition(); }
 
+    SyntaxHighlighter* getHighlighter() { return m_highlighter; }
+    const SyntaxHighlighter* getHighlighter() const { return m_highlighter; }
+
     // Various text formatting and display options
     void setEndOfLineMarkersVisible(bool enable);
     void setWhitespaceVisible(bool show);
@@ -177,6 +180,7 @@ protected:
     
 private:
     friend class TextEditGutter;
+    friend class PluginBase;
 
     // Multiple-cursor selection
     bool mcsMoveOperation(QKeyEvent *evt);
@@ -212,9 +216,9 @@ private:
 
     enum ESType {
         ESLineHighlight = 0,
-        ESSameItems,
-        ESCursorSelection,
-        ESMatchingBrackets,
+        ESSameItems = 1,
+        ESCursorSelection = 2,
+        ESPluginStart = 3
     };
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
@@ -223,10 +227,11 @@ private:
 
     typedef std::vector<BlockData> BlockList;
     typedef QList<QTextEdit::ExtraSelection> ExtraSelectionList;
-    typedef QMap<ESType, ExtraSelectionList> ExtraSelectionMap;
+    typedef QMap<int /*ESType*/, ExtraSelectionList> ExtraSelectionMap;
 
     bool m_extraSelectionsModified = false;
-    void setExtraSelections(ESType type, const ExtraSelectionList& list);
+    const ExtraSelectionList* getExtraSelections(int /*ESType*/ type) const;
+    void setExtraSelections(int /*ESType*/ type, ExtraSelectionList list);
 
     // mutable int m_blockListCounter = 0;
 
@@ -261,9 +266,6 @@ private:
     SyntaxHighlighter* m_highlighter;
 
     std::vector<EditorLabelPtr> m_editorLabels;
-
-    void createParenthesisSelection(int pos);
-
     void highlightCurrentLine();
 
     static Repository* s_repository;

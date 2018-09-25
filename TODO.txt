@@ -25,3 +25,7 @@
 - Find might behave differently for special chars (\t, \n, ..).
 - Can't search across line boundaries yet.
 + Open folded areas when switching to a result inside one.
+
+== Labels ==
+- LatexLabel doesn't limit itself to comments
+- There's some painting bug still left with moving lines downwards

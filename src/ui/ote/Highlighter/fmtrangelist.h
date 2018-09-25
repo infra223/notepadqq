@@ -10,6 +10,7 @@ public:
     struct FmtRange {
         int begin;
         int end;
+        char type;
 
         friend bool operator==(const FmtRange& a, const FmtRange& b);
     };
@@ -17,25 +18,29 @@ public:
     FmtRangeList();
 
     void clear() { m_vec.clear(); }
-    void addRange(int offset, int length) { // TODO: Make this appendRange instead()
-        if (length == 0 || offset < 0) return;
+    void append(int from, int to, char type) {
+        if (from < 0 || to <= from) return;
 
-        // Find insertion position
-        auto it = std::lower_bound(m_vec.begin(), m_vec.end(), offset, [](const FmtRange& n, int val){
-            return val > n.end;
-        });
-        FmtRange r{offset, offset+length};
-        m_vec.insert(it, r); // TODO: Do a range check
+        if (m_vec.empty()) {
+            m_vec.push_back({from, to, type});
+        } else {
+            auto& last = m_vec.back();
+
+            if (last.end+1 == from && last.type == type)
+                last.end = to;
+            else
+                m_vec.push_back({from, to, type});
+        }
     }
 
-    bool isInRange(int pos, int length=0) {
-        auto it = std::find_if(m_vec.begin(), m_vec.end(), [pos, length](const FmtRange& r){
-            return r.begin < pos && r.end > pos+length;
+    bool isFormat(int from, int to, char type) const {
+        auto it = std::find_if(m_vec.begin(), m_vec.end(), [from, to, type](const FmtRange& r){
+            return r.begin < from && r.end > to && r.type == type;
         });
         return it != m_vec.end();
     }
 
-    const std::vector<FmtRange>& ranges() { return m_vec; }
+    //const std::vector<FmtRange>& ranges() const { return m_vec; }
 
 private:
     friend bool operator==(const FmtRangeList& a, const FmtRangeList& b);

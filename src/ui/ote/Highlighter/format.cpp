@@ -202,7 +202,12 @@ bool Format::isStrikeThrough(const Theme& theme) const
 
 bool Format::isComment() const
 {
-    return d->isComment;
+    return d->fmtType == 'c';
+}
+
+bool Format::isString() const
+{
+    return d->fmtType == 's';
 }
 
 bool Format::spellCheck() const
@@ -213,8 +218,25 @@ bool Format::spellCheck() const
 void FormatPrivate::load(QXmlStreamReader& reader)
 {
     name = reader.attributes().value(QStringLiteral("name")).toString();
-    isComment = (name == "Comment");
     defaultStyle = stringToDefaultFormat(reader.attributes().value(QStringLiteral("defStyleNum")));
+
+    switch (defaultStyle) {
+    case Theme::Comment:
+    case Theme::Documentation:
+    case Theme::Annotation:
+    case Theme::CommentVar:
+        fmtType = 'c';
+        break;
+    case Theme::Char:
+    case Theme::SpecialChar:
+    case Theme::String:
+    case Theme::VerbatimString:
+    case Theme::SpecialString:
+        fmtType = 's';
+        break;
+    default:
+        break;
+    }
 
     QStringRef ref = reader.attributes().value(QStringLiteral("color"));
     if (!ref.isEmpty()) {

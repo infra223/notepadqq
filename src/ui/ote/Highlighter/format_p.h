@@ -48,7 +48,7 @@ public:
     Theme::TextStyle defaultStyle = Theme::Normal;
     quint16 id = 0;
     bool spellCheck = true;
-    bool isComment = false;
+    char fmtType = '\0';
 };
 
 }

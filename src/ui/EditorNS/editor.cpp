@@ -2,6 +2,7 @@
 
 #include "include/notepadqq.h"
 #include "include/nqqsettings.h"
+#include "ote/plugins/bracketmatcherplugin.h"
 #include "ote/plugins/colorlabelsplugin.h"
 #include "ote/plugins/latexplugin.h"
 
@@ -51,6 +52,7 @@ namespace EditorNS
 
         new ote::ColorLabelsPlugin(&m_textEditor);
         new ote::LatexPlugin(&m_textEditor);
+        new ote::BracketMatcherPlugin(&m_textEditor);
     }
 
     QSharedPointer<Editor> Editor::getNewEditor(QWidget *parent)

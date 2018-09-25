@@ -9,5 +9,5 @@ bool operator==(const FmtRangeList& a, const FmtRangeList& b)
 
 bool operator==(const FmtRangeList::FmtRange& a, const FmtRangeList::FmtRange& b)
 {
-    return a.begin == b.begin && a.end == b.end;
+    return a.begin == b.begin && a.end == b.end && a.type == b.type;
 }

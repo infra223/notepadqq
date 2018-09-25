@@ -142,6 +142,12 @@ public:
     bool isComment() const;
 
     /**
+     * Returns whether this format is that of a string or character. This is not 100%
+     * accurate since Definitions can assign a string-format to anything they want.
+     */
+    bool isString() const;
+
+    /**
      * Returns whether characters with this format should be spell checked.
      */
     bool spellCheck() const;

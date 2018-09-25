@@ -797,16 +797,6 @@ void TextEdit::onCursorPositionChanged()
         else
             qDebug() << "Is not inside comment";*/
 
-    // Try to match brackets
-    // m_extraSelections[ESMatchingBrackets].clear();
-
-    /*auto pair = m_highlighter->m_bracketMatcher->findMatchingBracketPosition(textCursor());
-
-    if(pair.first != -1 && pair.second != -1) {
-        createParenthesisSelection(pair.first);
-        createParenthesisSelection(pair.second);
-    }*/
-
     m_findTermSelected = false;
 }
 
@@ -891,22 +881,16 @@ void TextEdit::ensureSelectionUnfolded(const TextEdit::Selection& sel)
     } while (true);
 }
 
-void TextEdit::setExtraSelections(TextEdit::ESType type, const TextEdit::ExtraSelectionList& list)
+const TextEdit::ExtraSelectionList* TextEdit::getExtraSelections(int type) const
+{
+    const auto it = m_extraSelections.find(type);
+    return (it == m_extraSelections.end()) ? nullptr : &*it;
+}
+
+void TextEdit::setExtraSelections(int type, TextEdit::ExtraSelectionList list)
 {
     m_extraSelectionsModified = true;
     m_extraSelections[type] = std::move(list);
-}
-
-void TextEdit::createParenthesisSelection(int pos)
-{
-    QTextCursor cursor = textCursor();
-    cursor.setPosition(pos);
-    cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
-
-    QTextCharFormat f;
-    f.setForeground(QBrush(getTheme().editorColor(Theme::BracketMatching)));
-
-    //m_extraSelections[ESMatchingBrackets] << QTextEdit::ExtraSelection{cursor, f};
 }
 
 void TextEdit::mousePressEvent(QMouseEvent* evt)

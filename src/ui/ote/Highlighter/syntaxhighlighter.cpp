@@ -43,15 +43,17 @@ class TextBlockUserData : public QTextBlockUserData {
 public:
     State state;
     QVector<FoldingRegion> foldingRegions;
-    FmtRangeList commentRangeList;
+    FmtRangeList fmtList;
     bool forceRehighlighting = false;
+
+    std::map<int, std::unique_ptr<PluginBlockData>> extraData;
 };
 
 class SyntaxHighlighterPrivate : public AbstractHighlighterPrivate {
 public:
     static FoldingRegion foldingRegion(const QTextBlock& startBlock);
     QVector<FoldingRegion> foldingRegions;
-    FmtRangeList commentRangeList;
+    FmtRangeList fmtList;
 };
 
 FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlock)
@@ -125,10 +127,24 @@ QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock)
 bool SyntaxHighlighter::isPositionInComment(int absPos, int len) const
 {
     const auto& block = document()->findBlock(absPos);
+    const auto t = block.text();
     auto data = dynamic_cast<TextBlockUserData*>(block.userData());
     if (!data)
         return false;
-    return data->commentRangeList.isInRange(absPos - block.position(), len);
+
+    const auto start = absPos - block.position();
+    return data->fmtList.isFormat(start, start + len, 'c');
+}
+
+bool SyntaxHighlighter::isPositionInString(int absPos, int len) const
+{
+    const auto& block = document()->findBlock(absPos);
+    auto data = dynamic_cast<TextBlockUserData*>(block.userData());
+    if (!data)
+        return false;
+
+    const auto start = absPos - block.position();
+    return data->fmtList.isFormat(start, start + len, 's');
 }
 
 void SyntaxHighlighter::startRehighlighting()
@@ -140,6 +156,40 @@ void SyntaxHighlighter::startRehighlighting()
 
     if (firstBlock.isValid())
         QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, firstBlock));
+}
+
+void SyntaxHighlighter::setPluginBlockData(const QTextBlock& block, int id, std::unique_ptr<PluginBlockData> data)
+{
+    auto blockData = reinterpret_cast<TextBlockUserData*>(block.userData());
+    Q_ASSERT_X(blockData, "SyntaxHighlighter", "blockData must not be null");
+
+    blockData->extraData[id] = std::move(data);
+}
+
+PluginBlockData* SyntaxHighlighter::getPluginBlockData(const QTextBlock& block, int id)
+{
+    auto blockData = reinterpret_cast<TextBlockUserData*>(block.userData());
+    Q_ASSERT_X(blockData, "SyntaxHighlighter", "blockData must not be null");
+
+    auto it = blockData->extraData.find(id);
+
+    if (it == blockData->extraData.end())
+        return nullptr;
+
+    return it->second.get();
+}
+
+const PluginBlockData* SyntaxHighlighter::getPluginBlockData(const QTextBlock& block, int id) const
+{
+    auto blockData = reinterpret_cast<TextBlockUserData*>(block.userData());
+    Q_ASSERT_X(blockData, "SyntaxHighlighter", "blockData must not be null");
+
+    auto it = blockData->extraData.find(id);
+
+    if (it == blockData->extraData.end())
+        return nullptr;
+
+    return it->second.get();
 }
 
 void SyntaxHighlighter::highlightBlock(const QString& text)
@@ -154,7 +204,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
             state = prevData->state;
     }
     d->foldingRegions.clear();
-    d->commentRangeList.clear();
+    d->fmtList.clear();
     state = highlightLine(text, state);
 
     auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
@@ -162,22 +212,24 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
         data = new TextBlockUserData;
         data->state = state;
         data->foldingRegions = d->foldingRegions;
-        data->commentRangeList = d->commentRangeList;
+        data->fmtList = d->fmtList;
         setCurrentBlockUserData(data);
         emit blockChanged(currentBlock()); // TODO: Put into scope guard
         return;
     }
-    emit blockChanged(currentBlock()); // TODO: Put into scope guard
-
     const bool forceRehighlighting = data->forceRehighlighting;
+    data->fmtList = d->fmtList;
 
-    if (!forceRehighlighting && data->state == state && data->foldingRegions == d->foldingRegions &&
-        data->commentRangeList == d->commentRangeList) // we ended up in the same state, so we are done here
+    // we ended up in the same state, so we are done here
+    if (!forceRehighlighting && data->state == state && data->foldingRegions == d->foldingRegions) {
+        emit blockChanged(currentBlock()); // TODO: Put into scope guard
         return;
+    }
     data->state = state;
     data->foldingRegions = d->foldingRegions;
-    data->commentRangeList = d->commentRangeList;
     data->forceRehighlighting = false;
+
+    emit blockChanged(currentBlock()); // TODO: Put into scope guard
 
     const auto nextBlock = currentBlock().next();
     if (!nextBlock.isValid())
@@ -215,7 +267,10 @@ void SyntaxHighlighter::applyFormat(int offset, int length, const Format& format
 
     if (format.isComment()) {
         Q_D(SyntaxHighlighter);
-        d->commentRangeList.addRange(offset, length);
+        d->fmtList.append(offset, offset + length, 'c');
+    } else if (format.isString()) {
+        Q_D(SyntaxHighlighter);
+        d->fmtList.append(offset, offset + length, 's');
     }
 
     QSyntaxHighlighter::setFormat(offset, length, tf);

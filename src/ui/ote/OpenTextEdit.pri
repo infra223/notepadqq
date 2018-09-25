@@ -18,7 +18,8 @@ SOURCES += \
     $$PWD/plugins/pluginbase.cpp \
     $$PWD/JKQTMath/jkqtmathtext.cpp \
     #$PWD/JKQTMath/jkqtphighrestimer.cpp \
-    $$PWD/JKQTMath/jkqtptools.cpp
+    $$PWD/JKQTMath/jkqtptools.cpp \
+    $$PWD/plugins/bracketmatcherplugin.cpp
 
 HEADERS += \
     $$PWD/textedit.h \
@@ -30,7 +31,8 @@ HEADERS += \
     $$PWD/JKQTMath/jkqtmathtext.h \
     $$PWD/JKQTMath/jkqtp_imexport.h \
     #$$PWD/JKQTMath/jkqtphighrestimer.h \
-    $$PWD/JKQTMath/jkqtptools.h
+    $$PWD/JKQTMath/jkqtptools.h \
+    $$PWD/plugins/bracketmatcherplugin.h
  
 RESOURCES += $$PWD/JKQTMath/asana.qrc
 DEFINES += AUTOLOAD_Asana_FONTS
