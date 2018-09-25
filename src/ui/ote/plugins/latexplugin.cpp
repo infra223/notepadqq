@@ -80,14 +80,17 @@ void LatexPlugin::onBlockChanged(const QTextBlock& block)
     const int blockStartPos = block.position();
 
     auto te = getTextEdit();
+    const auto hl = te->getHighlighter();
     std::vector<QRegularExpressionMatch> matches;
 
     auto it = regex.globalMatch(text);
     while (it.hasNext()) {
         auto m = it.next();
 
-        if (!m.captured(1).isEmpty())
+        if (!m.captured(1).isEmpty() &&
+            !hl->isPositionInString(blockStartPos + m.capturedStart(1), m.capturedLength(1))) {
             matches.push_back(std::move(m));
+        }
     }
 
     const auto& range = te->getEditorLabelsInBlock(block);
