@@ -266,6 +266,7 @@ private:
     SyntaxHighlighter* m_highlighter;
 
     std::vector<EditorLabelPtr> m_editorLabels;
+    void recalcAllEditorLabels(bool markForRedraw=true);
     void highlightCurrentLine();
 
     static Repository* s_repository;

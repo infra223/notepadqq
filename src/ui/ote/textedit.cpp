@@ -31,7 +31,6 @@ TextEdit::TextEdit(QWidget* parent)
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
     connect(this, &QPlainTextEdit::updateRequest, this, &TextEdit::updateSidebarArea);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::onCursorPositionChanged); // slot
-    // connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::cursorPositionChanged); // signal
     connect(this, &QPlainTextEdit::selectionChanged, this, &TextEdit::onSelectionChanged);
     connect(document(), &QTextDocument::contentsChange, this, &TextEdit::onContentsChange);
 
@@ -64,10 +63,7 @@ void TextEdit::setTheme(const Theme& theme)
     onCursorPositionChanged();
     onSelectionChanged();
 
-    for (const auto& it : m_editorLabels) {
-        it->m_changed = true;
-        it->markForRedraw();
-    }
+    recalcAllEditorLabels();
 }
 
 void TextEdit::highlightCurrentLine()
@@ -111,13 +107,11 @@ void TextEdit::setWhitespaceVisible(bool show)
     auto opts = document()->defaultTextOption();
     auto flags = opts.flags();
 
-    //flags.setFlag(QTextOption::ShowTabsAndSpaces, show);
     if (show)
         opts.setFlags(flags | QTextOption::ShowTabsAndSpaces);
     else
-        opts.setFlags(flags &  (~QTextOption::ShowTabsAndSpaces));
+        opts.setFlags(flags & (~QTextOption::ShowTabsAndSpaces));
 
-    //opts.setFlags(flags);
     document()->setDefaultTextOption(opts);
 }
 
@@ -189,6 +183,8 @@ void TextEdit::setFont(QFont font)
     font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
     QPlainTextEdit::setFont(font);
     setTabStopDistance(ceil(stopWidth));
+
+    recalcAllEditorLabels();
 }
 
 QFont TextEdit::getFont() const {
@@ -335,11 +331,6 @@ void TextEdit::setTextInSelection(const QString& text, bool keepSelection)
         c.setKeepPositionOnInsert(true);
 
     c.insertText(text);
-
-    /*if (keepSelection && !text.isEmpty()) {
-        c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, text.length());
-        setTextCursor(c);
-    }*/
 }
 
 void TextEdit::setTextInSelections(const QStringList& texts, bool keepSelection)
@@ -449,11 +440,7 @@ void TextEdit::setZoomTo(int value)
     QPlainTextEdit::setFont(f);
 
     updateSidebarGeometry();
-
-    for (const auto& it : m_editorLabels) {
-        it->m_changed = true;
-        it->markForRedraw();
-    }
+    recalcAllEditorLabels();
 }
 
 void TextEdit::zoomIn()
@@ -790,13 +777,6 @@ void TextEdit::onCursorPositionChanged()
     m_cursorTimer.start(flashTime / 2);
     onCursorRepaint();
 
-    /*
-        auto pos = textCursor().position();
-        if (m_highlighter->isPositionInComment(pos))
-            qDebug() << "Is inside comment";
-        else
-            qDebug() << "Is not inside comment";*/
-
     m_findTermSelected = false;
 }
 
@@ -834,11 +814,12 @@ void TextEdit::onSelectionChanged()
 void TextEdit::onContentsChange(int position, int removed, int added)
 {
     auto& lbls = m_editorLabels;
-    auto lowerBound = std::lower_bound(lbls.begin(), lbls.end(), position, [](const EditorLabelPtr& ptr, int position) {
-        return ptr->m_absPos >= position;
-    });
+    const auto lowerBound =
+        std::lower_bound(lbls.begin(), lbls.end(), position, [](const EditorLabelPtr& ptr, int position) {
+            return ptr->m_absPos < position;
+        });
 
-    auto it = std::remove_if(lowerBound, lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
+    const auto it = std::remove_if(lowerBound, lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
         if (ptr->m_absPos >= position && ptr->m_absPos <= position + removed) {
             return true;
         }
@@ -852,6 +833,7 @@ void TextEdit::onContentsChange(int position, int removed, int added)
         if (ptr->m_absPos >= position) {
             ptr->m_changed = true;
             ptr->m_absPos += added - removed;
+            qDebug() << ptr->m_absPos;
         } else if (ptr->m_absPos >= newPos) {
             ptr->m_changed = true;
         }
@@ -1534,6 +1516,15 @@ void TextEdit::compositeExtraSelections()
     QPlainTextEdit::setExtraSelections(fullList);
 }
 
+void TextEdit::recalcAllEditorLabels(bool markForRedraw)
+{
+    for (auto& lbl : m_editorLabels) {
+        lbl->m_changed = true;
+        if (markForRedraw)
+            lbl->markForRedraw();
+    }
+}
+
 static void fillBackground(QPainter* p, const QRectF& rect, QBrush brush, const QRectF& gradientRect = QRectF())
 {
     p->save();
@@ -1569,7 +1560,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
     painter.setBrushOrigin(offset);
 
     // keep right margin clean from full-width selection
-    const int maxX = offset.x() + qMax((qreal)viewportRect.width(), maximumWidth) - document()->documentMargin();
+    const int maxX = int(offset.x() + qMax(qreal(viewportRect.width()), maximumWidth) - document()->documentMargin());
     er.setRight(qMin(er.right(), maxX));
     painter.setClipRect(er);
 
@@ -1730,7 +1721,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
     if (backgroundVisible() && !block.isValid() && offset.y() <= er.bottom() &&
         (centerOnScroll() || verticalScrollBar()->maximum() == verticalScrollBar()->minimum())) {
-        painter.fillRect(QRect(QPoint((int)er.left(), (int)offset.y()), er.bottomRight()), palette().background());
+        painter.fillRect(QRect(QPoint(int(er.left()), int(offset.y())), er.bottomRight()), palette().background());
     }
 
     auto bl = getBlocksInRect(e->rect());
@@ -1820,7 +1811,7 @@ QTextBlock TextEdit::blockAtPosition(int y) const
             return block;
         block = block.next();
         top = bottom;
-        bottom = top + blockBoundingRect(block).height();
+        bottom = int(top + blockBoundingRect(block).height());
     } while (block.isValid());
     return QTextBlock();
 }
@@ -1831,8 +1822,7 @@ void TextEdit::resizeEvent(QResizeEvent* event)
     updateSidebarGeometry();
 
     if (wordWrapMode() != QTextOption::NoWrap)
-        for (const auto& it : m_editorLabels)
-            it->m_changed = true;
+        recalcAllEditorLabels(false);
 }
 
 QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
