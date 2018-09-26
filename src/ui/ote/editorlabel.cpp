@@ -85,6 +85,26 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
     return rectChanged;
 }
 
+void EditorLabel::setAnchorPoint(EditorLabel::AnchorPoint p)
+{
+    if (m_anchor == p)
+        return;
+
+    m_anchor = p;
+    m_changed = true;
+    markForRedraw();
+}
+
+void EditorLabel::setTextOverlap(bool allow)
+{
+    if (m_overlap == allow)
+        return;
+
+    m_overlap = allow;
+    m_changed = true;
+    markForRedraw();
+}
+
 EditorLabel::EditorLabel(TextEdit* parent, int pos, int typeId)
     : QObject(parent)
     , m_typeId(typeId)

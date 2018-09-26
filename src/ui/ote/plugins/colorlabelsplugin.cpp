@@ -11,6 +11,22 @@
 
 namespace ote {
 
+class ColorLabel : public EditorLabel {
+public:
+    ColorLabel(TextEdit* te, int pos)
+        : EditorLabel(te, pos, TYPE_ID)
+    {
+    }
+    void setColor(QColor c);
+    void updatePixmap() override;
+
+    static const int TYPE_ID = getNewTypeId();
+
+private:
+    QColor m_color;
+    QString m_displayName;
+};
+
 void ColorLabel::setColor(QColor c)
 {
     m_color = c;

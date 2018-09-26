@@ -1,6 +1,7 @@
 #include "latexplugin.h"
 
 #include "../Highlighter/syntaxhighlighter.h"
+#include "../JKQTMath/jkqtmathtext.h"
 #include "../textedit.h"
 
 #include <QApplication>
@@ -8,13 +9,25 @@
 
 namespace ote {
 
-TeXLabel::TeXLabel(TextEdit* te, int pos)
-    : EditorLabel(te, pos, TYPE_ID)
-{
-    jkMath.useASANA();
-}
+class TeXLabel : public EditorLabel {
+public:
+    TeXLabel(TextEdit* te, int pos)
+        : EditorLabel(te, pos, TYPE_ID)
+    {
+        jkMath.useASANA();
+    }
 
-TeXLabel::~TeXLabel() {}
+    void updatePixmap() override;
+
+    void setLatexString(const QString& text);
+
+    static const int TYPE_ID = getNewTypeId();
+
+private:
+    QString mathFormula;
+    JKQTmathText jkMath;
+    bool m_pixmapIsSquished = false;
+};
 
 void TeXLabel::updatePixmap()
 {

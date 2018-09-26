@@ -8,23 +8,11 @@
 
 namespace ote {
 
-class ColorLabel : public EditorLabel {
-public:
-    ColorLabel(TextEdit* te, int pos) : EditorLabel(te, pos, TYPE_ID) {}
-
-    void setColor(QColor c);
-
-
-public:
-    void updatePixmap();
-
-    static const int TYPE_ID = getNewTypeId();
-
-private:
-    QColor m_color;
-    QString m_displayName;
-};
-
+/**
+ * This plugin looks at the word under the current cursor and,
+ * if this word is a color code (such as #AABBCC) it'll show
+ * a small square to the right of it with the color in question.
+ */
 class ColorLabelsPlugin : public PluginBase
 {
 public:
@@ -33,6 +21,8 @@ public:
 private:
     void onCursorPositionChanged();
 
+    // Contains the current EditorLabel that is used to show the
+    // color label.
     WeakEditorLabelPtr m_ptr;
 };
 

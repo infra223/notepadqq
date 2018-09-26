@@ -2,27 +2,14 @@
 #define LATEXPLUGIN_H
 
 #include "pluginbase.h"
-#include "../JKQTMath/jkqtmathtext.h"
 
 namespace ote {
-
-class TeXLabel : public EditorLabel {
-public:
-    TeXLabel(TextEdit* te, int pos);
-    virtual ~TeXLabel() override;
-
-    void updatePixmap() override;
-
-    void setLatexString(const QString& text);
-
-    static const int TYPE_ID = getNewTypeId();
-
-private:
-    bool m_pixmapIsSquished = false;
-    JKQTmathText jkMath;
-    QString mathFormula;
-};
-
+/**
+ * This plugin creates EditorLabels for all Latex text pieces it can find.
+ * These pieces will be run through the JKQTMath library to create a
+ * pixmap of the pretty-formatted latex formula.
+ * Text in strigs will be ignored.
+ */
 class LatexPlugin : public PluginBase
 {
 public:
