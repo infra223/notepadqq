@@ -20,6 +20,7 @@
 #include "include/iconprovider.h"
 #include "include/notepadqq.h"
 #include "include/nqqrun.h"
+#include "ote/Highlighter/repository.h"
 #include "ui_mainwindow.h"
 
 #include <QClipboard>

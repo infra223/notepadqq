@@ -1,11 +1,13 @@
 #include "textedit.h"
 
+#include "Highlighter/repository.h"
+#include "Highlighter/syntaxhighlighter.h"
+#include "editorlabel.h"
 #include "texteditgutter.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
-#include <QElapsedTimer>
 #include <QFontDatabase>
 #include <QMenu>
 #include <QMimeData>
@@ -19,6 +21,8 @@
 #include <cmath>
 
 namespace ote {
+
+Repository* TextEdit::s_repository = nullptr;
 
 TextEdit::TextEdit(QWidget* parent)
     : QPlainTextEdit(parent)
@@ -36,6 +40,9 @@ TextEdit::TextEdit(QWidget* parent)
 
     connect(m_highlighter, &ote::SyntaxHighlighter::blockChanged, this, &TextEdit::blockChanged);
     m_highlighter->setDocument(document()); // Important to set this *after* the blockChanged connect
+
+    const int flashTime = QApplication::cursorFlashTime();
+    m_cursorTimer.start(flashTime / 2);
 
     setWordWrap(false);
     setCenterOnScroll(false);
@@ -66,6 +73,11 @@ void TextEdit::setTheme(const Theme& theme)
     recalcAllEditorLabels();
 }
 
+Theme TextEdit::getTheme() const
+{
+    return m_highlighter->theme();
+}
+
 void TextEdit::highlightCurrentLine()
 {
     QTextEdit::ExtraSelection selection;
@@ -77,20 +89,20 @@ void TextEdit::highlightCurrentLine()
     setExtraSelections(ESLineHighlight, ExtraSelectionList() << selection);
 }
 
-Repository* TextEdit::s_repository = nullptr;
-
 void TextEdit::initRepository(const QString& path)
 {
-    QElapsedTimer t;
-    t.start();
+    delete s_repository;
     s_repository = new Repository(path);
-
-    qDebug() << "Repository directory loaded in " << t.elapsed() / 1000 / 1000 << "msec";
 }
 
 void TextEdit::setDefinition(const Definition& d)
 {
     m_highlighter->setDefinition(d);
+}
+
+Definition TextEdit::getDefinition() const
+{
+    return m_highlighter->definition();
 }
 
 void TextEdit::setEndOfLineMarkersVisible(bool enable)
@@ -220,14 +232,14 @@ int TextEdit::getCharCount() const
     return document()->characterCount();
 }
 
-std::pair<int, int> TextEdit::getLineColumnForCursorPos(const TextEdit::CursorPos& p)
+std::pair<int, int> TextEdit::getLineColumnForCursorPos(const TextEdit::CursorPos& p) const
 {
     QTextCursor c(document());
     c.setPosition(p);
     return {c.blockNumber(), c.positionInBlock()};
 }
 
-ote::TextEdit::CursorPos ote::TextEdit::getCursorPosForLineColumn(int line, int column)
+ote::TextEdit::CursorPos ote::TextEdit::getCursorPosForLineColumn(int line, int column) const
 {
     const auto& block = document()->findBlockByNumber(line);
     return block.position() + std::min(column, block.length());
@@ -773,8 +785,7 @@ void TextEdit::onCursorPositionChanged()
 
     m_drawCursorsOn = false;
 
-    const int flashTime = QApplication::cursorFlashTime();
-    m_cursorTimer.start(flashTime / 2);
+    m_cursorTimer.start();
     onCursorRepaint();
 
     m_findTermSelected = false;

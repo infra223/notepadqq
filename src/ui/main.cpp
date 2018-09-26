@@ -9,6 +9,8 @@
 #include "include/nqqsettings.h"
 #include "include/singleapplication.h"
 #include "include/stats.h"
+#include "ote/Highlighter/repository.h"
+#include "ote/textedit.h"
 
 #include <QDateTime>
 #include <QFileInfo>
@@ -18,8 +20,6 @@
 #include <QtGlobal>
 
 #include <unistd.h> // For getuid
-
-#include <ote/textedit.h>
 
 #ifdef QT_DEBUG
 #include <QElapsedTimer>

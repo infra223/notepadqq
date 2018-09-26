@@ -1,5 +1,6 @@
 #include "latexplugin.h"
 
+#include "../Highlighter/syntaxhighlighter.h"
 #include "../textedit.h"
 
 #include <QApplication>

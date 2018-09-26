@@ -2,6 +2,7 @@
 
 #include "include/notepadqq.h"
 #include "include/nqqsettings.h"
+#include "ote/Highlighter/repository.h"
 #include "ote/plugins/bracketmatcherplugin.h"
 #include "ote/plugins/colorlabelsplugin.h"
 #include "ote/plugins/latexplugin.h"

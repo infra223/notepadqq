@@ -1,6 +1,6 @@
 == Miscellaneous ==
 - One Whitespace function not implemented.
-- Add more documentation to code.
++ Add more documentation to code.
 - Add more themes.
 - Make sure we're not doing too many useless redraw operations.
 + Fix qDebug warnings.
@@ -27,5 +27,5 @@
 + Open folded areas when switching to a result inside one.
 
 == Labels ==
-- LatexLabel doesn't limit itself to comments
-- There's some painting bug still left with moving lines downwards
++ LatexLabel doesn't limit itself to comments
++ There's some painting bug still left with moving lines downwards

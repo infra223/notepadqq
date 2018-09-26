@@ -1,5 +1,6 @@
 #include "texteditgutter.h"
 
+#include "Highlighter/syntaxhighlighter.h"
 #include "Highlighter/theme.h"
 #include "textedit.h"
 
