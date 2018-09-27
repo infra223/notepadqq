@@ -1615,8 +1615,6 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
     std::vector<QTextCursor const*> cursorsInBlock;
     auto cursorIt = m_cursors.cbegin();
-    while (drawCursor && cursorIt != m_cursors.cend() && cursorIt->position() < block.position())
-        ++cursorIt;
 
     QTextBlock beginBlock = block;
     QTextBlock endBlock;
@@ -1686,10 +1684,10 @@ void TextEdit::paintEvent(QPaintEvent* e)
             while (cursorIt != m_cursors.cend()) {
                 const auto& c = *cursorIt;
                 auto cpos = c.position();
-                assert(!(cpos < blockStart));
                 if (cpos >= blockEnd)
                     break;
-                cursorsInBlock.push_back(&c);
+                if (cpos >= blockStart)
+                    cursorsInBlock.push_back(&c);
                 ++cursorIt;
             }
 
