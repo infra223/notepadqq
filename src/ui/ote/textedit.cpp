@@ -890,7 +890,19 @@ void TextEdit::mousePressEvent(QMouseEvent* evt)
 {
     const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
 
-    if ((evt->modifiers() & shiftAlt) != shiftAlt) {
+    if (evt->modifiers() == 0 && evt->button() == Qt::LeftButton) {
+        const auto c = getSelectionUnderPoint(evt->pos());
+        if (!c.isNull()) {
+            qDebug() << "Start dragging";
+            m_textDragging = true;
+            m_dragCursor = c;
+            //mcsClearAllCursors(true);
+            QGuiApplication::setOverrideCursor(Qt::DragMoveCursor);
+            return;
+        }
+    }
+
+    else if ((evt->modifiers() & shiftAlt) != shiftAlt) {
         if (m_cursors.size() > 1) {
             mcsClearAllCursors();
         }
@@ -898,6 +910,35 @@ void TextEdit::mousePressEvent(QMouseEvent* evt)
         mcsAddCursor(cursorForPosition(evt->pos()));
 
     QPlainTextEdit::mousePressEvent(evt);
+}
+
+void TextEdit::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_textDragging) {
+        setTextCursor(cursorForPosition(event->pos()));
+    } else
+        QPlainTextEdit::mouseMoveEvent(event);
+}
+
+void TextEdit::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (m_textDragging) {
+        m_textDragging = false;
+        QGuiApplication::restoreOverrideCursor();
+        auto c = cursorForPosition(event->pos());
+        const auto cpos = c.position();
+
+        if (!(m_dragCursor.selectionStart() <= cpos &&
+              cpos <= m_dragCursor.selectionEnd())) {
+            c.beginEditBlock();
+            c.insertText(m_dragCursor.selectedText());
+            m_dragCursor.removeSelectedText();
+            c.endEditBlock();
+        }
+
+    }
+
+    QPlainTextEdit::mouseReleaseEvent(event);
 }
 
 static inline bool isPrintableText(const QString& text)
@@ -1248,6 +1289,17 @@ void TextEdit::singleCursorKeyPressEvent(QKeyEvent* e)
 
 processEventNormally:
     QPlainTextEdit::keyPressEvent(e);
+}
+
+QTextCursor TextEdit::getSelectionUnderPoint(QPoint p) const
+{
+    const auto cpos = cursorForPosition(p).position();
+
+    for (const auto& c : m_cursors) {
+        if (c.hasSelection() && cpos >= c.selectionStart() && cpos <= c.selectionEnd())
+            return c;
+    }
+    return QTextCursor();
 }
 
 void TextEdit::wheelEvent(QWheelEvent* event)
@@ -1834,6 +1886,15 @@ void TextEdit::resizeEvent(QResizeEvent* event)
 
     if (wordWrapMode() != QTextOption::NoWrap)
         recalcAllEditorLabels(false);
+}
+
+void TextEdit::leaveEvent(QEvent *)
+{
+    if(m_textDragging) {
+        QGuiApplication::restoreOverrideCursor();
+        m_textDragging = false;
+        m_dragCursor = QTextCursor();
+    }
 }
 
 QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const

@@ -259,6 +259,8 @@ signals:
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
     void keyPressEvent(QKeyEvent *e) override;
     void wheelEvent(QWheelEvent* event) override;
     void dropEvent(QDropEvent *event) override;
@@ -267,6 +269,7 @@ protected:
     void paintEvent(QPaintEvent* e) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void leaveEvent(QEvent *event) override;
     
 private:
     friend class TextEditGutter;
@@ -309,6 +312,10 @@ private:
     /**
       * Other stuff
       */
+
+    // Returns the QTextCursor of the selection under the position p
+    // Invalid cursor if it's not under a selection.
+    QTextCursor getSelectionUnderPoint(QPoint p) const;
 
     // Returns the text block at a specific y-coordinate. I think this is in
     // viewport coordinate space. Don't ask me. I don't remember.
@@ -386,6 +393,10 @@ private:
     QTimer m_cursorTimer;
     // True if flashing cursors should be drawn at the moment.
     bool m_drawCursorsOn = true;
+
+    // True when the user is in the process of dragging text with the mouse
+    bool m_textDragging = false;
+    QTextCursor m_dragCursor;
 
     // Text options
     bool m_showEndOfLineMarkers = false;
