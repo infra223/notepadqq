@@ -1100,6 +1100,8 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
             mcsAddCursor(c);
             setTextCursor(c);
         }
+        else // Some languages use Shift+Alt as a normal modifier.
+            return singleCursorKeyPressEvent(event);
 
         return;
     }
