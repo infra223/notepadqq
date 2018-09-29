@@ -75,7 +75,11 @@ public:
      *
      *  @see startsFoldingRegion
      */
-    QTextBlock findFoldingRegionEnd(const QTextBlock &startBlock) const;
+    QTextBlock findFoldingRegionEnd(const QTextBlock& startBlock) const;
+
+    bool isBookmarked(const QTextBlock& block) const;
+    void setBookmark(QTextBlock block, bool bookmarked);
+    void toggleBookmark(QTextBlock block);
 
     /**
      * Returns whether the range [absPos,absPos+len] is inside a comment-formatted section.

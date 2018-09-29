@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui widgets
+QT       += core gui widgets svg
 CONFIG   += c++14 warn_on
 
 DEFINES += QT_DEPRECATED_WARNINGS
@@ -34,7 +34,10 @@ HEADERS += \
     $$PWD/JKQTMath/jkqtptools.h \
     $$PWD/plugins/bracketmatcherplugin.h
  
-RESOURCES += $$PWD/JKQTMath/asana.qrc
+RESOURCES += $$PWD/JKQTMath/asana.qrc \
+    $$PWD/icons/icons.qrc
 DEFINES += AUTOLOAD_Asana_FONTS
 
 include(Highlighter/Highlighter.pri)
+
+DISTFILES +=

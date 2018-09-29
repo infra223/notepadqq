@@ -5,6 +5,7 @@
 #include "textedit.h"
 
 #include <QApplication>
+#include <QBitmap>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
@@ -17,6 +18,41 @@
 
 namespace ote {
 
+QPixmap createBookmark(int size, QColor colorFill)
+{
+    QIcon icon(":/bookmark.svg");
+    auto pm = icon.pixmap(QSize(size, size));
+    auto mask = pm.createMaskFromColor(Qt::black, Qt::MaskOutColor);
+
+    QPixmap pix = QPixmap(size, size);
+    pix.fill(Qt::transparent);
+
+    QPainter painter(&pix);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(colorFill);
+    painter.drawPixmap(pm.rect(), mask, mask.rect());
+    return pix;
+}
+
+QPixmap createFoldingMark(int size, QColor colorFill)
+{
+    QPixmap pix = QPixmap(size, size);
+    pix.fill(Qt::transparent);
+
+    QPainter painter(&pix);
+
+    QPolygonF polygon;
+    polygon << QPointF(size * 0.15, size * 0.15);
+    polygon << QPointF(size * 0.15, size * 0.85);
+    polygon << QPointF(size * 0.85, size * 0.5);
+
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(colorFill);
+    painter.drawPolygon(polygon);
+    return pix;
+}
+
 TextEditGutter::TextEditGutter(TextEdit* editor)
     : QWidget(editor)
     , m_textEdit(editor)
@@ -28,41 +64,79 @@ void TextEditGutter::mouseMoveEvent(QMouseEvent* event)
 {
     const auto block = m_textEdit->blockAtPosition(event->y());
 
-    if (!block.isValid() || !block.isVisible())
+    if (!block.isValid())
         return;
 
-    const auto blockNum = block.blockNumber();
+    Q_ASSERT_X(block.isVisible(), "TextEditGutter", "Mouse-over block is invisible.");
 
-    if (blockNum == m_foldingStartBlock)
+    const auto currentBlock = block.blockNumber();
+    int currentSection = -1;
+    const auto evtX = event->x();
+
+    if (m_bookmarkStrip.visible && m_bookmarkStrip.isInside(evtX))
+        currentSection = 0;
+    else if (m_numberStrip.visible && m_numberStrip.isInside(evtX))
+        currentSection = 1;
+    else if (m_foldingStrip.visible && m_foldingStrip.isInside(evtX))
+        currentSection = 2;
+
+    if (currentBlock != m_currentHoverBlock || currentSection != m_currentHoverSection) {
+        switch (m_currentHoverSection) {
+        case 0:
+            onBookmarkStripLeave();
+            break;
+        case 1:
+            onNumberStripLeave();
+            break;
+        case 2:
+            onFoldingStripLeave();
+            break;
+        default:
+            break;
+        }
+        switch (currentSection) {
+        case 0:
+            onBookmarkStripEnter(block);
+            break;
+        case 1:
+            onNumberStripEnter(block);
+            break;
+        case 2:
+            onFoldingStripEnter(block);
+            break;
+        default:
+            break;
+        }
+        m_currentHoverSection = currentSection;
+        m_currentHoverBlock = currentBlock;
+    }
+}
+
+void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (event->button() != Qt::LeftButton)
         return;
 
-    int hoverBlock = -1;
+    auto block = m_textEdit->blockAtPosition(event->y());
+    if (!block.isValid())
+        return;
 
-    if (event->x() < this->geometry().right() - m_lineHeight) {
-        hoverBlock = -1;
-    } else if (m_textEdit->isFoldable(block)) {
-        hoverBlock = blockNum;
+    switch (m_currentHoverSection) {
+    case 0: {
+        m_textEdit->toggleBookmark(block);
+        update(); // TODO: Only update this line
+        break;
+    }
+    case 1:
+        break;
+    case 2: {
+        if (m_textEdit->isFoldable(block) || m_textEdit->isFolded(block))
+            m_textEdit->toggleFold(block);
+        break;
+    }
     }
 
-    const bool needsRepaint = hoverBlock != m_foldingStartBlock;
-    const bool isHoveringOverFoldingBlock = hoverBlock == blockNum;
-
-    if (isHoveringOverFoldingBlock) {
-        m_foldingStartBlock = blockNum;
-        m_foldingEndBlock = m_textEdit->findClosingBlock(block).blockNumber();
-    } else {
-        m_foldingStartBlock = -1;
-        m_foldingEndBlock = -1;
-    }
-
-    if (needsRepaint) {
-        if (isHoveringOverFoldingBlock)
-            setCursor(QCursor(Qt::PointingHandCursor));
-        else
-            setCursor(QCursor(Qt::ArrowCursor));
-
-        repaint(); // TODO: Only needed to repaint the area between start and endblock
-    }
+    QWidget::mouseReleaseEvent(event);
 }
 
 QSize TextEditGutter::sizeHint() const
@@ -85,8 +159,47 @@ void TextEditGutter::updateSizeHint(qreal lineHeight)
     const auto widthOfString = m_textEdit->fontMetrics().boundingRect(ref.toString()).width();
 
     m_lineHeight = lineHeight;
-    // Add line-height as width of folding bar
-    m_gutterSize = QSize(leftMargin + widthOfString + lineHeight, 0);
+
+    m_bookmarkStrip.xOffset = leftMargin;
+    m_bookmarkStrip.size = m_bookmarkStrip.visible ? QSizeF{lineHeight, lineHeight} : QSizeF{0, 0};
+
+    m_numberStrip.xOffset = m_bookmarkStrip.xOffset + m_bookmarkStrip.size.width();
+    m_numberStrip.size = m_numberStrip.visible ? QSizeF{qreal(widthOfString), lineHeight} : QSizeF{0, 0};
+
+    m_foldingStrip.xOffset = m_numberStrip.xOffset + m_numberStrip.size.width();
+    m_foldingStrip.size = m_foldingStrip.visible ? QSizeF{lineHeight, lineHeight} : QSizeF{0, 0};
+
+    m_gutterSize = QSize(int(m_foldingStrip.xOffset + m_foldingStrip.size.width()), 0);
+
+    m_foldingMark = createFoldingMark(lineHeight, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
+    m_bookmark = createBookmark(lineHeight, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));
+}
+
+void TextEditGutter::setBookmarksVisible(bool visible)
+{
+    if (m_bookmarkStrip.visible == visible)
+        return;
+
+    m_bookmarkStrip.visible = false;
+    updateSizeHint(m_lineHeight);
+}
+
+void TextEditGutter::setNumbersVisible(bool visible)
+{
+    if (m_numberStrip.visible == visible)
+        return;
+
+    m_numberStrip.visible = false;
+    updateSizeHint(m_lineHeight);
+}
+
+void TextEditGutter::setFoldingVisible(bool visible)
+{
+    if (m_foldingStrip.visible == visible)
+        return;
+
+    m_foldingStrip.visible = false;
+    updateSizeHint(m_lineHeight);
 }
 
 void TextEditGutter::paintEvent(QPaintEvent* event)
@@ -94,139 +207,89 @@ void TextEditGutter::paintEvent(QPaintEvent* event)
     QPainter painter(this);
     const auto& blockList = m_textEdit->getBlocksInRect(event->rect());
 
-    paintGutter(event, painter, blockList);
-    paintFoldingMarks(painter, blockList);
-}
-
-void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
-{
-    if (event->x() >= width() - m_textEdit->fontMetrics().lineSpacing()) {
-        auto block = m_textEdit->blockAtPosition(event->y());
-        if (!block.isValid() || (!m_textEdit->isFoldable(block) && !m_textEdit->isFolded(block)))
-            return;
-        m_textEdit->toggleFold(block);
-    }
-    QWidget::mouseReleaseEvent(event);
-}
-
-/*QPixmap createFoldingMark(qreal size, QColor color, QColor color2) {
-    QPixmap pix = QPixmap(size, size);
-    QPainter *paint = new QPainter(&pix);
-    paint->setPen(color);
-    paint->drawRect(15,15,100,100);
-
-
-    pix.fill(color2);
-
-    QPolygonF polygon;
-    polygon << QPointF(size * 0.4, size * 0.25);
-    polygon << QPointF(size * 0.4, size * 0.75);
-    polygon << QPointF(size * 0.8, size * 0.5);
-
-    paint->setRenderHint(QPainter::Antialiasing);
-    //paint->setPen(Qt::NoPen);
-    paint->setBrush(QColor("red"));
-    paint->drawPolygon(polygon);
-
-    paint->end();
-    return pix;
-}*/
-
-void TextEditGutter::paintFoldingMarks(QPainter& painter, const TextEdit::BlockList& blockList)
-{
     if (blockList.empty())
         return;
 
-    const auto foldingBrush = QBrush(m_textEdit->getTheme().editorColor(Theme::CodeFolding));
-    const auto foldingMarkerSize = m_lineHeight;
+    painter.fillRect(event->rect(), m_theme.editorColor(Theme::CurrentLine));
 
-    for (const auto& blockData : blockList) {
-        const auto block = blockData.block;
-        const auto geom = blockData.translatedRect;
+    paintBookmarkStrip(painter, blockList);
+    paintNumberStrip(painter, blockList);
+    paintFoldingStrip(painter, blockList);
+    paintFoldingMarks(painter, blockList);
+}
+
+void TextEditGutter::setTheme(const Theme& theme)
+{
+    if (m_theme == theme)
+        return;
+
+    m_theme = theme;
+    int foldingMarkerSize = int(m_lineHeight);
+    m_foldingMark = createFoldingMark(foldingMarkerSize, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
+    m_bookmark = createBookmark(foldingMarkerSize, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));
+}
+
+void TextEditGutter::paintBookmarkStrip(QPainter& p, const TextEdit::BlockList& bl)
+{
+    for (const auto& blockData : bl) {
+        const auto& block = blockData.block;
+        const auto& geom = blockData.translatedRect;
 
         if (!block.isVisible())
             continue;
 
-        bool folded = m_textEdit->isFolded(block);
-
-        if (!m_textEdit->m_highlighter->startsFoldingRegion(block) && !folded)
-            continue;
-
-        // TODO: Bad
-        QPolygonF polygon;
-        polygon << QPointF(foldingMarkerSize * 0.3, foldingMarkerSize * 0.20);
-        polygon << QPointF(foldingMarkerSize * 0.3, foldingMarkerSize * 0.80);
-        polygon << QPointF(foldingMarkerSize * 0.9, foldingMarkerSize * 0.5);
-        polygon.translate(-foldingMarkerSize * 0.6, -foldingMarkerSize * 0.5);
-
-        painter.save();
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(foldingBrush);
-
-        painter.translate(width() - foldingMarkerSize, geom.top());
-        painter.translate(foldingMarkerSize * 0.6, foldingMarkerSize * 0.5);
-        if (folded)
-            painter.rotate(90);
-        painter.drawPolygon(polygon);
-        painter.restore();
+        if (m_textEdit->isBookmarked(block))
+            p.drawPixmap(m_bookmarkStrip.xOffset, geom.top(), m_bookmark);
     }
 }
 
-void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const TextEdit::BlockList& blockList)
+void TextEditGutter::paintNumberStrip(QPainter& p, const TextEdit::BlockList& bl)
 {
-    if (blockList.empty())
-        return;
-
-    const Theme& currentTheme = m_textEdit->getTheme();
     const int currentBlockNumber = m_textEdit->textCursor().blockNumber();
+    p.setFont(m_textEdit->font());
 
-    painter.fillRect(event->rect(), currentTheme.editorColor(Theme::CurrentLine));
-    // painter.fillRect(event->rect(), QColor(QColor::colorNames()[rand() % 10]));
-
-    for (const auto& blockData : blockList) {
-        const auto block = blockData.block;
-        const auto geom = blockData.translatedRect;
+    for (const auto& blockData : bl) {
+        const auto& block = blockData.block;
+        const auto& geom = blockData.translatedRect;
 
         if (!block.isVisible())
             continue;
 
         const auto blockNumber = block.blockNumber();
-        const auto color = (blockNumber == currentBlockNumber)
-                               ? currentTheme.editorColor(Theme::CurrentLineNumber)
-                               : currentTheme.editorColor(Theme::LineNumbers);
+        const auto color = (blockNumber == currentBlockNumber) ? m_theme.editorColor(Theme::CurrentLineNumber)
+                                                               : m_theme.editorColor(Theme::LineNumbers);
 
-        // painter.fillRect(0, geom.top(), width()-foldingMarkerSize, geom.height(), QColor(QColor::colorNames()[rand()
-        // % 10]));
-
-        painter.setFont(m_textEdit->font());
-        painter.setPen(color);
-        painter.drawText(0,
+        p.setPen(color);
+        p.drawText(0,
             geom.top(),
             width() - static_cast<int>(m_lineHeight),
             geom.height(),
             Qt::AlignRight,
             QString::number(blockNumber + 1));
     }
+}
 
-    // Paint folding range
-    painter.save();
-    QPen p;
-    p.setColor(m_textEdit->getTheme().textColor(Theme::Normal));
-    p.setWidth(static_cast<int>(m_lineHeight / 8));
-    painter.setPen(p);
+void TextEditGutter::paintFoldingStrip(QPainter& p, const TextEdit::BlockList& bl)
+{
+    if (m_foldingStartBlock == -1)
+        return;
 
-    for (const auto& blockData : blockList) {
-        const auto block = blockData.block;
-        const auto geom = blockData.translatedRect;
+    // Don't draw the folding range lines when the hovered block is already folded
+    if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock)))
+        return;
 
-        if (m_foldingStartBlock == -1)
-            break;
-        
-        // Don't draw the folding range lines when the hovered block is already folded
-        if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock)))
-            break;
-        
+    QPen pen;
+    pen.setColor(m_textEdit->getTheme().textColor(Theme::Normal));
+    pen.setWidth(static_cast<int>(m_lineHeight / 8));
+    p.setPen(pen);
+
+    const auto foldingMarkerSize = m_lineHeight;
+    const int xPos = int(width() - foldingMarkerSize * 0.5 - (m_lineHeight / 16));
+
+    for (const auto& blockData : bl) {
+        const auto& block = blockData.block;
+        const auto& geom = blockData.translatedRect;
+
         if (!block.isVisible())
             continue;
 
@@ -238,31 +301,105 @@ void TextEditGutter::paintGutter(QPaintEvent* event, QPainter& painter, const Te
         if (blockNumber > m_foldingEndBlock)
             break;
 
-        const auto foldingMarkerSize = m_lineHeight;
         if (blockNumber == m_foldingStartBlock) {
-            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top() + foldingMarkerSize * 0.8);
-            const QPointF end(width() - foldingMarkerSize * 0.5, geom.bottom());
-            painter.drawLine(start, end);
+            const QPointF start(xPos, geom.top() + foldingMarkerSize * 0.5);
+            const QPointF end(xPos, geom.bottom());
+            p.drawLine(start, end);
         } else if (blockNumber == m_foldingEndBlock) {
-            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top());
-            const QPointF mid(width() - foldingMarkerSize * 0.5, geom.top() + foldingMarkerSize * 0.5);
+            const QPointF start(xPos, geom.top());
+            const QPointF mid(xPos, geom.top() + foldingMarkerSize * 0.5);
             const QPointF end(width(), geom.top() + foldingMarkerSize * 0.5);
-            painter.drawLine(start, mid);
-            painter.drawLine(mid, end);
+            p.drawLine(start, mid);
+            p.drawLine(mid, end);
         } else { // middle piece
-            const QPointF start(width() - foldingMarkerSize * 0.5, geom.top());
-            const QPointF end(width() - foldingMarkerSize * 0.5, geom.bottom());
-            painter.drawLine(start, end);
+            const QPointF start(xPos, geom.top());
+            const QPointF end(xPos, geom.bottom());
+            p.drawLine(start, end);
         }
     }
+}
 
-    painter.restore();
+void TextEditGutter::paintFoldingMarks(QPainter& p, const TextEdit::BlockList& bl)
+{
+    const auto foldingMarkerSize = m_lineHeight;
+
+    for (const auto& blockData : bl) {
+        const auto& block = blockData.block;
+        const auto& geom = blockData.translatedRect;
+
+        if (!block.isVisible())
+            continue;
+
+        bool folded = m_textEdit->isFolded(block);
+
+        if (!m_textEdit->isFoldable(block) && !folded)
+            continue;
+
+        p.save();
+        p.translate(width() - foldingMarkerSize, geom.top());
+        if (folded) {
+            p.rotate(90);
+            p.translate(0, -foldingMarkerSize);
+        }
+        p.drawPixmap(0, 0, m_foldingMark);
+        p.restore();
+    }
+}
+
+void TextEditGutter::onBookmarkStripEnter(const QTextBlock& /*block*/)
+{
+    setCursor(QCursor(Qt::PointingHandCursor));
+}
+
+void TextEditGutter::onNumberStripEnter(const QTextBlock& /*block*/) {}
+
+void TextEditGutter::onFoldingStripEnter(const QTextBlock& block)
+{
+    if (!m_textEdit->isFoldable(block))
+        return;
+
+    const auto blockNum = block.blockNumber();
+
+    m_foldingStartBlock = blockNum;
+    m_foldingEndBlock = m_textEdit->findClosingBlock(block).blockNumber();
+
+    setCursor(QCursor(Qt::PointingHandCursor));
+    update(); // TODO: Only needed to repaint the area between start and endblock
+}
+
+void TextEditGutter::onBookmarkStripLeave()
+{
+    setCursor(QCursor(Qt::ArrowCursor));
+}
+
+void TextEditGutter::onNumberStripLeave() {}
+
+void TextEditGutter::onFoldingStripLeave()
+{
+    if (m_foldingStartBlock == -1)
+        return;
+
+    setCursor(QCursor(Qt::ArrowCursor));
+
+    m_foldingStartBlock = -1;
+    m_foldingEndBlock = -1;
+    update(); // TODO: Only needed to repaint the area between start and endblock
 }
 
 void TextEditGutter::leaveEvent(QEvent* /*e*/)
 {
-    m_foldingStartBlock = -1;
-    m_textEdit->repaint();
+    m_currentHoverBlock = -1;
+    m_currentHoverSection = -1;
+    if (m_foldingStartBlock != -1) {
+        m_foldingStartBlock = -1;
+        m_textEdit->update();
+    }
+}
+
+bool TextEditGutter::StripInfo::isInside(qreal x) const
+{
+    const auto localX = x - xOffset;
+    return 0 < localX && localX < size.width();
 }
 
 } // namespace ote

@@ -66,6 +66,7 @@ void TextEdit::setTheme(const Theme& theme)
     viewport()->setPalette(pal);
 
     m_highlighter->setTheme(theme);
+    m_sideBar->setTheme(theme);
 
     onCursorPositionChanged();
     onSelectionChanged();
@@ -1946,6 +1947,35 @@ void TextEdit::toggleFold(const QTextBlock& startBlock)
 
     // update scrollbars
     emit document()->documentLayout()->documentSizeChanged(document()->documentLayout()->documentSize());
+}
+
+bool TextEdit::isBookmarked(const QTextBlock& block) const
+{
+    return m_highlighter->isBookmarked(block);
+}
+
+bool TextEdit::isBookmarked(TextEdit::CursorPos pos) const
+{
+    QTextCursor c(document());
+    c.setPosition(pos);
+    return m_highlighter->isBookmarked(c.block());
+}
+
+void TextEdit::setBookmark(const QTextBlock block, bool bookmarked)
+{
+    m_highlighter->setBookmark(block, bookmarked);
+}
+
+void TextEdit::setBookmark(TextEdit::CursorPos pos, bool bookmarked)
+{
+    QTextCursor c(document());
+    c.setPosition(pos);
+    m_highlighter->setBookmark(c.block(), bookmarked);
+}
+
+void TextEdit::toggleBookmark(const QTextBlock& block)
+{
+    m_highlighter->toggleBookmark(block);
 }
 
 void TextEdit::deleteMarkedEditorLabelsInRange(const TextEdit::EditorLabelRange &range)

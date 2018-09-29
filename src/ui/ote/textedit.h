@@ -219,6 +219,12 @@ public:
     // folds/unfolds a specific block if possible.
     void toggleFold(const QTextBlock& startBlock);
 
+    bool isBookmarked(const QTextBlock& block) const;
+    bool isBookmarked(CursorPos pos) const;
+    void setBookmark(const QTextBlock block, bool bookmarked);
+    void setBookmark(CursorPos pos, bool bookmarked);
+    void toggleBookmark(const QTextBlock& block);
+
     /**
      * EditorLabels
      * These are image labels that can be anchored to a text position, similar to

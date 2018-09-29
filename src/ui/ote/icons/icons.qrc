@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>bookmark.svg</file>
+    </qresource>
+</RCC>

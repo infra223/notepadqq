@@ -44,6 +44,7 @@ public:
     State state;
     QVector<FoldingRegion> foldingRegions;
     FmtRangeList fmtList;
+    bool bookmarked = false;
     bool forceRehighlighting = false;
 
     std::map<int, std::unique_ptr<PluginBlockData>> extraData;
@@ -122,6 +123,35 @@ QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock)
     }
 
     return QTextBlock();
+}
+
+bool SyntaxHighlighter::isBookmarked(const QTextBlock& block) const
+{
+    auto data = dynamic_cast<TextBlockUserData*>(block.userData());
+    if (!data)
+        return false;
+
+    return data->bookmarked;
+}
+
+void SyntaxHighlighter::setBookmark(QTextBlock block, bool bookmarked)
+{
+    auto data = dynamic_cast<TextBlockUserData*>(block.userData());
+    if (!data) {
+        data = new TextBlockUserData();
+        block.setUserData(data);
+    }
+    data->bookmarked = bookmarked;
+}
+
+void SyntaxHighlighter::toggleBookmark(QTextBlock block)
+{
+    auto data = dynamic_cast<TextBlockUserData*>(block.userData());
+    if (!data) {
+        data = new TextBlockUserData();
+        block.setUserData(data);
+    }
+    data->bookmarked = !data->bookmarked;
 }
 
 bool SyntaxHighlighter::isPositionInComment(int absPos, int len) const
