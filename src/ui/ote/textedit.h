@@ -105,8 +105,8 @@ public:
         Selection() = default;
         Selection(int start, int end) : start(start), end(end) {}
 
-        CursorPos start = 0;
-        CursorPos end = 0;
+        CursorPos start = -1;
+        CursorPos end = -1;
 
         bool isValid() const { return start >= 0 && end >= start; }
         bool length() const { return end-start; }
@@ -143,10 +143,29 @@ public:
 
     // Finding and replacing
     // TODO: Add overloads for QRegularExpression
+
+    struct FindSettings {
+        Selection range;
+        CursorPos start = -1;
+        bool backwards = false;
+        bool wholeWordsOnly = false;
+        bool wrapAround = true;
+        bool caseSensitive = false;
+    };
+
+    Selection find(const QString& term, const FindSettings& settings);
+    std::vector<Selection> findAll(const QString& term, const FindSettings& settings);
+
+    Selection findRegex(const QRegularExpression& expr, const FindSettings& settings);
+    std::vector<Selection> findAllRegex(const QRegularExpression& expr, const FindSettings& settings);
+
+
+
+
+
     using FindFlags = QTextDocument::FindFlags;
     using FindFlag = QTextDocument::FindFlag;
 
-    bool findTentative(const QString& term, FindFlags flags = FindFlags());
     bool find(const QString& term, FindFlags flags = FindFlags());
     bool find(const QString& term, int startPos, int endPos=-1, FindFlags flags = FindFlags(), bool wrapAround=true);
     std::vector<Selection> findAll(const QString& term, int startPos=0, int endPos=-1, FindFlags flags = FindFlags());

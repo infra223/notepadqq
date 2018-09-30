@@ -364,14 +364,6 @@ void TextEdit::setScrollPosition(const QPoint& p)
     verticalScrollBar()->setSliderPosition(p.y());
 }
 
-bool TextEdit::findTentative(const QString& term, TextEdit::FindFlags flags)
-{
-    auto c = textCursor();
-    c.setPosition(c.selectionStart());
-    setTextCursor(c);
-    return find(term, flags);
-}
-
 bool TextEdit::find(const QString& term, TextEdit::FindFlags flags)
 {
     return find(term, 0, -1, flags);
