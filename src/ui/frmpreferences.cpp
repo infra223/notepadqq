@@ -7,6 +7,7 @@
 #include "include/mainwindow.h"
 #include "include/notepadqq.h"
 #include "include/stats.h"
+#include "ote/textedit.h"
 #include "ote/Highlighter/repository.h"
 #include "ui_frmpreferences.h"
 

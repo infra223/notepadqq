@@ -2,6 +2,7 @@
 #define EDITOR_H
 
 #include <QObject>
+#include <QWidget>
 #include <QQueue>
 #include <QTextCodec>
 #include <QVBoxLayout>
@@ -10,7 +11,13 @@
 #include <QUrl>
 #include <QPrinter>
 
-#include <ote/textedit.h>
+
+namespace ote {
+class TextEdit;
+}
+
+#include "ote/Highlighter/definition.h"
+#include "ote/Highlighter/theme.h"
 
 
 class EditorTabWidget;
@@ -150,7 +157,7 @@ namespace EditorNS
         Q_INVOKABLE void setSmartIndent(bool enabled);
         Q_INVOKABLE void setSelectionsText(const QStringList &texts, SelectMode mode);
         Q_INVOKABLE void setSelectionsText(const QStringList &texts);
-        ote::Definition getLanguage() { return m_textEditor.getDefinition(); }
+        ote::Definition getLanguage() const;
         Q_INVOKABLE void setLineWrap(const bool wrap);
         Q_INVOKABLE void setEOLVisible(const bool showeol);
         Q_INVOKABLE void setWhitespaceVisible(const bool showspace);
@@ -196,7 +203,7 @@ namespace EditorNS
         void setTheme(const ote::Theme& theme);
         void setTheme(const QString& themeName);
 
-        ote::TextEdit& textEditor() { return m_textEditor; }
+        ote::TextEdit* textEditor() { return m_textEditor; }
 
         QList<Selection> selections();
 
@@ -234,8 +241,7 @@ namespace EditorNS
 
         QVBoxLayout *m_layout;
 
-        ote::TextEdit m_textEditor;
-
+        ote::TextEdit* m_textEditor;
 
         QUrl m_filePath = QUrl();
         QString m_tabName;

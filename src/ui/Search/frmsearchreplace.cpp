@@ -4,6 +4,7 @@
 #include "include/iconprovider.h"
 #include "include/nqqsettings.h"
 #include "ui_frmsearchreplace.h"
+#include "ote/textedit.h"
 
 #include <QCompleter>
 #include <QDebug>
@@ -11,6 +12,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QThread>
+#include <QTextDocument>
 
 frmSearchReplace::frmSearchReplace(TopEditorContainer *topEditorContainer, QWidget *parent) :
     QMainWindow(parent),
@@ -190,7 +192,7 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
     //QVariant count = currentEditor()->asyncSendMessageWithResult("C_FUN_REPLACE_ALL",
     QVariant::fromValue(data)).get(); return 0; //count.toInt();*/
 
-    auto& te = currentEditor()->textEditor();
+    auto te = currentEditor()->textEditor();
 
     QString term = ui->cmbSearch->currentText();
     QTextDocument::FindFlags flags;
@@ -203,13 +205,13 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
         replacement = SearchString::unescape(replacement);
     }
 
-    te.setCursorPosition(0);
+    te->setCursorPosition(0);
 
     int n = 0;
     int pos = 0;
-    while (te.find(term, pos, -1, flags, false)) {
-        pos = te.getCursorPosition();
-        te.setTextInSelection(replacement);
+    while (te->find(term, pos, -1, flags, false)) {
+        pos = te->getCursorPosition();
+        te->setTextInSelection(replacement);
         ++n;
     }
 
@@ -217,7 +219,7 @@ int frmSearchReplace::replaceAll(QString string, QString replacement, SearchHelp
 }
 
 int frmSearchReplace::selectAll(QString string, SearchHelpers::SearchMode searchMode, SearchHelpers::SearchOptions searchOptions) {
-    auto& te = currentEditor()->textEditor();
+    auto te = currentEditor()->textEditor();
 
     QString term = ui->cmbSearch->currentText();
     QTextDocument::FindFlags flags;
@@ -226,8 +228,8 @@ int frmSearchReplace::selectAll(QString string, SearchHelpers::SearchMode search
 
     term = SearchString::format(term, searchMode, searchOptions);
 
-    auto sels = te.findAll(string, 0, -1, flags);
-    te.setSelections(sels);
+    auto sels = te->findAll(string, 0, -1, flags);
+    te->setSelections(sels);
 
     return static_cast<int>(sels.size());
 }
@@ -261,7 +263,7 @@ SearchHelpers::SearchOptions frmSearchReplace::searchOptionsFromUI()
 
 void frmSearchReplace::findFromUI(bool forward)
 {
-    auto& te = currentEditor()->textEditor();
+    auto te = currentEditor()->textEditor();
 
     QString term = ui->cmbSearch->currentText();
     QTextDocument::FindFlags flags;
@@ -271,20 +273,20 @@ void frmSearchReplace::findFromUI(bool forward)
     setFlag(flags, QTextDocument::FindBackward, !forward);
 
     term = SearchString::format(term, searchModeFromUI(), searchOptionsFromUI());
-    te.find(term, flags);
+    te->find(term, flags);
 }
 
 void frmSearchReplace::replaceFromUI(bool forward)
 {
-    auto& te = currentEditor()->textEditor();
+    auto te = currentEditor()->textEditor();
     QString replacement = ui->cmbReplace->currentText();
 
     if (searchModeFromUI() != SearchHelpers::SearchMode::PlainText) {
         replacement = SearchString::unescape(replacement);
     }
 
-    if (te.isSearchTermSelected())
-        te.setTextInSelection(replacement);
+    if (te->isSearchTermSelected())
+        te->setTextInSelection(replacement);
 
     findFromUI(forward);
 }

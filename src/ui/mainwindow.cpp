@@ -20,6 +20,7 @@
 #include "include/iconprovider.h"
 #include "include/notepadqq.h"
 #include "include/nqqrun.h"
+#include "ote/textedit.h"
 #include "ote/Highlighter/repository.h"
 #include "ui_mainwindow.h"
 
@@ -1383,7 +1384,7 @@ void MainWindow::on_actionDelete_triggered()
 
 void MainWindow::on_actionSelect_All_triggered()
 {
-    currentEditor()->textEditor().selectAll();
+    currentEditor()->textEditor()->selectAll();
 }
 
 void MainWindow::on_actionAbout_Notepadqq_triggered()
@@ -1402,12 +1403,12 @@ void MainWindow::on_actionAbout_Qt_triggered()
 
 void MainWindow::on_actionUndo_triggered()
 {
-    currentEditor()->textEditor().undo();
+    currentEditor()->textEditor()->undo();
 }
 
 void MainWindow::on_actionRedo_triggered()
 {
-    currentEditor()->textEditor().redo();
+    currentEditor()->textEditor()->redo();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -2384,37 +2385,37 @@ void MainWindow::on_actionFind_in_Files_triggered()
 
 void MainWindow::on_actionDelete_Line_triggered()
 {
-    currentEditor()->textEditor().deleteSelectedBlocks();
+    currentEditor()->textEditor()->deleteSelectedBlocks();
 }
 
 void MainWindow::on_actionDuplicate_Line_triggered()
 {
-    currentEditor()->textEditor().duplicateSelectedBlocks();
+    currentEditor()->textEditor()->duplicateSelectedBlocks();
 }
 
 void MainWindow::on_actionMove_Line_Up_triggered()
 {
-    currentEditor()->textEditor().moveSelectedBlocksUp();
+    currentEditor()->textEditor()->moveSelectedBlocksUp();
 }
 
 void MainWindow::on_actionMove_Line_Down_triggered()
 {
-    currentEditor()->textEditor().moveSelectedBlocksDown();
+    currentEditor()->textEditor()->moveSelectedBlocksDown();
 }
 
 void MainWindow::on_actionTrim_Trailing_Space_triggered()
 {
-    currentEditor()->textEditor().trimWhitespace(false, true);
+    currentEditor()->textEditor()->trimWhitespace(false, true);
 }
 
 void MainWindow::on_actionTrim_Leading_Space_triggered()
 {
-    currentEditor()->textEditor().trimWhitespace(true, false);
+    currentEditor()->textEditor()->trimWhitespace(true, false);
 }
 
 void MainWindow::on_actionTrim_Leading_and_Trailing_Space_triggered()
 {
-    currentEditor()->textEditor().trimWhitespace(true, true);
+    currentEditor()->textEditor()->trimWhitespace(true, true);
 }
 
 void MainWindow::on_actionEOL_to_Space_triggered()
@@ -2424,7 +2425,7 @@ void MainWindow::on_actionEOL_to_Space_triggered()
 
 void MainWindow::on_actionTAB_to_Space_triggered()
 {
-    currentEditor()->textEditor().convertLeadingWhitespaceToSpaces();
+    currentEditor()->textEditor()->convertLeadingWhitespaceToSpaces();
 }
 
 void MainWindow::on_actionSpace_to_TAB_All_triggered()
@@ -2434,7 +2435,7 @@ void MainWindow::on_actionSpace_to_TAB_All_triggered()
 
 void MainWindow::on_actionSpace_to_TAB_Leading_triggered()
 {
-    currentEditor()->textEditor().convertLeadingWhitespaceToTabs();
+    currentEditor()->textEditor()->convertLeadingWhitespaceToTabs();
 }
 
 void MainWindow::on_actionGo_to_Line_triggered()
