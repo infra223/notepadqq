@@ -886,7 +886,6 @@ void TextEdit::mousePressEvent(QMouseEvent* evt)
     if (evt->modifiers() == 0 && evt->button() == Qt::LeftButton) {
         const auto c = getSelectionUnderPoint(evt->pos());
         if (!c.isNull()) {
-            qDebug() << "Start dragging";
             m_textDragging = true;
             m_dragCursor = c;
             //mcsClearAllCursors(true);
@@ -918,6 +917,7 @@ void TextEdit::mouseReleaseEvent(QMouseEvent *event)
     if (m_textDragging) {
         m_textDragging = false;
         QGuiApplication::restoreOverrideCursor();
+
         auto c = cursorForPosition(event->pos());
         const auto cpos = c.position();
 
@@ -927,6 +927,8 @@ void TextEdit::mouseReleaseEvent(QMouseEvent *event)
             c.insertText(m_dragCursor.selectedText());
             m_dragCursor.removeSelectedText();
             c.endEditBlock();
+        } else { // Unselect any selection made, like a normal click
+            setTextCursor(c);
         }
 
     }
