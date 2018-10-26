@@ -107,7 +107,7 @@ void LatexPlugin::onBlockChanged(const QTextBlock& block)
         auto m = it.next();
 
         if (!m.captured(1).isEmpty() &&
-            !hl->isPositionInString(blockStartPos + m.capturedStart(1), m.capturedLength(1))) {
+            hl->isPositionInComment(blockStartPos + m.capturedStart(1), m.capturedLength(1))) {
             matches.push_back(std::move(m));
         }
     }
