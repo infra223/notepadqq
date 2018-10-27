@@ -32,7 +32,8 @@ HEADERS += \
     $$PWD/JKQTMath/jkqtp_imexport.h \
     #$$PWD/JKQTMath/jkqtphighrestimer.h \
     $$PWD/JKQTMath/jkqtptools.h \
-    $$PWD/plugins/bracketmatcherplugin.h
+    $$PWD/plugins/bracketmatcherplugin.h \
+    $$PWD/util/scopeguard.h
  
 RESOURCES += $$PWD/JKQTMath/asana.qrc \
     $$PWD/icons/icons.qrc

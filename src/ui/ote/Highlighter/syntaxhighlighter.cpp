@@ -30,6 +30,7 @@
 #include "format.h"
 #include "state.h"
 #include "theme.h"
+#include "../util/scopeguard.h"
 
 #include <QDebug>
 #include <QTextDocument>
@@ -238,13 +239,13 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     state = highlightLine(text, state);
 
     auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
+    DEFER { emit blockChanged(currentBlock()); }; // Emit blockChanged after we're done with everything
     if (!data) { // first time we highlight this
         data = new TextBlockUserData;
         data->state = state;
         data->foldingRegions = d->foldingRegions;
         data->fmtList = d->fmtList;
         setCurrentBlockUserData(data);
-        emit blockChanged(currentBlock()); // TODO: Put into scope guard
         return;
     }
     const bool forceRehighlighting = data->forceRehighlighting;
@@ -252,14 +253,11 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
 
     // we ended up in the same state, so we are done here
     if (!forceRehighlighting && data->state == state && data->foldingRegions == d->foldingRegions) {
-        emit blockChanged(currentBlock()); // TODO: Put into scope guard
         return;
     }
     data->state = state;
     data->foldingRegions = d->foldingRegions;
     data->forceRehighlighting = false;
-
-    emit blockChanged(currentBlock()); // TODO: Put into scope guard
 
     const auto nextBlock = currentBlock().next();
     if (!nextBlock.isValid())
