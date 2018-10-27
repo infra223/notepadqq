@@ -25,6 +25,7 @@
 #include "ui_mainwindow.h"
 
 #include <QClipboard>
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -2183,56 +2184,24 @@ void MainWindow::runCommand()
     Editor *editor = currentEditor();
 
     QUrl url = currentEditor()->filePath();
-    editor->selectedTexts().then([=](QStringList selection){
-        QString cmd = command;
-        if (!url.isEmpty()) {
-            cmd.replace("\%url\%", url.toString(QUrl::None));
-            cmd.replace("\%path\%", url.path(QUrl::FullyEncoded));
-            cmd.replace("\%filename\%", url.fileName(QUrl::FullyEncoded));
-            cmd.replace("\%directory\%", QFileInfo(url.toLocalFile()).absolutePath());
+
+    QString cmd = command;
+    if (!url.isEmpty()) {
+        cmd.replace("\%url\%", url.toString(QUrl::None));
+        cmd.replace("\%path\%", url.path(QUrl::FullyEncoded));
+        cmd.replace("\%filename\%", url.fileName(QUrl::FullyEncoded));
+        cmd.replace("\%directory\%", QFileInfo(url.toLocalFile()).absolutePath());
+    }
+    const auto& selection = editor->selectedTexts();
+    if (!selection.first().isEmpty()) {
+        cmd.replace("\%selection\%",selection.first());
+    }
+    QStringList args = NqqRun::RunDialog::parseCommandString(cmd);
+    if (!args.isEmpty()) {
+        cmd = args.takeFirst();
+        if(!QProcess::startDetached(cmd, args)) {
+
         }
-        if (!selection.first().isEmpty()) {
-            cmd.replace("\%selection\%",selection.first());
-        }
-        QStringList args = NqqRun::RunDialog::parseCommandString(cmd);
-        if (!args.isEmpty()) {
-            cmd = args.takeFirst();
-            if(!QProcess::startDetached(cmd, args)) {
-
-            }
-        }
-    });
-}
-
-void MainWindow::on_actionPrint_triggered()
-{
-    // TODO If ghostscript is available on the system, we could
-    //        - show a QPrintDialog to the user
-    //        - generate the pdf file
-    //        - print the pdf via ghostscript
-    //      https://stackoverflow.com/questions/2599925/how-to-print-pdf-on-default-network-printer-using-ghostscript-gswin32c-exe-she
-
-    QPageSetupDialog dlg;
-    if (dlg.exec() == QDialog::Accepted) {
-        currentEditor()->printToPdf(dlg.printer()->pageLayout()).then([this](QByteArray data) {
-            QFile file(QDir::tempPath() + "/notepadqq.print." +
-                       QString::number(QDateTime::currentMSecsSinceEpoch(), 16) + ".pdf");
-
-            if (file.open(QIODevice::WriteOnly)) { // FIXME: Delete the file when we're done
-                file.write(data);
-                file.close();
-
-                bool ok = QDesktopServices::openUrl(QUrl::fromLocalFile(file.fileName()));
-                if (!ok) {
-                    QMessageBox::warning(this,
-                        QCoreApplication::applicationName(),
-                        tr("%1 wasn't able to open the produced pdf file:\n%2")
-                            .arg(QCoreApplication::applicationName(), file.fileName()),
-                        QMessageBox::Ok,
-                        QMessageBox::Ok);
-                }
-            }
-        });
     }
 }
 

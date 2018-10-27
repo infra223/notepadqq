@@ -43,6 +43,8 @@
 struct TabData {
     QString filePath;
     QString cacheFilePath;
+    int cursorX = 0;
+    int cursorY = 0;
     int scrollX = 0;
     int scrollY = 0;
     bool active = false;
@@ -168,6 +170,8 @@ std::vector<TabData> SessionReader::readTabData() {
             TabData td;
             td.filePath = attrs.value("filePath").toString();
             td.cacheFilePath = attrs.value("cacheFilePath").toString();
+            td.cursorX = attrs.value("cursorX").toInt();
+            td.cursorY = attrs.value("cursorY").toInt();
             td.scrollX = attrs.value("scrollX").toInt();
             td.scrollY = attrs.value("scrollY").toInt();
             td.language = attrs.value("language").toString();
@@ -220,6 +224,8 @@ void SessionWriter::addTabData(const TabData& td){
     QXmlStreamAttributes attrs;
     attrs.push_back(QXmlStreamAttribute("filePath", td.filePath));
     attrs.push_back(QXmlStreamAttribute("cacheFilePath", td.cacheFilePath));
+    attrs.push_back(QXmlStreamAttribute("cursorX", QString::number(td.cursorX)));
+    attrs.push_back(QXmlStreamAttribute("cursorY", QString::number(td.cursorY)));
     attrs.push_back(QXmlStreamAttribute("scrollX", QString::number(td.scrollX)));
     attrs.push_back(QXmlStreamAttribute("scrollY", QString::number(td.scrollY)));
 
@@ -309,6 +315,9 @@ bool saveSession(DocEngine* docEngine, TopEditorContainer* editorContainer, QStr
 
             // Finally save other misc information about the tab.
             const auto& scrollPos = editor->scrollPosition();
+            const auto& cursorPos = editor->cursorPosition();
+            td.cursorX = cursorPos.first;
+            td.cursorY = cursorPos.second;
             td.scrollX = scrollPos.first;
             td.scrollY = scrollPos.second;
             td.active = tabWidget->currentEditor() == editor;

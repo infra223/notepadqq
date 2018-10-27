@@ -160,7 +160,6 @@ private slots:
     void on_actionIndentation_Custom_triggered();
     void on_actionReload_File_Interpreted_As_triggered();
     void on_actionInterpret_As_triggered();
-    void on_actionPrint_triggered();
     void on_actionPrint_Now_triggered();
     void on_actionOpen_a_New_Window_triggered();
     void on_actionOpen_in_New_Window_triggered();

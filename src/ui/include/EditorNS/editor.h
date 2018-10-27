@@ -79,8 +79,6 @@ namespace EditorNS
 
         /**
              * @brief Remove the focus from the editor.
-             *
-             * @param widgetOnly only clear the focus on the actual widget
              */
         Q_INVOKABLE void clearFocus();
 
@@ -170,7 +168,6 @@ namespace EditorNS
          * @return a <line, column> pair.
          */
         QPair<int, int> cursorPosition();
-        QPair<int, int> cursorPositionP();
         void setCursorPosition(const int line, const int column);
         void setCursorPosition(const QPair<int, int> &position);
         void setCursorPosition(const Cursor &cursor);
@@ -258,8 +255,6 @@ namespace EditorNS
         void setIndentationMode(const ote::Definition& def);
 
     signals:
-        void messageReceived(QString msg, QVariant data);
-        void asyncReplyReceived(unsigned int id, QString msg, QVariant data);
         void gotFocus();
         void mouseWheel(QWheelEvent *ev);
         void urlsDropped(QList<QUrl> urls);
