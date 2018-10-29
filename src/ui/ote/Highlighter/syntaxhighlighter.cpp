@@ -235,53 +235,53 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
 {
     Q_D(SyntaxHighlighter);
 
-    if (!m_enabled) {
-        auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
-        if (!data)
-            setCurrentBlockUserData( new TextBlockUserData );
-        return;
+    auto userData = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
+    const bool newUserData = !userData;
+    if (newUserData) {
+        userData = new TextBlockUserData();
+        setCurrentBlockUserData(userData);
     }
+
+    if (!m_enabled)
+        return;
 
     State state;
     if (currentBlock().position() > 0) {
         const auto prevBlock = currentBlock().previous();
         const auto prevData = dynamic_cast<TextBlockUserData*>(prevBlock.userData());
-        if (prevData)
-            state = prevData->state;
+        Q_ASSERT_X(prevData, "SyntaxHighlighter", "prevData should not be null");
+        state = prevData->state;
     }
     d->foldingRegions.clear();
     d->fmtList.clear();
     state = highlightLine(text, state);
 
-    auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
     DEFER { emit blockHighlighted(currentBlock()); }; // Emit blockChanged after we're done with everything
-    if (!data) { // first time we highlight this
-        data = new TextBlockUserData;
-        data->state = state;
-        data->foldingRegions = d->foldingRegions;
-        data->fmtList = d->fmtList;
-        setCurrentBlockUserData(data);
+
+    if (newUserData) { // first time we highlight this
+        userData->state = state;
+        userData->foldingRegions = d->foldingRegions;
+        userData->fmtList = std::move(d->fmtList);
         return;
     }
-    const bool forceRehighlighting = data->forceRehighlighting;
-    data->fmtList = d->fmtList;
+    const bool forceRehighlighted = userData->forceRehighlighting;
+    userData->forceRehighlighting = false;
+    userData->fmtList = std::move(d->fmtList);
 
     // we ended up in the same state, so we are done here
-    if (!forceRehighlighting && data->state == state && data->foldingRegions == d->foldingRegions) {
+    if (!forceRehighlighted && userData->state == state && userData->foldingRegions == d->foldingRegions) {
         return;
     }
-    data->state = state;
-    data->foldingRegions = d->foldingRegions;
-    data->forceRehighlighting = false;
+    userData->state = state;
+    userData->foldingRegions = d->foldingRegions;
 
     const auto nextBlock = currentBlock().next();
     if (!nextBlock.isValid())
         return;
 
-    if (forceRehighlighting) { // Proliferate rehighlighting to next block if needed
+    if (forceRehighlighted) { // Proliferate rehighlighting to next block if needed
         auto nextData = dynamic_cast<TextBlockUserData*>(nextBlock.userData());
-        if (!nextData)
-            nextData = new TextBlockUserData;
+        Q_ASSERT_X(nextData, "SyntaxHighlighter", "nextData should not be null");
         nextData->forceRehighlighting = true;
     }
 

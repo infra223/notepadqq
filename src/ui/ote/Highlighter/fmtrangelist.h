@@ -16,6 +16,7 @@ public:
     };
 
     FmtRangeList();
+    FmtRangeList& operator=(FmtRangeList&&) = default;
 
     void clear() { m_vec.clear(); }
     void append(int from, int to, char type) {
