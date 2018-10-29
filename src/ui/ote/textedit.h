@@ -349,9 +349,9 @@ private:
     void updateSidebarGeometry();
     void updateSidebarArea(const QRect& rect, int dy);
 
-    // Used when all EditorLabels need to be recalculated, e.g. when font size or
+    // Used when all EditorLabels need to be redrawn, e.g. when font size or
     // editor geometry changes.
-    void recalcAllEditorLabels(bool markForRedraw=true);
+    void redrawAllEditorLabels();
     // Adds a highlight format to highlight the entire line.
     void highlightCurrentLine();
     // Makes sure a text block is not folded. This is useful for search functions to make sure

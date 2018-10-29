@@ -40,6 +40,7 @@ public:
     virtual void draw(QPainter& painter, const QPointF& offset);
 
     // Called by painting code to recalculate the available size for the pixmap.
+    // If it returns true, the pixmap needs to be recreated.
     bool updateDisplayRect(qreal rightBorder = -1);
     const QRectF& getDisplayRect() { return m_displayRect; }
 
@@ -58,8 +59,8 @@ public:
     // restricted to empty space.
     void setTextOverlap(bool allow);
 
-    // If set, the next paint event will first call updatePixmap before painting.
-    void markForRedraw() { m_wantRedraw = true; }
+    // If set, the next paint event will fully recalc and redraw the label.
+    void markForRedraw() { m_changed = true; m_wantRedraw = true; }
 
     // If set, the EditorLabel should be removed. Using this and TextEdit::RemoveMarkedEditorLabels
     // you can delete several labels at once which is more efficient than deletion one by one.
@@ -89,8 +90,8 @@ private:
 
     AnchorPoint m_anchor;
     bool m_overlap = false;
-    bool m_changed = true;
-    bool m_wantRedraw = false;
+    bool m_changed = true;          // If true, the label will be recalced on next update
+    bool m_wantRedraw = false;      // If true, the label will be recalced and redrawn on next update
     bool m_markedForDeletion = false;
 };
 

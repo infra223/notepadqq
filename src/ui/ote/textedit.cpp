@@ -71,7 +71,7 @@ void TextEdit::setTheme(const Theme& theme)
     onCursorPositionChanged();
     onSelectionChanged();
 
-    recalcAllEditorLabels();
+    redrawAllEditorLabels();
 }
 
 Theme TextEdit::getTheme() const
@@ -197,7 +197,7 @@ void TextEdit::setFont(QFont font)
     QPlainTextEdit::setFont(font);
     setTabStopDistance(ceil(stopWidth));
 
-    recalcAllEditorLabels();
+    redrawAllEditorLabels();
 }
 
 QFont TextEdit::getFont() const {
@@ -445,7 +445,7 @@ void TextEdit::setZoomTo(int value)
     QPlainTextEdit::setFont(f);
 
     updateSidebarGeometry();
-    recalcAllEditorLabels();
+    redrawAllEditorLabels();
 }
 
 void TextEdit::zoomIn()
@@ -818,36 +818,45 @@ void TextEdit::onSelectionChanged()
 void TextEdit::onContentsChange(int position, int removed, int added)
 {
     auto& lbls = m_editorLabels;
+
+    // When block contents change we want to:
+    // * Remove all labels in the erased text range
+    // * Modify the position of all labels past the beginning of the modified text range
+    // * Update the display rects of all labels in the modified text range and a few blocks above that.
+
+    // Move back a few blocks to find a good starting position from where we need to update all display rects.
+    auto b = document()->findBlock(position);
+    for (int i=EditorLabel::MAX_LINE_COUNT; i>0; --i)
+        b = b.previous();
+    if (!b.isValid())
+        b = document()->firstBlock();
+    auto startPos = b.position();
+
+    // Find the first label past startPos.
     const auto lowerBound =
-        std::lower_bound(lbls.begin(), lbls.end(), position, [](const EditorLabelPtr& ptr, int position) {
+        std::lower_bound(lbls.begin(), lbls.end(), startPos, [](const EditorLabelPtr& ptr, int position) {
             return ptr->m_absPos < position;
         });
 
-    const auto it = std::remove_if(lowerBound, lbls.end(), [this, position, added, removed](EditorLabelPtr& ptr) {
+    const auto it = std::remove_if(lowerBound, lbls.end(), [position, added, removed](EditorLabelPtr& ptr) {
+        // Mark label for deletion if needed
         if (ptr->m_absPos >= position && ptr->m_absPos <= position + removed) {
             return true;
         }
 
-        auto b = document()->findBlock(position).previous().previous();
-        if (!b.isValid())
-            b = document()->findBlockByNumber(0);
+        // Queue an update to display rect
+        ptr->m_changed = true;
 
-        auto newPos = b.position();
-
-        if (ptr->m_absPos >= position) {
-            ptr->m_changed = true;
+        // Move label position if needed
+        if (ptr->m_absPos >= position)
             ptr->m_absPos += added - removed;
-            qDebug() << ptr->m_absPos;
-        } else if (ptr->m_absPos >= newPos) {
-            ptr->m_changed = true;
-        }
 
         return false;
     });
 
     if (it != lbls.end()) {
         lbls.erase(it, lbls.end());
-        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+        viewport()->update();
     }
 }
 
@@ -1576,13 +1585,10 @@ void TextEdit::compositeExtraSelections()
     QPlainTextEdit::setExtraSelections(fullList);
 }
 
-void TextEdit::recalcAllEditorLabels(bool markForRedraw)
+void TextEdit::redrawAllEditorLabels()
 {
-    for (auto& lbl : m_editorLabels) {
-        lbl->m_changed = true;
-        if (markForRedraw)
-            lbl->markForRedraw();
-    }
+    for (auto& lbl : m_editorLabels)
+        lbl->markForRedraw();
 }
 
 static void fillBackground(QPainter* p, const QRectF& rect, QBrush brush, const QRectF& gradientRect = QRectF())
@@ -1809,12 +1815,9 @@ void TextEdit::paintEvent(QPaintEvent* e)
         if (!b.isVisible())
             continue;
 
-        if (ptr->m_changed || ptr->m_wantRedraw) {
-            if (ptr->updateDisplayRect() || ptr->m_wantRedraw) {
-                ptr->updatePixmap();
-                wantRepaint = true;
-                ptr->m_wantRedraw = false;
-            }
+        if (ptr->m_changed && ptr->updateDisplayRect()) {
+            ptr->updatePixmap();
+            wantRepaint = true;
         }
 
         const auto op = blockBoundingGeometry(b).translated(contentOffset()).topLeft();
@@ -1822,7 +1825,7 @@ void TextEdit::paintEvent(QPaintEvent* e)
     }
 
     if (wantRepaint)
-        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+        viewport()->update();
 }
 
 TextEdit::BlockList TextEdit::getBlocksInViewport() const
@@ -1880,7 +1883,7 @@ void TextEdit::resizeEvent(QResizeEvent* event)
     updateSidebarGeometry();
 
     if (wordWrapMode() != QTextOption::NoWrap)
-        recalcAllEditorLabels(false);
+        redrawAllEditorLabels();
 }
 
 void TextEdit::leaveEvent(QEvent *)
@@ -1977,11 +1980,11 @@ void TextEdit::deleteMarkedEditorLabelsInRange(const TextEdit::EditorLabelRange 
     auto it = std::remove_if(range.first, range.second, [](const EditorLabelPtr& ptr) {
         return ptr->m_markedForDeletion;
     });
-    if (it == m_editorLabels.end())
+    if (it == range.second)
         return;
 
-    m_editorLabels.erase(it, m_editorLabels.end());
-    QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+    m_editorLabels.erase(it, range.second);
+    viewport()->update();
 }
 
 TextEdit::EditorLabelRange TextEdit::getEditorLabelsInRange(int begin, int end)
@@ -2027,7 +2030,7 @@ void TextEdit::removeEditorLabel(WeakEditorLabelPtr label)
 
     if (it != m_editorLabels.end()) {
         m_editorLabels.erase(it);
-        QTimer::singleShot(0, [this]() mutable { viewport()->repaint(); });
+        viewport()->update();
     }
 }
 

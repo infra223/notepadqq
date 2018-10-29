@@ -79,8 +79,10 @@ bool EditorLabel::updateDisplayRect(qreal rightBorder)
     }
 
     const auto newDisplayRect = QRectF(rectStart, rectEnd);
-    const bool rectChanged = m_displayRect != newDisplayRect;
+    // Some things like zooming need to trigger redraw even if the display rect didn't change
+    const bool rectChanged = m_displayRect != newDisplayRect || m_wantRedraw;
     m_displayRect = newDisplayRect;
+    m_wantRedraw = false;
 
     return rectChanged;
 }
