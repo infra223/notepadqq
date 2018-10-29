@@ -93,7 +93,6 @@ void EditorLabel::setAnchorPoint(EditorLabel::AnchorPoint p)
         return;
 
     m_anchor = p;
-    m_changed = true;
     markForRedraw();
 }
 
@@ -103,7 +102,6 @@ void EditorLabel::setTextOverlap(bool allow)
         return;
 
     m_overlap = allow;
-    m_changed = true;
     markForRedraw();
 }
 

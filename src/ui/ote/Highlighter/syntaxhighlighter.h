@@ -53,6 +53,8 @@ public:
     explicit SyntaxHighlighter(QTextDocument *document);
     ~SyntaxHighlighter() override;
 
+    void setEnabled(bool enabled);
+
     void setDefinition(const Definition &def) override;
 
     /** Returns whether there is a folding region beginning at @p startBlock.
@@ -105,7 +107,7 @@ signals:
     /**
      * Emitted for every TextBlock after highlighting has happened.
      */
-    void blockChanged(const QTextBlock& block);
+    void blockHighlighted(const QTextBlock& block);
 
 protected:
     void highlightBlock(const QString & text) override;
@@ -113,6 +115,8 @@ protected:
     void applyFolding(int offset, int length, FoldingRegion region) override;
 
 private:
+    bool m_enabled = true;
+
     Q_DECLARE_PRIVATE_D(AbstractHighlighter::d_ptr, SyntaxHighlighter)
 };
 }

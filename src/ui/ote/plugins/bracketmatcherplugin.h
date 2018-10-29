@@ -21,7 +21,7 @@ public:
 
 private slots:
     void onCursorPositionChanged();
-    void onBlockChanged(const QTextBlock& b);
+    void onBlockHighlighted(const QTextBlock& b);
 
 private:
     // Returns the (absolute) position of a matching bracket to the left/right of the

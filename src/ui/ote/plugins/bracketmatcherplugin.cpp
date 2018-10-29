@@ -61,7 +61,7 @@ ote::BracketMatcherPlugin::BracketMatcherPlugin(ote::TextEdit* parent)
     initializePluginId();
 
     connect(parent, &TextEdit::cursorPositionChanged, this, &BracketMatcherPlugin::onCursorPositionChanged);
-    connect(parent, &TextEdit::blockChanged, this, &BracketMatcherPlugin::onBlockChanged);
+    connect(parent, &TextEdit::blockHighlighted, this, &BracketMatcherPlugin::onBlockChanged);
 }
 
 void ote::BracketMatcherPlugin::onCursorPositionChanged()

@@ -214,6 +214,7 @@ public:
      * Document Operations
      * These functions operate on the entire document
      */
+    void setPlainText(const QString &text);
     // Finds leading whitespace comprised of tabs or spaces and converts them entirely into tabs/spaces.
     // When converting to tabs, spaces sometimes need to be used to fill gaps.
     void convertLeadingWhitespaceToTabs();
@@ -274,7 +275,7 @@ public:
 
 signals:
     // Emitted after a text line's content changed. This happens *after* highlighting has happened.
-    void blockChanged(const QTextBlock& block);
+    void blockHighlighted(const QTextBlock& block);
     // Emitted when the mouse wheel is used while on this TextEdit
     void mouseWheelUsed(QWheelEvent *ev);
     // Emitted when this object gains focus

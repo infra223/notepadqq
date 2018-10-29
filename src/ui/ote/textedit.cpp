@@ -38,7 +38,7 @@ TextEdit::TextEdit(QWidget* parent)
     connect(this, &QPlainTextEdit::selectionChanged, this, &TextEdit::onSelectionChanged);
     connect(document(), &QTextDocument::contentsChange, this, &TextEdit::onContentsChange);
 
-    connect(m_highlighter, &ote::SyntaxHighlighter::blockChanged, this, &TextEdit::blockChanged);
+    connect(m_highlighter, &ote::SyntaxHighlighter::blockHighlighted, this, &TextEdit::blockHighlighted);
     m_highlighter->setDocument(document()); // Important to set this *after* the blockChanged connect
 
     const int flashTime = QApplication::cursorFlashTime();
@@ -66,6 +66,7 @@ void TextEdit::setTheme(const Theme& theme)
     viewport()->setPalette(pal);
 
     m_highlighter->setTheme(theme);
+    m_highlighter->startRehighlighting();
     m_sideBar->setTheme(theme);
 
     onCursorPositionChanged();
@@ -598,6 +599,16 @@ void TextEdit::deleteSelectedBlocks()
     if (!success)
         ce.deletePreviousChar();
     ce.endEditBlock();
+}
+
+void TextEdit::setPlainText(const QString &text)
+{
+    // setPlainText triggers a lot of QTextDocument::contentsChange, each of which will trigger the
+    // SyntaxHighlighter. That means the entire document will be highlighted immediately, causing quite some
+    // delays initially.
+    m_highlighter->setEnabled(false);
+    QPlainTextEdit::setPlainText(text);
+    m_highlighter->setEnabled(true);
 }
 
 // pair.first = number of ws characters found, pair.second = number of spaces needed
@@ -1851,9 +1862,6 @@ TextEdit::BlockList TextEdit::getBlocksInRect(QRect rect) const
 
         block = block.next();
     }
-
-    // m_blockListCounter += bl.size();
-    // qDebug() << m_blockListCounter << bl.size(); // << rect << contentOff << viewport()->height();
     return bl;
 }
 

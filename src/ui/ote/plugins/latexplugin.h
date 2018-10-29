@@ -16,7 +16,7 @@ public:
     LatexPlugin(TextEdit* te);
 
 private:
-    void onBlockChanged(const QTextBlock& block);
+    void onBlockHighlighted(const QTextBlock& block);
 };
 
 } // namespace

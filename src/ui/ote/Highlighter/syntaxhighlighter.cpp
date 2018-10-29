@@ -86,6 +86,14 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument* document)
 
 SyntaxHighlighter::~SyntaxHighlighter() {}
 
+void SyntaxHighlighter::setEnabled(bool enabled)
+{
+    if (m_enabled == enabled) return;
+
+    m_enabled = enabled;
+    if (m_enabled) startRehighlighting();
+}
+
 void SyntaxHighlighter::setDefinition(const Definition& def)
 {
     if (definition() == def)
@@ -227,6 +235,13 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
 {
     Q_D(SyntaxHighlighter);
 
+    if (!m_enabled) {
+        auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
+        if (!data)
+            setCurrentBlockUserData( new TextBlockUserData );
+        return;
+    }
+
     State state;
     if (currentBlock().position() > 0) {
         const auto prevBlock = currentBlock().previous();
@@ -239,7 +254,7 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     state = highlightLine(text, state);
 
     auto data = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
-    DEFER { emit blockChanged(currentBlock()); }; // Emit blockChanged after we're done with everything
+    DEFER { emit blockHighlighted(currentBlock()); }; // Emit blockChanged after we're done with everything
     if (!data) { // first time we highlight this
         data = new TextBlockUserData;
         data->state = state;

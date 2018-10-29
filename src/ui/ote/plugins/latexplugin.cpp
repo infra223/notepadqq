@@ -6,6 +6,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QElapsedTimer>
 
 namespace ote {
 
@@ -87,10 +88,10 @@ void TeXLabel::setLatexString(const QString& text)
 LatexPlugin::LatexPlugin(TextEdit* te)
     : PluginBase(te)
 {
-    connect(te, &TextEdit::blockChanged, this, &LatexPlugin::onBlockChanged);
+    connect(te, &TextEdit::blockHighlighted, this, &LatexPlugin::onBlockHighlighted);
 }
 
-void LatexPlugin::onBlockChanged(const QTextBlock& block)
+void LatexPlugin::onBlockHighlighted(const QTextBlock& block)
 {
     static QRegularExpression regex("\\$(.*)\\$");
     regex.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
