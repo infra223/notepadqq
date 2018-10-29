@@ -61,7 +61,7 @@ ote::BracketMatcherPlugin::BracketMatcherPlugin(ote::TextEdit* parent)
     initializePluginId();
 
     connect(parent, &TextEdit::cursorPositionChanged, this, &BracketMatcherPlugin::onCursorPositionChanged);
-    connect(parent, &TextEdit::blockHighlighted, this, &BracketMatcherPlugin::onBlockChanged);
+    connect(parent, &TextEdit::blockHighlighted, this, &BracketMatcherPlugin::onBlockHighlighted);
 }
 
 void ote::BracketMatcherPlugin::onCursorPositionChanged()
@@ -109,7 +109,7 @@ void ote::BracketMatcherPlugin::onCursorPositionChanged()
     clearSelections();
 }
 
-void ote::BracketMatcherPlugin::onBlockChanged(const QTextBlock& b)
+void ote::BracketMatcherPlugin::onBlockHighlighted(const QTextBlock& b)
 {
     BracketBlockData* data = reinterpret_cast<BracketBlockData*>(getPluginBlockData(b));
     if (!data) {
