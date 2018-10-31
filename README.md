@@ -1,15 +1,10 @@
-# <img src="https://user-images.githubusercontent.com/4319621/36906314-e3f99680-1e35-11e8-90fd-f959c9641f36.png" alt="Notepadqq" width="32" height="32" /> Notepadqq
-
-### Links
-
-* [What is it?](#what-is-it)
-* [Build it yourself](#build-it-yourself)
-
-#### What is it?
+# <img src="https://user-images.githubusercontent.com/4319621/36906314-e3f99680-1e35-11e8-90fd-f959c9641f36.png" alt="Notepadqq" width="32" height="32" /> Notepadqq - OpenTextEdit
 
 Notepadqq is a text editor designed by developers, for developers.
 
-*This fork of Notepadqq replaces the JavaScript-centric CodeMirror editor with a native component. It is faster and less resource-consuming than CodeMirror, but still experimental.*
+*This fork of Notepadqq replaces the JavaScript-centric CodeMirror editor with a native component called OpenTextEdit. It is faster and less resource-consuming than CodeMirror, and resolves many of the [outstanding issues](https://github.com/JuBan1/notepadqq/issues/1) of Notepadqq.*
+
+*Be warned that this fork is experimental and that bugs are bound to exist.* 
 
 *Please help me to improve this program by reporting any bugs on the Issues page.*
 
@@ -17,7 +12,7 @@ Notepadqq is a text editor designed by developers, for developers.
 
 Please visit our [Wiki](https://github.com/notepadqq/notepadqq/wiki) for more screenshots and details.
 
-Build it yourself
+Build Instructions
 -----
 
 | Build dependencies    | Dependencies      |
@@ -31,7 +26,6 @@ Build it yourself
 
     $ git clone https://github.com/JuBan1/notepadqq.git
     $ cd notepadqq
-    $ git checkout ote
 
 #### Build
 
