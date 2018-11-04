@@ -295,7 +295,7 @@ protected:
     void paintEvent(QPaintEvent* e) override;
     void contextMenuEvent(QContextMenuEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
-    void leaveEvent(QEvent *event) override;
+    void leaveEvent(QEvent* evt) override;
     
 private:
     friend class TextEditGutter;
@@ -360,7 +360,12 @@ private:
     void ensureSelectionUnfolded(const Selection& sel);
     // Returns the text block that marks the end of a folding region. Invalid if none found.
     QTextBlock findClosingBlock(const QTextBlock& startBlock) const;
-
+    // Returns [column,row] under 'point'.
+    QPoint getGridPointAt(const QPoint& point);
+    // Takes a text block and returns a pair of positions.
+    // The substring formed by [begin,end] is the part of the block's text that is between
+    // the visual columns [beginColumn,endColumn].
+    std::pair<int, int> getVisualSelection(const QTextBlock& block, const int beginColumn, const int endColumn);
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
     // Qt 5.9 and lower don't offer setTabStopDistance yet. This is taken straight from the Qt
     // source code, with only minimal changes to make it work in 5.4+.
@@ -420,8 +425,28 @@ private:
     // True if flashing cursors should be drawn at the moment.
     bool m_drawCursorsOn = true;
 
-    // True when the user is in the process of dragging text with the mouse
-    bool m_textDragging = false;
+    enum class McsTriggerState {
+        NoTrigger,  // Trigger not pressed
+        Click,      // Trigger pressed
+        Drag        // Mouse drag while trigger pressed
+    } m_mcsTriggerState = McsTriggerState::NoTrigger;
+
+    struct {
+        QPoint pos, anchor;
+        int left() const { return std::min(pos.x(), anchor.x()); }
+        int right() const { return std::max(pos.x(), anchor.x()); }
+        int top() const { return std::min(pos.y(), anchor.y()); }
+        int bottom() const { return std::max(pos.y(), anchor.y()); }
+        int width() const { return right() - left(); }
+        int height() const { return bottom() - top(); }
+    } mcsBlock;
+
+    enum class DragState {
+        NoDrag,     // No drag
+        Begin,      // Left button pressed but no movement yet
+        Ongoing     // Left button pressed and movement
+    } m_dragState = DragState::NoDrag;
+    QPoint m_dragOrigin;
     QTextCursor m_dragCursor;
 
     // Text options

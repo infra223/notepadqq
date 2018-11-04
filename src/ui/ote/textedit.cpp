@@ -799,8 +799,9 @@ void TextEdit::onSelectionChanged()
 {
     const auto& cursor = textCursor();
     const auto& text = cursor.selectedText();
+    const bool mcsEnabled = m_cursors.size() > 1;
 
-    if (text.length() < 2 || text.trimmed().isEmpty()) {
+    if (mcsEnabled || text.length() < 2 || text.trimmed().isEmpty()) {
         setExtraSelections(ESSameItems, {});
         return;
     }
@@ -901,41 +902,125 @@ void TextEdit::setExtraSelections(int type, TextEdit::ExtraSelectionList list)
 
 void TextEdit::mousePressEvent(QMouseEvent* evt)
 {
-    const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
+    if (evt->button() != Qt::LeftButton)
+        return QPlainTextEdit::mousePressEvent(evt);
 
-    if (evt->modifiers() == 0 && evt->button() == Qt::LeftButton) {
-        const auto c = getSelectionUnderPoint(evt->pos());
-        if (!c.isNull()) {
-            m_textDragging = true;
-            m_dragCursor = c;
-            //mcsClearAllCursors(true);
-            QGuiApplication::setOverrideCursor(Qt::DragMoveCursor);
-            return;
-        }
+    const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
+    const bool shiftAltPressed = (evt->modifiers() & shiftAlt) == shiftAlt;
+
+    if (shiftAltPressed) {
+        m_mcsTriggerState = McsTriggerState::Click;
+        return;
     }
 
-    else if ((evt->modifiers() & shiftAlt) != shiftAlt) {
-        if (m_cursors.size() > 1) {
-            mcsClearAllCursors();
-        }
-    } else if (evt->button() == Qt::LeftButton)
-        mcsAddCursor(cursorForPosition(evt->pos()));
+    // TODO: This needs to change if we want to have mcs text dragging
+    if (m_cursors.size() > 1)  {
+        mcsClearAllCursors();
+        return QPlainTextEdit::mousePressEvent(evt);
+    }
 
-    QPlainTextEdit::mousePressEvent(evt);
+    // FIXME: Only take action when cursor is truly on top of selection,
+    // or we break triple selection
+    const auto c = getSelectionUnderPoint(evt->pos());
+
+    if (!c.isNull()) {
+        m_dragState = DragState::Begin;
+        m_dragOrigin = evt->pos();
+        m_dragCursor = c;
+        return;
+    } else
+        return QPlainTextEdit::mousePressEvent(evt);
+
+    Q_ASSERT_X(false, "mousePressEvent", "Do we want to end up here?");
+}
+
+QPoint TextEdit::getGridPointAt(const QPoint& point)
+{
+    const QTextCursor& cursor = cursorForPosition(point);
+    const QString& text = cursor.block().text();
+    const int position = cursor.positionInBlock();
+
+    int column = 0;
+    for (int i = 0; i < position; ++i) {
+        if (text.at(i) == QLatin1Char('\t'))
+            column = column - (column % m_tabWidth) + m_tabWidth;
+        else
+            ++column;
+    }
+
+    if (cursor.positionInBlock() == cursor.block().length()-1)
+        column += (point.x() - cursorRect(cursor).center().x()) / QFontMetricsF(font()).width(QLatin1Char(' '));
+
+    return {column, cursor.blockNumber()};
+}
+
+std::pair<int,int> TextEdit::getVisualSelection(const QTextBlock& block, const int beginColumn, const int endColumn) {
+    if (beginColumn > endColumn)
+        return {-1,-1};
+
+    const QString& text = block.text();
+    const int length = std::min(endColumn, block.length());
+    int column = 0;
+    int begin = -1, end = length;
+    int m_tabWidth = 4;
+
+    int i = 0;
+    while (i < length && column < beginColumn) {
+        if (text.at(i) == QLatin1Char('\t'))
+            column = column - (column % m_tabWidth) + m_tabWidth;
+        else
+            ++column;
+        ++i;
+    }
+
+    if (column < beginColumn)
+        return {-1,-1};
+    begin = i;
+
+    while (i < length && column < endColumn) {
+        if (text.at(i) == QLatin1Char('\t'))
+            column = column - (column % m_tabWidth) + m_tabWidth;
+        else
+            ++column;
+        ++i;
+    }
+
+    if (column < endColumn)
+        end = block.length();
+    else
+        end = i;
+
+    return std::make_pair(begin, end);
 }
 
 void TextEdit::mouseMoveEvent(QMouseEvent *event)
 {
-    if (m_textDragging) {
+    if (m_dragState == DragState::Begin) {
+        if ((event->pos()-m_dragOrigin).manhattanLength() > 5) {
+            m_dragState = DragState::Ongoing;
+            QGuiApplication::setOverrideCursor(Qt::DragMoveCursor);
+        }
+    } else if (m_dragState == DragState::Ongoing) {
         setTextCursor(cursorForPosition(event->pos()));
+    } else if (m_mcsTriggerState == McsTriggerState::Click) {
+        m_mcsTriggerState = McsTriggerState::Drag;
+        mcsBlock.anchor = getGridPointAt(event->pos());
+    } else if (m_mcsTriggerState == McsTriggerState::Drag) {
+        mcsBlock.pos = getGridPointAt(event->pos());
+        viewport()->update(); // TODO: Could be optimized by not repainting everything
     } else
         QPlainTextEdit::mouseMoveEvent(event);
 }
 
 void TextEdit::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (m_textDragging) {
-        m_textDragging = false;
+    const bool isLeftClick = event->button() == Qt::LeftButton;
+
+    if (!isLeftClick)
+        return QPlainTextEdit::mouseReleaseEvent(event);
+
+    if (m_dragState == DragState::Ongoing) {
+        m_dragState = DragState::NoDrag;
         QGuiApplication::restoreOverrideCursor();
 
         auto c = cursorForPosition(event->pos());
@@ -950,10 +1035,47 @@ void TextEdit::mouseReleaseEvent(QMouseEvent *event)
         } else { // Unselect any selection made, like a normal click
             setTextCursor(c);
         }
+        return;
+    } else if (m_dragState == DragState::Begin) {
+        m_dragState = DragState::NoDrag;
+        setTextCursor(cursorForPosition(event->pos()));
+        return;
+    } else if (m_mcsTriggerState == McsTriggerState::Click) {
+        m_mcsTriggerState = McsTriggerState::NoTrigger;
+        mcsAddCursor(cursorForPosition(event->pos()));
+        return;
+    } else if (m_mcsTriggerState == McsTriggerState::Drag) {
+        m_mcsTriggerState = McsTriggerState::NoTrigger;
 
-    }
+        mcsClearAllCursors(false);
 
-    QPlainTextEdit::mouseReleaseEvent(event);
+        QTextBlock b = document()->findBlockByLineNumber(mcsBlock.top());
+        while (b.isValid() && b.blockNumber() <= mcsBlock.bottom()) {
+            auto p = getVisualSelection(b, mcsBlock.left(), mcsBlock.right());
+            if (p.first != -1) {
+                QTextCursor c(b);
+                c.setPosition(b.position() + p.first);
+                c.setPosition(b.position() + p.second, QTextCursor::KeepAnchor);
+                mcsAddCursor(c);
+            }
+            b = b.next();
+        };
+
+        if (m_cursors.size()==1) {
+            auto c = m_cursors[0];
+            mcsClearAllCursors(false);
+            setTextCursor(c);
+        } else {
+            mcsEnsureUniqueCursors();
+            mcsUpdateSelectionHighlights();
+        }
+
+        viewport()->update();
+        return;
+    } else
+        return QPlainTextEdit::mouseReleaseEvent(event);
+
+    Q_ASSERT_X(false, "mouseReleaseEvent", "Do we want to end up here?");
 }
 
 static inline bool isPrintableText(const QString& text)
@@ -1165,8 +1287,14 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
     if (m_cursors.size() <= 1)
         return singleCursorKeyPressEvent(event);
 
+    // Cancel mcs drag and mcs with Escape key
     if (event->key() == Qt::Key_Escape) {
-        mcsClearAllCursors();
+        if (m_mcsTriggerState == McsTriggerState::Drag) {
+            m_mcsTriggerState = McsTriggerState::NoTrigger;
+            viewport()->update();
+        } else {
+            mcsClearAllCursors();
+        }
         return;
     }
 
@@ -1623,8 +1751,6 @@ void TextEdit::paintEvent(QPaintEvent* e)
 {
     compositeExtraSelections();
 
-    // What follows is a copy of QPlainTextEdit::paintEvent with some modifications to allow different
-    // line-highlighting.
     QPainter painter(viewport());
     Q_ASSERT(qobject_cast<QPlainTextDocumentLayout*>(document()->documentLayout()));
     QPointF offset(contentOffset());
@@ -1683,9 +1809,22 @@ void TextEdit::paintEvent(QPaintEvent* e)
     QTextBlock beginBlock = block;
     QTextBlock endBlock;
 
+    QRectF mcsBlockRect;
+    if (m_mcsTriggerState == McsTriggerState::Drag) {
+        const qreal spacew = QFontMetricsF(font()).width(QLatin1Char(' '));
+
+        const QTextLine line = document()->firstBlock().layout()->lineForTextPosition(0);
+        QRectF rr = line.naturalTextRect();
+        // rr.left() contains the natural offset of text lines. No other way to get it..
+        mcsBlockRect.setLeft(mcsBlock.left() * spacew + rr.left());
+        mcsBlockRect.setWidth(mcsBlock.width() * spacew);
+        mcsBlockRect.setHeight(9999);
+    }
+
     while (block.isValid()) {
         QRectF r = blockBoundingRect(block).translated(offset);
         QTextLayout* layout = block.layout();
+        const int blockNum = block.blockNumber();
 
         if (!block.isVisible()) {
             offset.ry() += r.height();
@@ -1773,6 +1912,19 @@ void TextEdit::paintEvent(QPaintEvent* e)
 
         layout->draw(&painter, offset, selections, er);
 
+        if (m_mcsTriggerState == McsTriggerState::Drag) {
+            if (blockNum == mcsBlock.top()) {
+                const QTextLine line = layout->lineForTextPosition(0);
+                QRectF rr = line.naturalTextRect();
+                mcsBlockRect.moveTop(rr.top() + r.top());
+            }
+            if (blockNum == mcsBlock.bottom()) {
+                const QTextLine line = layout->lineForTextPosition(0);
+                QRectF rr = line.naturalTextRect();
+                mcsBlockRect.setBottom(r.bottom() + rr.top());
+            }
+        }
+
         // Draw non-block cursors now
         if (drawCursor) {
             for (const auto c : cursorsInBlock) {
@@ -1835,6 +1987,20 @@ void TextEdit::paintEvent(QPaintEvent* e)
         ptr->draw(painter, op);
     }
 
+    if (m_mcsTriggerState == McsTriggerState::Drag) {
+        QPen pen;
+        QBrush b;
+        b.setStyle(Qt::SolidPattern);
+        b.setColor(getTheme().editorColor(Theme::TextSelection));
+        pen.setWidth(1);
+        pen.setColor(getTheme().editorColor(Theme::IconBorder));
+        painter.setPen(pen);
+        painter.setBrush(b);
+        painter.setOpacity(0.5);
+        painter.drawRect(mcsBlockRect);
+    }
+
+
     if (wantRepaint)
         viewport()->update();
 }
@@ -1894,13 +2060,13 @@ void TextEdit::resizeEvent(QResizeEvent* event)
         redrawAllEditorLabels();
 }
 
-void TextEdit::leaveEvent(QEvent *)
+void TextEdit::leaveEvent(QEvent* evt)
 {
-    if(m_textDragging) {
+    if(m_dragState == DragState::Ongoing) {
         QGuiApplication::restoreOverrideCursor();
-        m_textDragging = false;
-        m_dragCursor = QTextCursor();
+        m_dragState = DragState::NoDrag;
     }
+    QPlainTextEdit::leaveEvent(evt);
 }
 
 QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
