@@ -116,6 +116,7 @@ protected:
 
 private:
     bool m_enabled = true;
+    static unsigned int s_continuousIterations;
 
     Q_DECLARE_PRIVATE_D(AbstractHighlighter::d_ptr, SyntaxHighlighter)
 };

@@ -70,6 +70,8 @@ FoldingRegion SyntaxHighlighterPrivate::foldingRegion(const QTextBlock& startBlo
     return FoldingRegion();
 }
 
+unsigned int SyntaxHighlighter::s_continuousIterations = 0;
+
 SyntaxHighlighter::SyntaxHighlighter(QObject* parent)
     : QSyntaxHighlighter(parent)
     , AbstractHighlighter(new SyntaxHighlighterPrivate)
@@ -238,6 +240,11 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     auto userData = dynamic_cast<TextBlockUserData*>(currentBlockUserData());
     const bool newUserData = !userData;
     if (newUserData) {
+        // TODO: All blocks get their TextBlockuserData objects created in one batch at
+        // the start. This blocks the main thread and leads to a short delay (~0.5s for 100k lines)
+        // Possible improvements:
+        //  * move this part outside the highlighter+ensure it'll be run before highlightBlock()
+        //  * Allocate a big chunk of memory and put all UserData objects in there.
         userData = new TextBlockUserData();
         setCurrentBlockUserData(userData);
     }
@@ -245,9 +252,10 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     if (!m_enabled)
         return;
 
+    QTextBlock currBlock = currentBlock();
     State state;
-    if (currentBlock().position() > 0) {
-        const auto prevBlock = currentBlock().previous();
+    if (currBlock.position() > 0) {
+        const auto prevBlock = currBlock.previous();
         const auto prevData = dynamic_cast<TextBlockUserData*>(prevBlock.userData());
         Q_ASSERT_X(prevData, "SyntaxHighlighter", "prevData should not be null");
         state = prevData->state;
@@ -256,7 +264,8 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     d->fmtList.clear();
     state = highlightLine(text, state);
 
-    DEFER { emit blockHighlighted(currentBlock()); }; // Emit blockChanged after we're done with everything
+    // Note: This lambda is executed at function exit
+    DEFER { emit blockHighlighted(currBlock); };
 
     if (newUserData) { // first time we highlight this
         userData->state = state;
@@ -275,9 +284,10 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
     userData->state = state;
     userData->foldingRegions = d->foldingRegions;
 
-    const auto nextBlock = currentBlock().next();
-    if (!nextBlock.isValid())
+    const auto nextBlock = currBlock.next();
+    if (!nextBlock.isValid()) {
         return;
+    }
 
     if (forceRehighlighted) { // Proliferate rehighlighting to next block if needed
         auto nextData = dynamic_cast<TextBlockUserData*>(nextBlock.userData());
@@ -285,7 +295,15 @@ void SyntaxHighlighter::highlightBlock(const QString& text)
         nextData->forceRehighlighting = true;
     }
 
-    QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
+    // The highlighter will automagically keep highlighting text blocks for as long as the block's user state
+    // has changed during highlighting. However, this runs on the main thread so we shouldn't let it execute too
+    // often in a row. Every some iterations we instead queue up the highlighting to continue on next tick.
+    // It's good to immediately queue once in order to not block the main thread during program creation.
+    if (s_continuousIterations++ % 256 == 0) {
+        QMetaObject::invokeMethod(this, "rehighlightBlock", Qt::QueuedConnection, Q_ARG(QTextBlock, nextBlock));
+    }
+    else
+        currBlock.setUserState(currBlock.userState() + 1);
 }
 
 void SyntaxHighlighter::applyFormat(int offset, int length, const Format& format)
