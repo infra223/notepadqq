@@ -961,7 +961,7 @@ std::pair<int,int> TextEdit::getVisualSelection(const QTextBlock& block, const i
         return {-1,-1};
 
     const QString& text = block.text();
-    const int length = std::min(endColumn, block.length());
+    const int length = std::min(endColumn, text.length());
     int column = 0;
     int begin = -1, end = length;
     int m_tabWidth = 4;
@@ -988,7 +988,7 @@ std::pair<int,int> TextEdit::getVisualSelection(const QTextBlock& block, const i
     }
 
     if (column < endColumn)
-        end = block.length();
+        end = text.length();
     else
         end = i;
 
@@ -1817,11 +1817,8 @@ void TextEdit::paintEvent(QPaintEvent* e)
     QRectF mcsBlockRect;
     if (m_mcsTriggerState == McsTriggerState::Drag) {
         const qreal spacew = QFontMetricsF(font()).width(QLatin1Char(' '));
-
-        const QTextLine line = document()->firstBlock().layout()->lineForTextPosition(0);
-        QRectF rr = line.naturalTextRect();
-        // rr.left() contains the natural offset of text lines. No other way to get it..
-        mcsBlockRect.setLeft(mcsBlock.left() * spacew + rr.left());
+        const qreal margin = document()->documentMargin();
+        mcsBlockRect.setLeft(mcsBlock.left() * spacew + margin);
         mcsBlockRect.setWidth(mcsBlock.width() * spacew);
         mcsBlockRect.setHeight(9999);
     }
