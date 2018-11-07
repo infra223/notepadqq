@@ -1,21 +1,13 @@
 == Miscellaneous ==
 - One Whitespace function not implemented.
-+ Add more documentation to code.
 - Add more themes.
-- Make sure we're not doing too many useless redraw operations.
-+ Fix qDebug warnings.
-+ Don't composite extra events on *every* repaint.
-- Rebase to upstream master.
-+ Include notice to satisfy licenses of syntax-highlighting and math QKQTPlotter
-- Copy changes from syntaxhighlighting over to its own repo
+- Copy changes from syntaxhighlighting over to its own repo?
 - Do last: Bump version (see Wiki).
+- Minor painting bug when switching to INSERT mode and back again.
+- Disabling textDragging will still create the Drag-cursor when dragging. Is this from QPlainTextEdit?
 
 == Multi-Cursor Selection ==
-+ Make sure the read-only attribute is respected during mcs operations
 - Filter cursor array to remove overlapping selections (selections that touch each other are fine)
-+ Implement inputmethodevent
-+ Need to update viewport on mouse click if it cancels mcs (impl. function for clearing mcs)
-+ Implement getSelections(). Need setSelections()?
 - Implement "Find All", "Replace All"
 
 == Folding ==
@@ -24,8 +16,3 @@
 == Find & Replace ==
 - Find might behave differently for special chars (\t, \n, ..).
 - Can't search across line boundaries yet.
-+ Open folded areas when switching to a result inside one.
-
-== Labels ==
-+ LatexLabel doesn't limit itself to comments
-+ There's some painting bug still left with moving lines downwards

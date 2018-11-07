@@ -36,7 +36,8 @@ struct Config {
     int tabWidth =              4;
 
     int zoomLevel =             0;
-    
+
+    bool enableLineHighlight =  true;
     bool enableTextDragging =   false;
     int cursorFlashTime =       -1;     // 0==off, -1==default
 

@@ -86,6 +86,9 @@ Theme TextEdit::getTheme() const
 
 void TextEdit::highlightCurrentLine()
 {
+    if (!m_config.enableLineHighlight)
+        return;
+
     QTextEdit::ExtraSelection selection;
     selection.format.setBackground(QBrush(getTheme().editorColor(Theme::CurrentLine)));
     selection.format.setProperty(QTextFormat::FullWidthSelection, true);
@@ -1265,8 +1268,10 @@ void TextEdit::onCursorRepaint()
 void TextEdit::keyPressEvent(QKeyEvent* event)
 {
     const auto shiftAlt = Qt::ShiftModifier | Qt::AltModifier;
+    const bool shiftAltPressed = (event->modifiers() & shiftAlt) == shiftAlt;
+    const bool ctrlPressed = (event->modifiers() & Qt::ControlModifier) == Qt::ControlModifier;
 
-    if ((event->modifiers() & shiftAlt) == shiftAlt) {
+    if (shiftAltPressed) {
         QTextCursor::MoveOperation op = QTextCursor::NoMove;
         switch (event->key()) {
         case Qt::Key_Up:
@@ -1287,6 +1292,18 @@ void TextEdit::keyPressEvent(QKeyEvent* event)
             return singleCursorKeyPressEvent(event);
 
         return;
+    }
+
+    if (ctrlPressed) {
+        int step = 0;
+        switch(event->key()) {
+        case Qt::Key_Up: step = -1; break;
+        case Qt::Key_Down: step = +1; break;
+        }
+        if (step != 0) {
+            verticalScrollBar()->setValue( verticalScrollBar()->value() + step );
+            return;
+        }
     }
 
     if (m_cursors.size() <= 1)
