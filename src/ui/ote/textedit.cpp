@@ -1066,13 +1066,15 @@ void TextEdit::mouseReleaseEvent(QMouseEvent *event)
             b = b.next();
         };
 
-        if (m_cursors.size()==1) {
+        if (!m_cursors.empty()) {
             auto c = m_cursors[0];
-            mcsClearAllCursors(false);
             setTextCursor(c);
-        } else {
-            mcsEnsureUniqueCursors();
-            mcsUpdateSelectionHighlights();
+            if (m_cursors.size()==1)
+                mcsClearAllCursors(false);
+            else {
+                mcsEnsureUniqueCursors();
+                mcsUpdateSelectionHighlights();
+            }
         }
 
         viewport()->update();
