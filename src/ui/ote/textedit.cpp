@@ -1225,6 +1225,8 @@ void TextEdit::mcsPaste(const QStringList& list)
 {
     const size_t numLines = size_t(list.size());
 
+    QTextCursor bc(document());
+    bc.beginEditBlock();
     if (numLines == m_cursors.size()) {
         int i = 0;
         for (auto& c : m_cursors) {
@@ -1233,6 +1235,7 @@ void TextEdit::mcsPaste(const QStringList& list)
     } else {
         mcsInsertText(list.join('\n'));
     }
+    bc.endEditBlock();
 }
 
 void TextEdit::mcsPaste(const QString& text)
