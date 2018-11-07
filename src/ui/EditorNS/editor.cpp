@@ -196,8 +196,8 @@ namespace EditorNS
 
     Editor::IndentationMode Editor::indentationMode()
     {
-        auto tabWidth = m_textEditor->getTabWidth();
-        auto usingSpaces = m_textEditor->isTabToSpaces();
+        auto tabWidth = m_textEditor->getConfig().tabWidth;
+        auto usingSpaces = m_textEditor->getConfig().convertTabToSpaces;
         return Editor::IndentationMode{!usingSpaces, tabWidth};
     }
 
@@ -241,7 +241,7 @@ namespace EditorNS
 
     int EditorNS::Editor::getZoomLevel() const
     {
-        return m_textEditor->getZoomLevel();
+        return m_textEditor->getConfig().zoomLevel;
     }
 
     void Editor::setSmartIndent(bool enabled)

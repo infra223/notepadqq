@@ -17,12 +17,40 @@ class SyntaxHighlighter;
 class Repository;
 class EditorLabel;
 
+/**
+ * Config
+ * Contains all sorts of configuration settings for TextEdit and can be passed to its constructor
+ * for easy initialization.
+ *
+ * If you add a new config option that needs extra work to function, make sure to add this in
+ * TextEdit's constructor.
+ */
+struct Config {
+    // Text options
+    bool showEndOfLineMarkers = false;
+    bool showLinebreaks =       false;
+    bool useSmartIndent =       false;
+    bool convertTabToSpaces =   false;
+    bool wordWrap =             false;
+
+    int tabWidth =              4;
+
+    int zoomLevel =             0;
+    
+    bool enableTextDragging =   false;
+    int cursorFlashTime =       -1;     // 0==off, -1==default
+
+    QFont font =                QFontDatabase::systemFont(QFontDatabase::FixedFont);
+
+    // TODO: Add fromSettings(), toSettings() functions
+};
+
 class TextEdit : public QPlainTextEdit
 {
     Q_OBJECT
 
 public:
-    TextEdit(QWidget* parent);
+    TextEdit(QWidget* parent, Config cfg = Config());
 
     /**
      * Repository
@@ -34,6 +62,8 @@ public:
         return *s_repository;
     }
     static void initRepository(const QString& path);
+
+    const Config& getConfig() const { return m_config; }
 
     void setTheme(const Theme& theme);
     Theme getTheme() const;
@@ -57,22 +87,22 @@ public:
     void setSmartIndent(bool enable);
     // If set, pressing the tab key will insert the necessary amount of spaces instead.
     void setTabToSpaces(bool enable);
-    bool isTabToSpaces() const;
+
+    // Sets the time interval of cursor flashes.
+    void setCursorFlashTime(int msecs);
 
     // Automatically break lines when they reach the right border of the text field
     void setWordWrap(bool enable);
 
     // Sets the size of a tabstop in number of spaces. Default is 4.
     void setTabWidth(int width);
-    int getTabWidth() const;
     
     /**
      * Font Settings
-     * Use getFont() instead of font() to get the current font.
+     * Use getConfig().font instead of font() to get the current font.
      * font() will return the "real" font including text zoom, etc.
      */
     void setFont(QFont font);
-    QFont getFont() const;
 
     /**
      * Cursor Operations
@@ -184,7 +214,6 @@ public:
     void setZoomTo(int value);
     void zoomIn();
     void zoomOut();
-    int getZoomLevel() const;
 
     /**
      * Document History
@@ -416,6 +445,9 @@ private:
      * Member variables
      */
 
+    // Contains all configuration settings
+    Config m_config;
+
     // Whether any extraSelection lists were changed. If so, they get composited during next paint
     bool m_extraSelectionsModified = false;
     // List of all active cursors, including main cursor.
@@ -449,11 +481,6 @@ private:
     QPoint m_dragOrigin;
     QTextCursor m_dragCursor;
 
-    // Text options
-    bool m_showEndOfLineMarkers = false;
-    bool m_showLinebreaks = false;
-    bool m_smartIndent = false;
-    bool m_tabToSpaces = false;
 
     // Variables for search/replace.
     bool m_findActive = false;
@@ -462,9 +489,7 @@ private:
     QPair<int,int> m_findRange;
     QTextDocument::FindFlags m_findFlags;
 
-    int m_tabWidth = 4;
     int m_fontSize = 0; // Will be set by setFont(...) in constructor call
-    int m_zoomLevel = 0;
 
     ExtraSelectionMap m_extraSelections;
     TextEditGutter* m_sideBar;

@@ -24,12 +24,12 @@ namespace ote {
 
 Repository* TextEdit::s_repository = nullptr;
 
-TextEdit::TextEdit(QWidget* parent)
+TextEdit::TextEdit(QWidget* parent, Config cfg)
     : QPlainTextEdit(parent)
     , m_sideBar(new TextEditGutter(this))
     , m_highlighter(new SyntaxHighlighter(this))
 {
-    setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+
 
     connect(&m_cursorTimer, &QTimer::timeout, this, &TextEdit::onCursorRepaint);
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
@@ -41,10 +41,14 @@ TextEdit::TextEdit(QWidget* parent)
     connect(m_highlighter, &ote::SyntaxHighlighter::blockHighlighted, this, &TextEdit::blockHighlighted);
     m_highlighter->setDocument(document()); // Important to set this *after* the blockChanged connect
 
-    const int flashTime = QApplication::cursorFlashTime();
-    m_cursorTimer.start(flashTime / 2);
+    // Some config options need some extra work. We'll set them manually.
+    setWordWrap(cfg.wordWrap);
+    setZoomTo(cfg.zoomLevel);
+    setCursorFlashTime(cfg.cursorFlashTime);
+    setFont(cfg.font);
+    m_config = cfg;
 
-    setWordWrap(false);
+
     setCenterOnScroll(false);
 
     updateSidebarGeometry();
@@ -109,10 +113,10 @@ Definition TextEdit::getDefinition() const
 
 void TextEdit::setEndOfLineMarkersVisible(bool enable)
 {
-    if (enable == m_showEndOfLineMarkers)
+    if (enable == m_config.showEndOfLineMarkers)
         return;
 
-    m_showEndOfLineMarkers = enable;
+    m_config.showEndOfLineMarkers = enable;
     viewport()->repaint();
 }
 
@@ -131,35 +135,39 @@ void TextEdit::setWhitespaceVisible(bool show)
 
 void TextEdit::setShowLinebreaks(bool show)
 {
-    if (show == m_showLinebreaks)
+    if (show == m_config.showLinebreaks)
         return;
 
-    m_showLinebreaks = show;
+    m_config.showLinebreaks = show;
     update();
 }
 
 void TextEdit::setSmartIndent(bool enable)
 {
-    m_smartIndent = enable;
+    m_config.useSmartIndent = enable;
 }
 
 void TextEdit::setTabToSpaces(bool enable)
 {
-    m_tabToSpaces = enable;
+    m_config.convertTabToSpaces = enable;
 }
 
 void TextEdit::setWordWrap(bool enable)
 {
+    if (enable == m_config.wordWrap)
+        return;
+
+    m_config.wordWrap = enable;
     enable ? setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere) : setWordWrapMode(QTextOption::NoWrap);
 }
 
 void TextEdit::setTabWidth(int width)
 {
-    if (width < 0 || width == m_tabWidth)
+    if (width < 0 || width == m_config.tabWidth)
         return;
 
-    m_tabWidth = width;
-    setFont(getFont());
+    m_config.tabWidth = width;
+    setFont(m_config.font);
 }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
@@ -179,8 +187,10 @@ void TextEdit::setFont(QFont font)
         qDebug() << "Selected font is not monospace: " << font.family() << font.style();
     }
 
+    m_config.font = font;
+
     m_fontSize = font.pointSize();
-    font.setPointSize(font.pointSize() + m_zoomLevel);
+    font.setPointSize(font.pointSize() + m_config.zoomLevel);
 
     // Calculating letter width using QFrontMetrics isn't 100% accurate. Small inaccuracies
     // can accumulate over time. Instead, we can calculate a good letter spacing value and
@@ -190,9 +200,9 @@ void TextEdit::setFont(QFont font)
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
     auto stopWidth = m_tabWidth * fm.width(' ');
 #else
-    auto stopWidth = m_tabWidth * fm.horizontalAdvance(' ');
+    auto stopWidth = m_config.tabWidth * fm.horizontalAdvance(' ');
 #endif
-    auto letterSpacing = (ceil(stopWidth) - stopWidth) / m_tabWidth;
+    auto letterSpacing = (ceil(stopWidth) - stopWidth) / m_config.tabWidth;
 
     font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
     QPlainTextEdit::setFont(font);
@@ -201,20 +211,16 @@ void TextEdit::setFont(QFont font)
     redrawAllEditorLabels();
 }
 
-QFont TextEdit::getFont() const {
-    QFont f = font();
-    f.setPointSize(m_fontSize);
-    return f;
-}
-
-bool TextEdit::isTabToSpaces() const
+void TextEdit::setCursorFlashTime(int msecs)
 {
-    return m_tabToSpaces;
-}
+    if (msecs==-1)
+        msecs = QApplication::cursorFlashTime();
+    if (msecs == 0) {
+        m_cursorTimer.stop();
+    } else
+        m_cursorTimer.start(msecs / 2);
 
-int TextEdit::getTabWidth() const
-{
-    return m_tabWidth;
+    QApplication::setCursorFlashTime(msecs);
 }
 
 QString TextEdit::getCurrentWord() const
@@ -439,10 +445,10 @@ void TextEdit::setZoomTo(int value)
     else if (m_fontSize + value > MAX_FONT_SIZE)
         value = MAX_FONT_SIZE - m_fontSize;
 
-    m_zoomLevel = value;
+    m_config.zoomLevel = value;
 
     QFont f = font();
-    f.setPointSize(m_fontSize + m_zoomLevel);
+    f.setPointSize(m_fontSize + m_config.zoomLevel);
     QPlainTextEdit::setFont(f);
 
     updateSidebarGeometry();
@@ -451,17 +457,12 @@ void TextEdit::setZoomTo(int value)
 
 void TextEdit::zoomIn()
 {
-    setZoomTo(m_zoomLevel + 1);
+    setZoomTo(m_config.zoomLevel + 1);
 }
 
 void TextEdit::zoomOut()
 {
-    setZoomTo(m_zoomLevel - 1);
-}
-
-int TextEdit::getZoomLevel() const
-{
-    return m_zoomLevel;
+    setZoomTo(m_config.zoomLevel - 1);
 }
 
 void TextEdit::clearHistory()
@@ -645,11 +646,11 @@ void TextEdit::convertLeadingWhitespaceToTabs()
     final.reserve(plaintext.length());
 
     for (auto& line : lines) {
-        auto pair = getLeadingWSLength(line, m_tabWidth);
+        auto pair = getLeadingWSLength(line, m_config.tabWidth);
         auto idx = pair.first;
         auto ws = pair.second;
 
-        final += QString(ws / m_tabWidth, '\t') + QString(ws % m_tabWidth, ' ') ;
+        final += QString(ws / m_config.tabWidth, '\t') + QString(ws % m_config.tabWidth, ' ') ;
         final += line.mid(idx);
         final += '\n';
     }
@@ -677,7 +678,7 @@ void TextEdit::convertLeadingWhitespaceToSpaces()
     final.reserve(plaintext.length());
 
     for (auto& line : lines) {
-        auto pair = getLeadingWSLength(line, m_tabWidth);
+        auto pair = getLeadingWSLength(line, m_config.tabWidth);
         auto idx = pair.first;
         auto ws = pair.second;
 
@@ -919,19 +920,20 @@ void TextEdit::mousePressEvent(QMouseEvent* evt)
         return QPlainTextEdit::mousePressEvent(evt);
     }
 
-    // FIXME: Only take action when cursor is truly on top of selection,
-    // or we break triple selection
-    const auto c = getSelectionUnderPoint(evt->pos());
+    if (m_config.enableTextDragging) {
+        // FIXME: Only take action when cursor is truly on top of selection,
+        // or we break triple selection
+        const auto c = getSelectionUnderPoint(evt->pos());
 
-    if (!c.isNull()) {
-        m_dragState = DragState::Begin;
-        m_dragOrigin = evt->pos();
-        m_dragCursor = c;
-        return;
-    } else
-        return QPlainTextEdit::mousePressEvent(evt);
+        if (!c.isNull()) {
+            m_dragState = DragState::Begin;
+            m_dragOrigin = evt->pos();
+            m_dragCursor = c;
+            return;
+        }
+    }
 
-    Q_ASSERT_X(false, "mousePressEvent", "Do we want to end up here?");
+    return QPlainTextEdit::mousePressEvent(evt);
 }
 
 QPoint TextEdit::getGridPointAt(const QPoint& point)
@@ -943,7 +945,7 @@ QPoint TextEdit::getGridPointAt(const QPoint& point)
     int column = 0;
     for (int i = 0; i < position; ++i) {
         if (text.at(i) == QLatin1Char('\t'))
-            column = column - (column % m_tabWidth) + m_tabWidth;
+            column = column - (column % m_config.tabWidth) + m_config.tabWidth;
         else
             ++column;
     }
@@ -1248,7 +1250,10 @@ void TextEdit::mcsPaste(const QString& text)
 
 void TextEdit::onCursorRepaint()
 {
-    m_drawCursorsOn = !m_drawCursorsOn;
+    if (m_config.cursorFlashTime==0)
+        m_drawCursorsOn = true;
+    else
+        m_drawCursorsOn = !m_drawCursorsOn;
 
     // If we only have a single cursor it'll be updated by QPlainTextEdit's default mechanism.
     // For more than one cursor we'll just update the whole viewport.
@@ -1388,16 +1393,16 @@ void TextEdit::singleCursorKeyPressEvent(QKeyEvent* e)
         return QPlainTextEdit::keyPressEvent(e);
     }
 
-    if (e->key() == Qt::Key_Tab && m_tabToSpaces) {
+    if (e->key() == Qt::Key_Tab && m_config.convertTabToSpaces) {
         auto cursor = textCursor();
-        auto numSpaces = m_tabWidth - cursor.positionInBlock() % m_tabWidth;
+        auto numSpaces = m_config.tabWidth - cursor.positionInBlock() % m_config.tabWidth;
         if (numSpaces == 0)
-            numSpaces = m_tabWidth;
+            numSpaces = m_config.tabWidth;
         cursor.insertText(QString(numSpaces, ' '));
         return;
     }
 
-    if (e->key() == Qt::Key_Return && m_smartIndent) {
+    if (e->key() == Qt::Key_Return && m_config.useSmartIndent) {
         auto cursor = textCursor();
         cursor.beginEditBlock();
         QPlainTextEdit::keyPressEvent(e);
@@ -1412,16 +1417,16 @@ void TextEdit::singleCursorKeyPressEvent(QKeyEvent* e)
         return;
     }
 
-    if (e->key() == Qt::Key_Backspace && m_tabToSpaces) {
+    if (e->key() == Qt::Key_Backspace && m_config.convertTabToSpaces) {
         auto txt = textCursor().block().text();
 
         if (txt.isEmpty())
             goto processEventNormally;
 
-        if (txt.endsWith(QString(m_tabWidth, ' ')) && (txt.length() % m_tabWidth) == 0) {
+        if (txt.endsWith(QString(m_config.tabWidth, ' ')) && (txt.length() % m_config.tabWidth) == 0) {
             auto c = textCursor();
 
-            c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, m_tabWidth);
+            c.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, m_config.tabWidth);
             c.removeSelectedText();
             return;
         }
@@ -1514,7 +1519,7 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
 
         const bool folded = isFolded(block);
 
-        if (!m_showEndOfLineMarkers && !folded)
+        if (!m_config.showEndOfLineMarkers && !folded)
             continue;
 
         const QTextLayout* layout = block.layout();
@@ -1522,11 +1527,11 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
         const QTextLine line = layout->lineAt(lineCount - 1);
         const QRectF lineRect = line.naturalTextRect().translated(contentOffset().x(), geom.top());
 
-        if (m_showEndOfLineMarkers)
+        if (m_config.showEndOfLineMarkers)
             painter.drawText(QPointF(lineRect.right() + 2, lineRect.top() + line.ascent()), visualArrow);
 
         if (folded) {
-            qreal offset = spaceWidth + (m_showEndOfLineMarkers ? arrowWidth : 0);
+            qreal offset = spaceWidth + (m_config.showEndOfLineMarkers ? arrowWidth : 0);
             painter.save();
             painter.setPen(getTheme().textColor(Theme::RegionMarker));
 
@@ -1552,7 +1557,7 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
 
 void TextEdit::paintLineBreaks(QPainter& painter, const BlockList& blockList) const
 {
-    if (!m_showLinebreaks)
+    if (!m_config.showLinebreaks)
         return;
 
     const QChar visualArrow = ushort(0x21B5);
