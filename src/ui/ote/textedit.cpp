@@ -37,8 +37,8 @@ TextEdit::TextEdit(QWidget* parent, Config cfg)
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &TextEdit::onCursorPositionChanged); // slot
     connect(this, &QPlainTextEdit::selectionChanged, this, &TextEdit::onSelectionChanged);
     connect(document(), &QTextDocument::contentsChange, this, &TextEdit::onContentsChange);
-
     connect(m_highlighter, &ote::SyntaxHighlighter::blockHighlighted, this, &TextEdit::blockHighlighted);
+
     m_highlighter->setDocument(document()); // Important to set this *after* the blockChanged connect
 
     // Some config options need some extra work. We'll set them manually.
@@ -485,6 +485,10 @@ bool TextEdit::isModified() const
 
 void TextEdit::setModified(bool modified)
 {
+    // If modification is set to false we can assume the document was saved.
+    // In this case, store the current revision so we know what lines are changed in the future.
+    if (!modified)
+        m_lastSavedRevision = document()->revision();
     document()->setModified(modified);
 }
 
@@ -613,6 +617,9 @@ void TextEdit::setPlainText(const QString &text)
     m_highlighter->setEnabled(false);
     QPlainTextEdit::setPlainText(text);
     m_highlighter->setEnabled(true);
+
+    m_initialRevision = document()->revision();
+    m_lastSavedRevision = m_initialRevision;
 }
 
 // pair.first = number of ws characters found, pair.second = number of spaces needed

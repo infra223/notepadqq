@@ -25,11 +25,11 @@
 
 #include "abstracthighlighter_p.h"
 #include "definition.h"
+#include "format.h"
+#include "theme.h"
+#include "state.h"
 #include "fmtrangelist.h"
 #include "foldingregion.h"
-#include "format.h"
-#include "state.h"
-#include "theme.h"
 #include "../util/scopeguard.h"
 
 #include <QDebug>
@@ -40,6 +40,7 @@ Q_DECLARE_METATYPE(QTextBlock)
 using namespace ote;
 
 namespace ote {
+
 class TextBlockUserData : public QTextBlockUserData {
 public:
     State state;

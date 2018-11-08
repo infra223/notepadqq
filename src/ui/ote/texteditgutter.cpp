@@ -144,7 +144,7 @@ QSize TextEditGutter::sizeHint() const
     return m_gutterSize;
 }
 
-void TextEditGutter::updateSizeHint(qreal lineHeight)
+void TextEditGutter::updateSizeHint(int lineHeight)
 {
     auto count = m_textEdit->getLineCount();
     int digits = 1;
@@ -161,15 +161,18 @@ void TextEditGutter::updateSizeHint(qreal lineHeight)
     m_lineHeight = lineHeight;
 
     m_bookmarkStrip.xOffset = leftMargin;
-    m_bookmarkStrip.size = m_bookmarkStrip.visible ? QSizeF{lineHeight, lineHeight} : QSizeF{0, 0};
+    m_bookmarkStrip.width = m_bookmarkStrip.visible ? lineHeight : 0;
 
-    m_numberStrip.xOffset = m_bookmarkStrip.xOffset + m_bookmarkStrip.size.width();
-    m_numberStrip.size = m_numberStrip.visible ? QSizeF{qreal(widthOfString), lineHeight} : QSizeF{0, 0};
+    m_numberStrip.xOffset = m_bookmarkStrip.xOffset + m_bookmarkStrip.width;
+    m_numberStrip.width = m_numberStrip.visible ? widthOfString+4 : 0;
 
-    m_foldingStrip.xOffset = m_numberStrip.xOffset + m_numberStrip.size.width();
-    m_foldingStrip.size = m_foldingStrip.visible ? QSizeF{lineHeight, lineHeight} : QSizeF{0, 0};
+    m_foldingStrip.xOffset = m_numberStrip.xOffset + m_numberStrip.width;
+    m_foldingStrip.width = m_foldingStrip.visible ? lineHeight : 0;
 
-    m_gutterSize = QSize(int(m_foldingStrip.xOffset + m_foldingStrip.size.width()), 0);
+    m_editStrip.xOffset = m_foldingStrip.xOffset + m_foldingStrip.width;
+    m_editStrip.width = m_editStrip.visible ? (lineHeight/4) : 0;
+
+    m_gutterSize = QSize(int(m_editStrip.xOffset + m_editStrip.width), 0);
 
     m_foldingMark = createFoldingMark(lineHeight, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
     m_bookmark = createBookmark(lineHeight, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));
@@ -180,7 +183,7 @@ void TextEditGutter::setBookmarksVisible(bool visible)
     if (m_bookmarkStrip.visible == visible)
         return;
 
-    m_bookmarkStrip.visible = false;
+    m_bookmarkStrip.visible = visible;
     updateSizeHint(m_lineHeight);
 }
 
@@ -189,7 +192,7 @@ void TextEditGutter::setNumbersVisible(bool visible)
     if (m_numberStrip.visible == visible)
         return;
 
-    m_numberStrip.visible = false;
+    m_numberStrip.visible = visible;
     updateSizeHint(m_lineHeight);
 }
 
@@ -198,7 +201,16 @@ void TextEditGutter::setFoldingVisible(bool visible)
     if (m_foldingStrip.visible == visible)
         return;
 
-    m_foldingStrip.visible = false;
+    m_foldingStrip.visible = visible;
+    updateSizeHint(m_lineHeight);
+}
+
+void TextEditGutter::setEditsVisible(bool visible)
+{
+    if (m_foldingStrip.visible == visible)
+        return;
+
+    m_editStrip.visible = visible;
     updateSizeHint(m_lineHeight);
 }
 
@@ -212,10 +224,17 @@ void TextEditGutter::paintEvent(QPaintEvent* event)
 
     painter.fillRect(event->rect(), m_theme.editorColor(Theme::CurrentLine));
 
-    paintBookmarkStrip(painter, blockList);
-    paintNumberStrip(painter, blockList);
-    paintFoldingStrip(painter, blockList);
-    paintFoldingMarks(painter, blockList);
+    if (m_bookmarkStrip.visible)
+        paintBookmarkStrip(painter, blockList);
+    if (m_numberStrip.visible)
+        paintNumberStrip(painter, blockList);
+    if (m_foldingStrip.visible)
+        paintFoldingStrip(painter, blockList);
+    if (m_editStrip.visible)
+        paintEditStrip(painter, blockList);
+
+    if (m_foldingStrip.visible)
+        paintFoldingMarks(painter, blockList);
 }
 
 void TextEditGutter::setTheme(const Theme& theme)
@@ -224,9 +243,8 @@ void TextEditGutter::setTheme(const Theme& theme)
         return;
 
     m_theme = theme;
-    int foldingMarkerSize = int(m_lineHeight);
-    m_foldingMark = createFoldingMark(foldingMarkerSize, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
-    m_bookmark = createBookmark(foldingMarkerSize, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));
+    m_foldingMark = createFoldingMark(m_foldingStrip.width, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
+    m_bookmark = createBookmark(m_bookmarkStrip.width, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));
 }
 
 void TextEditGutter::paintBookmarkStrip(QPainter& p, const TextEdit::BlockList& bl)
@@ -260,9 +278,9 @@ void TextEditGutter::paintNumberStrip(QPainter& p, const TextEdit::BlockList& bl
                                                                : m_theme.editorColor(Theme::LineNumbers);
 
         p.setPen(color);
-        p.drawText(0,
+        p.drawText(m_numberStrip.xOffset,
             geom.top(),
-            width() - static_cast<int>(m_lineHeight),
+            m_numberStrip.width,
             geom.height(),
             Qt::AlignRight,
             QString::number(blockNumber + 1));
@@ -284,7 +302,7 @@ void TextEditGutter::paintFoldingStrip(QPainter& p, const TextEdit::BlockList& b
     p.setPen(pen);
 
     const auto foldingMarkerSize = m_lineHeight;
-    const int xPos = int(width() - foldingMarkerSize * 0.5 - (m_lineHeight / 16));
+    const int xPos = int(m_foldingStrip.xOffset + m_foldingStrip.width/2 - (m_lineHeight / 16));
 
     for (const auto& blockData : bl) {
         const auto& block = blockData.block;
@@ -336,13 +354,41 @@ void TextEditGutter::paintFoldingMarks(QPainter& p, const TextEdit::BlockList& b
             continue;
 
         p.save();
-        p.translate(width() - foldingMarkerSize, geom.top());
+        p.translate(m_foldingStrip.xOffset, geom.top());
         if (folded) {
             p.rotate(90);
             p.translate(0, -foldingMarkerSize);
         }
         p.drawPixmap(0, 0, m_foldingMark);
         p.restore();
+    }
+}
+
+void TextEditGutter::paintEditStrip(QPainter& p, const TextEdit::BlockList& bl)
+{
+    p.setPen(Qt::NoPen);
+    const auto unsavedChanges = QBrush(m_theme.editorColor(Theme::ModifiedLines));
+    const auto savedChanges = QBrush(m_theme.editorColor(Theme::SavedLines));
+
+    const int savedRevision = m_textEdit->m_lastSavedRevision;
+    const int initialRevision = m_textEdit->m_initialRevision;
+
+    for (const auto& blockData : bl) {
+        const auto& block = blockData.block;
+        const auto& geom = blockData.translatedRect;
+
+        if (!block.isVisible())
+            continue;
+
+        const auto rev = block.revision();
+
+        if (rev > savedRevision) {
+            p.setBrush(unsavedChanges);
+            p.drawRect(m_editStrip.xOffset, geom.top(), m_editStrip.width, geom.height());
+        } else if(rev > initialRevision) {
+            p.setBrush(savedChanges);
+            p.drawRect(m_editStrip.xOffset, geom.top(), m_editStrip.width, geom.height());
+        }
     }
 }
 
@@ -399,7 +445,7 @@ void TextEditGutter::leaveEvent(QEvent* /*e*/)
 bool TextEditGutter::StripInfo::isInside(qreal x) const
 {
     const auto localX = x - xOffset;
-    return 0 < localX && localX < size.width();
+    return 0 < localX && localX < width;
 }
 
 } // namespace ote

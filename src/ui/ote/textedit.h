@@ -244,6 +244,9 @@ public:
      * Document Operations
      * These functions operate on the entire document
      */
+    // Sets the entire document's text. Use this when loading/reloading the file's contents.
+    // Try not to use it for other stuff. TextEdit assumes that the loaded file is in pristine condition
+    // after setPlainText().
     void setPlainText(const QString &text);
     // Finds leading whitespace comprised of tabs or spaces and converts them entirely into tabs/spaces.
     // When converting to tabs, spaces sometimes need to be used to fill gaps.
@@ -457,6 +460,10 @@ private:
     QTimer m_cursorTimer;
     // True if flashing cursors should be drawn at the moment.
     bool m_drawCursorsOn = true;
+    // Contains the QTextDocument revision that was current when this document was last set to unmodified.
+    int m_lastSavedRevision = 0;
+    // Contains the QTextDocument revision that was current when this document was last loaded/reloaded.
+    int m_initialRevision = 0;
 
     enum class McsTriggerState {
         NoTrigger,  // Trigger not pressed

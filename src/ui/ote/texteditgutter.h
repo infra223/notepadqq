@@ -13,11 +13,12 @@ public:
     explicit TextEditGutter(TextEdit *editor);
     QSize sizeHint() const override;
 
-    void updateSizeHint(qreal lineHeight);
+    void updateSizeHint(int lineHeight);
 
     void setBookmarksVisible(bool visible);
     void setNumbersVisible(bool visible);
     void setFoldingVisible(bool visible);
+    void setEditsVisible(bool visible);
 
 // signals:
 //    void foldingMarkClicked(const QTextBlock& block);
@@ -37,6 +38,7 @@ private:
     void paintNumberStrip(QPainter& p, const TextEdit::BlockList& bl);
     void paintFoldingStrip(QPainter& p, const TextEdit::BlockList& bl);
     void paintFoldingMarks(QPainter& p, const TextEdit::BlockList& bl);
+    void paintEditStrip(QPainter& p, const TextEdit::BlockList& bl);
 
     void onBookmarkStripEnter(const QTextBlock& block);
     void onNumberStripEnter(const QTextBlock& block);
@@ -60,17 +62,18 @@ private:
     int m_foldingEndBlock = -1;
 
     QSize m_gutterSize;
-    qreal m_lineHeight = 0;
+    int m_lineHeight = 0;
 
     struct StripInfo {
-        qreal xOffset = 0;
-        QSizeF size;
+        int xOffset = 0;
+        int width = 0;
         bool visible = true;
         bool isInside(qreal x) const;
     };
     StripInfo m_bookmarkStrip;
     StripInfo m_numberStrip;
     StripInfo m_foldingStrip;
+    StripInfo m_editStrip;
 };
 
 } // namespace ote
