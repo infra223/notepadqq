@@ -10,7 +10,7 @@ class TextEditGutter : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TextEditGutter(TextEdit *editor);
+    explicit TextEditGutter(TextEdit *editor, const Config& cfg);
     QSize sizeHint() const override;
 
     void updateSizeHint(int lineHeight);

@@ -53,10 +53,15 @@ QPixmap createFoldingMark(int size, QColor colorFill)
     return pix;
 }
 
-TextEditGutter::TextEditGutter(TextEdit* editor)
+TextEditGutter::TextEditGutter(TextEdit* editor, const Config& cfg)
     : QWidget(editor)
     , m_textEdit(editor)
 {
+    m_bookmarkStrip.visible = cfg.showBookmarkStrip;
+    m_numberStrip.visible = cfg.showNumberStrip;
+    m_foldingStrip.visible = cfg.showFoldingStrip;
+    m_editStrip.visible = cfg.showEditStrip;
+
     setMouseTracking(true);
 }
 
@@ -172,7 +177,7 @@ void TextEditGutter::updateSizeHint(int lineHeight)
     m_editStrip.xOffset = m_foldingStrip.xOffset + m_foldingStrip.width;
     m_editStrip.width = m_editStrip.visible ? (lineHeight/4) : 0;
 
-    m_gutterSize = QSize(int(m_editStrip.xOffset + m_editStrip.width), 0);
+    m_gutterSize = QSize(m_editStrip.xOffset + m_editStrip.width, 0);
 
     m_foldingMark = createFoldingMark(lineHeight, m_textEdit->getTheme().editorColor(Theme::CodeFolding));
     m_bookmark = createBookmark(lineHeight, m_textEdit->getTheme().editorColor(Theme::MarkBookmark));

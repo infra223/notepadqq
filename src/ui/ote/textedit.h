@@ -27,21 +27,27 @@ class EditorLabel;
  */
 struct Config {
     // Text options
-    bool showEndOfLineMarkers = false;
-    bool showLinebreaks =       false;
-    bool useSmartIndent =       false;
-    bool convertTabToSpaces =   false;
-    bool wordWrap =             false;
+    bool showEndOfLineMarkers   = false;
+    bool showLinebreaks         = false;
+    bool useSmartIndent         = false;
+    bool convertTabToSpaces     = false;
+    bool wordWrap               = false;
 
-    int tabWidth =              4;
+    int tabWidth                = 4;
 
-    int zoomLevel =             0;
+    int zoomLevel               = 0;
 
-    bool enableLineHighlight =  true;
-    bool enableTextDragging =   false;
-    int cursorFlashTime =       -1;     // 0==off, -1==default
+    bool enableLineHighlight    = true;
+    bool enableTextDragging     = false;
+    int cursorFlashTime         = -1;     // 0==off, -1==default
 
-    QFont font =                QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    // Sidebar
+    bool showBookmarkStrip  = true;
+    bool showNumberStrip    = true;
+    bool showFoldingStrip   = true;
+    bool showEditStrip      = true;
+
+    QFont font              = QFontDatabase::systemFont(QFontDatabase::FixedFont);
 
     // TODO: Add fromSettings(), toSettings() functions
 };

@@ -26,11 +26,9 @@ Repository* TextEdit::s_repository = nullptr;
 
 TextEdit::TextEdit(QWidget* parent, Config cfg)
     : QPlainTextEdit(parent)
-    , m_sideBar(new TextEditGutter(this))
+    , m_sideBar(new TextEditGutter(this,cfg))
     , m_highlighter(new SyntaxHighlighter(this))
 {
-
-
     connect(&m_cursorTimer, &QTimer::timeout, this, &TextEdit::onCursorRepaint);
     connect(this, &QPlainTextEdit::blockCountChanged, this, &TextEdit::updateSidebarGeometry);
     connect(this, &QPlainTextEdit::updateRequest, this, &TextEdit::updateSidebarArea);
@@ -762,8 +760,8 @@ void TextEdit::trimWhitespace(bool leading, bool trailing)
 void TextEdit::updateSidebarGeometry()
 {
     const auto firstBlock = firstVisibleBlock();
-    const qreal lineHeight =
-        firstBlock.isValid() ? blockBoundingRect(firstBlock).height() / firstBlock.lineCount() : 17; // Decent default
+    const int lineHeight =
+        int(firstBlock.isValid() ? blockBoundingRect(firstBlock).height() / firstBlock.lineCount() : 17); // Decent default
 
     m_sideBar->updateSizeHint(lineHeight);
     auto gutterWidth = m_sideBar->sizeHint().width();
