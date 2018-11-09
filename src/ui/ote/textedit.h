@@ -9,6 +9,7 @@
 
 #include "Highlighter/theme.h"
 #include "Highlighter/definition.h"
+#include <QSettings>
 
 namespace ote {
 
@@ -49,7 +50,10 @@ struct Config {
 
     QFont font              = QFontDatabase::systemFont(QFontDatabase::FixedFont);
 
-    // TODO: Add fromSettings(), toSettings() functions
+    // Writes this config to the given QSettings object.
+    void writeToSettings(QSettings& settings) const;
+    // Creates a new Config from the data inside the given QSettings object.
+    static Config readFromSettings(const QSettings& settings);
 };
 
 class TextEdit : public QPlainTextEdit

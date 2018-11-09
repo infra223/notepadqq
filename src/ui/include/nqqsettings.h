@@ -61,6 +61,7 @@
 class NqqSettings {
 
 public:
+    QSettings& getQSettings() { return _m_settings; }
 
     BEGIN_GENERAL_CATEGORY(General)
         NQQ_SETTING(Localization,                   QString,    "")

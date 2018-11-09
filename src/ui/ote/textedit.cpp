@@ -22,6 +22,51 @@
 
 namespace ote {
 
+#define WRITE_KEY(name, var) if(defaultConfig.var != var) settings.setValue("OTE/" name, QVariant::fromValue(var))
+#define READ_KEY(type, name, var) cfg.var = settings.value("OTE/" name, cfg.var).value<type>();
+
+void Config::writeToSettings(QSettings& settings) const
+{
+    Config defaultConfig;
+
+    WRITE_KEY("showEndOfLineMarkers", showEndOfLineMarkers);
+    WRITE_KEY("showLinebreaks", showLinebreaks);
+    WRITE_KEY("useSmartIndent", useSmartIndent);
+    WRITE_KEY("convertTabToSpaces", convertTabToSpaces);
+    WRITE_KEY("wordWrap", wordWrap);
+    WRITE_KEY("tabWidth", tabWidth);
+    WRITE_KEY("zoomLevel", zoomLevel);
+    WRITE_KEY("enableLineHighlight", enableLineHighlight);
+    WRITE_KEY("cursorFlashTime", cursorFlashTime);
+    WRITE_KEY("showBookmarkStrip", showBookmarkStrip);
+    WRITE_KEY("showNumberStrip", showNumberStrip);
+    WRITE_KEY("showFoldingStrip", showFoldingStrip);
+    WRITE_KEY("showEditStrip", showEditStrip);
+    WRITE_KEY("font", font);
+}
+
+Config Config::readFromSettings(const QSettings& settings)
+{
+    Config cfg;
+    READ_KEY(bool, "showEndOfLineMarkers", showEndOfLineMarkers);
+    READ_KEY(bool, "showLinebreaks", showLinebreaks);
+    READ_KEY(bool, "useSmartIndent", useSmartIndent);
+    READ_KEY(bool, "convertTabToSpaces", convertTabToSpaces);
+    READ_KEY(bool, "wordWrap", wordWrap);
+    READ_KEY(int, "tabWidth", tabWidth);
+    READ_KEY(int, "zoomLevel", zoomLevel);
+    READ_KEY(bool, "enableLineHighlight", enableLineHighlight);
+    READ_KEY(int, "cursorFlashTime", cursorFlashTime);
+    READ_KEY(bool, "showBookmarkStrip", showBookmarkStrip);
+    READ_KEY(bool, "showNumberStrip", showNumberStrip);
+    READ_KEY(bool, "showFoldingStrip", showFoldingStrip);
+    READ_KEY(bool, "showEditStrip", showEditStrip);
+    READ_KEY(QFont, "font", font);
+
+    return cfg;
+}
+
+
 Repository* TextEdit::s_repository = nullptr;
 
 TextEdit::TextEdit(QWidget* parent, Config cfg)
@@ -2246,5 +2291,6 @@ WeakEditorLabelPtr TextEdit::addEditorLabel(EditorLabelPtr label)
         });
     return *m_editorLabels.insert(it, label);
 }
+
 
 } // namespace ote
