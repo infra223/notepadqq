@@ -386,11 +386,14 @@ void TextEditGutter::paintEditStrip(QPainter& p, const TextEdit::BlockList& bl)
             continue;
 
         const auto rev = block.revision();
-
-        if (rev > savedRevision) {
+        if(rev <= initialRevision)
+            continue;
+        // Show unsavedChanges not just when rev>savedRevision because a user could CTRL+Z back to a revision before
+        // the last save. We want to show that as unsaved too.
+        if (rev != savedRevision) {
             p.setBrush(unsavedChanges);
             p.drawRect(m_editStrip.xOffset, geom.top(), m_editStrip.width, geom.height());
-        } else if(rev > initialRevision) {
+        } else {
             p.setBrush(savedChanges);
             p.drawRect(m_editStrip.xOffset, geom.top(), m_editStrip.width, geom.height());
         }
