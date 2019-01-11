@@ -275,12 +275,12 @@ public:
      * The Syntax Definition handles folding regions, but generally multi-line comments
      * and function bodies can be folded.
      */
-    // Returns whether the specific block is the start of a folding area.
-    bool isFoldable(const QTextBlock& block) const;
-    // Returns whether a specific block is currently folded.
-    bool isFolded(const QTextBlock& block) const;
-    // folds/unfolds a specific block if possible.
-    void toggleFold(const QTextBlock& startBlock);
+    // Returns whether the specific block is the start of a folding region.
+    bool isFoldingRegion(const QTextBlock& block) const;
+    // Returns whether a specific region is currently folded.
+    bool isRegionFolded(const QTextBlock& block) const;
+    // folds/unfolds a specific region if possible.
+    void toggleRegionFold(QTextBlock startBlock);
 
     bool isBookmarked(const QTextBlock& block) const;
     bool isBookmarked(CursorPos pos) const;
@@ -402,7 +402,11 @@ private:
     // your search result is visible.
     void ensureSelectionUnfolded(const Selection& sel);
     // Returns the text block that marks the end of a folding region. Invalid if none found.
-    QTextBlock findClosingBlock(const QTextBlock& startBlock) const;
+    QTextBlock findEndOfFoldingRegion(const QTextBlock& startBlock) const;
+    // Returns the text block that marks the beginning of the folding region. Invalid if none found.
+    QTextBlock findBeginOfFoldingRegion(const QTextBlock& startBlock) const;
+    // Returns whether the text block is folded.
+    bool isBlockFolded(const QTextBlock& block) const;
     // Returns [column,row] under 'point'.
     QPoint getGridPointAt(const QPoint& point);
     // Takes a text block and returns a pair of positions.

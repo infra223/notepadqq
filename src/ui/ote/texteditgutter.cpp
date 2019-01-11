@@ -135,8 +135,8 @@ void TextEditGutter::mouseReleaseEvent(QMouseEvent* event)
     case 1:
         break;
     case 2: {
-        if (m_textEdit->isFoldable(block) || m_textEdit->isFolded(block))
-            m_textEdit->toggleFold(block);
+        if (m_textEdit->isFoldingRegion(block) || m_textEdit->isRegionFolded(block))
+            m_textEdit->toggleRegionFold(block);
         break;
     }
     }
@@ -298,7 +298,7 @@ void TextEditGutter::paintFoldingStrip(QPainter& p, const TextEdit::BlockList& b
         return;
 
     // Don't draw the folding range lines when the hovered block is already folded
-    if (m_textEdit->isFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock)))
+    if (m_textEdit->isRegionFolded(m_textEdit->document()->findBlockByNumber(m_foldingStartBlock)))
         return;
 
     QPen pen;
@@ -353,9 +353,9 @@ void TextEditGutter::paintFoldingMarks(QPainter& p, const TextEdit::BlockList& b
         if (!block.isVisible())
             continue;
 
-        bool folded = m_textEdit->isFolded(block);
+        bool folded = m_textEdit->isRegionFolded(block);
 
-        if (!m_textEdit->isFoldable(block) && !folded)
+        if (!m_textEdit->isFoldingRegion(block) && !folded)
             continue;
 
         p.save();
@@ -409,13 +409,13 @@ void TextEditGutter::onNumberStripEnter(const QTextBlock& /*block*/) {}
 
 void TextEditGutter::onFoldingStripEnter(const QTextBlock& block)
 {
-    if (!m_textEdit->isFoldable(block))
+    if (!m_textEdit->isFoldingRegion(block))
         return;
 
     const auto blockNum = block.blockNumber();
 
     m_foldingStartBlock = blockNum;
-    m_foldingEndBlock = m_textEdit->findClosingBlock(block).blockNumber();
+    m_foldingEndBlock = m_textEdit->findEndOfFoldingRegion(block).blockNumber();
 
     setCursor(QCursor(Qt::PointingHandCursor));
     update(); // TODO: Only needed to repaint the area between start and endblock

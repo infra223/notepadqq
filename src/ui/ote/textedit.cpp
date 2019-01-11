@@ -311,8 +311,8 @@ void TextEdit::setCursorPosition(const TextEdit::CursorPos& pos)
     auto c = textCursor();
     c.setPosition(pos);
 
-    if (isFolded(c.block()))
-        toggleFold(c.block());
+    if (isRegionFolded(c.block()))
+        toggleRegionFold(c.block());
 
     setTextCursor(c);
 }
@@ -535,65 +535,105 @@ void TextEdit::setModified(bool modified)
     document()->setModified(modified);
 }
 
+// The logic for block up- and down movement is inspired by Tsu Jan's code used in FeatherPad.
+// https://github.com/tsujan/FeatherPad/blob/master/featherpad/textedit.cpp#L737
 void TextEdit::moveSelectedBlocksUp()
 {
     if (isReadOnly()) return;
 
-    bool success;
+    QTextCursor cursor = textCursor();
+    const int anch = cursor.anchor();
+    const int pos = cursor.position();
 
-    // Selects the line above the selected blocks.
-    auto lineCursor = textCursor();
-    lineCursor.setPosition(lineCursor.selectionStart()); // Remove selection
-    success = lineCursor.movePosition(QTextCursor::PreviousBlock);
-    success &= lineCursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    QTextCursor tmp = cursor;
+    tmp.setPosition(anch);
+    const int anchorInBlock = tmp.positionInBlock();
+    tmp.setPosition(pos);
+    const int posInBlock = tmp.positionInBlock();
 
-    if (!success)
+    // Select all currently selected blocks
+    cursor.setPosition(std::max(anch, pos));
+    cursor.movePosition(QTextCursor::EndOfBlock);
+    cursor.setPosition(std::min(anch, pos), QTextCursor::KeepAnchor);
+    cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
+
+    const QString txt = cursor.selectedText();
+
+    // Try to include the previous line in the selection. If it fails, there is none.
+    if (!cursor.movePosition(QTextCursor::PreviousBlock, QTextCursor::KeepAnchor))
         return;
 
-    auto insertCursor = textCursor();
-    insertCursor.setPosition(insertCursor.selectionEnd());
-    success = insertCursor.movePosition(QTextCursor::NextBlock);
+    if (isBlockFolded(cursor.block()))
+        toggleRegionFold(findBeginOfFoldingRegion(cursor.block()));
 
-    // If the cursor is at the last block the above move action can fail. In that case a new
-    // block needs to be added or the insert operation screws up.
-    if (!success) {
-        insertCursor.movePosition(QTextCursor::EndOfBlock);
-        insertCursor.insertBlock();
+    // If it succeeded, make sure only the '\n' at the end is selected, remove text, move to
+    // beginning of line, insert text, insert newline.
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    const int firstLine = cursor.position();
+    cursor.insertText(txt);
+    cursor.insertBlock();
+    cursor.endEditBlock();
+    cursor.movePosition (QTextCursor::PreviousBlock);
+    // Restore old selection
+    if (anch >= pos) {
+        cursor.setPosition(cursor.block().position() + anchorInBlock);
+        cursor.setPosition(firstLine + posInBlock, QTextCursor::KeepAnchor);
+    } else {
+        const int lastLine = cursor.position();
+        cursor.setPosition(firstLine + anchorInBlock);
+        cursor.setPosition(lastLine + posInBlock, QTextCursor::KeepAnchor);
     }
-
-    lineCursor.beginEditBlock();
-
-    auto text = lineCursor.selectedText();
-    lineCursor.removeSelectedText();
-    insertCursor.insertText(text);
-
-    lineCursor.endEditBlock();
+    setTextCursor(cursor);
+    ensureCursorVisible();
 }
 
 void TextEdit::moveSelectedBlocksDown()
 {
     if (isReadOnly()) return;
 
-    auto c = textCursor();
+    QTextCursor cursor = textCursor();
+    const int anch = cursor.anchor();
+    const int pos = cursor.position();
 
-    bool success;
-    c.setPosition(c.selectionEnd()); // Remove selection
-    success = c.movePosition(QTextCursor::NextBlock);
-    success &= c.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+    QTextCursor tmp = cursor;
+    tmp.setPosition (anch);
+    const int anchorInBlock = tmp.positionInBlock();
+    tmp.setPosition (pos);
+    const int posInBlock = tmp.positionInBlock();
 
-    if (!success)
+    cursor.setPosition(std::min(anch, pos));
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.setPosition(std::max(anch, pos), QTextCursor::KeepAnchor);
+    cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    const QString txt = cursor.selectedText();
+    if (!cursor.movePosition (QTextCursor::NextBlock, QTextCursor::KeepAnchor))
         return;
 
-    c.beginEditBlock();
-    auto text = c.selectedText();
-    c.removeSelectedText();
+    if (isFoldingRegion(cursor.block()))
+        toggleRegionFold(cursor.block());
 
-    c = textCursor();
-    c.setPosition(c.selectionStart());
-    c.movePosition(QTextCursor::StartOfBlock);
-    c.insertText(text);
+    cursor.beginEditBlock();
+    cursor.deleteChar();
+    cursor.movePosition(QTextCursor::EndOfBlock);
+    cursor.insertText(QString (QChar::ParagraphSeparator));
+    const int firstLine = cursor.position();
+    cursor.insertText(txt);
+    cursor.endEditBlock();
+    if (anch >= pos) {
+        cursor.setPosition(cursor.block().position() + anchorInBlock);
+        cursor.setPosition(firstLine + posInBlock, QTextCursor::KeepAnchor);
+    } else {
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        const int lastLine = cursor.position();
+        cursor.setPosition(firstLine + anchorInBlock);
+        cursor.setPosition(lastLine + posInBlock, QTextCursor::KeepAnchor);
+    }
 
-    c.endEditBlock();
+    setTextCursor(cursor);
+    ensureCursorVisible();
 }
 
 void TextEdit::duplicateSelectedBlocks()
@@ -932,8 +972,8 @@ void TextEdit::ensureSelectionUnfolded(const TextEdit::Selection& sel)
     const auto& endBlock = document()->findBlock(sel.end);
 
     do {
-        if (isFolded(block))
-            toggleFold(block);
+        if (isRegionFolded(block))
+            toggleRegionFold(block);
 
         if (block == endBlock)
             break;
@@ -1589,7 +1629,7 @@ void TextEdit::paintLineSuffixes(QPainter& painter, const BlockList& blockList) 
         if (!block.isVisible())
             continue;
 
-        const bool folded = isFolded(block);
+        const bool folded = isRegionFolded(block);
 
         if (!m_config.showEndOfLineMarkers && !folded)
             continue;
@@ -2143,32 +2183,54 @@ void TextEdit::leaveEvent(QEvent* evt)
     QPlainTextEdit::leaveEvent(evt);
 }
 
-QTextBlock TextEdit::findClosingBlock(const QTextBlock& startBlock) const
+QTextBlock TextEdit::findEndOfFoldingRegion(const QTextBlock& startBlock) const
 {
     return m_highlighter->findFoldingRegionEnd(startBlock);
 }
 
-bool TextEdit::isFoldable(const QTextBlock& block) const
+QTextBlock TextEdit::findBeginOfFoldingRegion(const QTextBlock& startBlock) const
+{
+    if (m_highlighter->startsFoldingRegion(startBlock))
+        return startBlock;
+
+    auto block = startBlock.previous();
+    while(block.isValid() && ! m_highlighter->startsFoldingRegion(block))
+        block = block.previous();
+
+    return block;
+}
+
+bool TextEdit::isBlockFolded(const QTextBlock& block) const
+{
+    return !block.isVisible();
+}
+
+bool TextEdit::isFoldingRegion(const QTextBlock& block) const
 {
     return m_highlighter->startsFoldingRegion(block);
 }
 
-bool TextEdit::isFolded(const QTextBlock& block) const
+bool TextEdit::isRegionFolded(const QTextBlock& block) const
 {
     if (!block.isValid())
         return false;
+
     const auto nextBlock = block.next();
     if (!nextBlock.isValid())
         return false;
     return !nextBlock.isVisible();
 }
 
-void TextEdit::toggleFold(const QTextBlock& startBlock)
+void TextEdit::toggleRegionFold(QTextBlock startBlock)
 {
     // we also want to fold the last line of the region, therefore the ".next()"
-    const auto endBlock = findClosingBlock(startBlock).next();
 
-    if (isFolded(startBlock)) {
+    while(!startBlock.isVisible())
+        startBlock = startBlock.previous();
+
+    const auto endBlock = findEndOfFoldingRegion(startBlock).next();
+
+    if (isRegionFolded(startBlock)) {
         // unfold
         auto block = startBlock.next();
         while (block.isValid() && !block.isVisible()) {

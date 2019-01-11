@@ -111,6 +111,17 @@ bool SyntaxHighlighter::startsFoldingRegion(const QTextBlock& startBlock) const
     return SyntaxHighlighterPrivate::foldingRegion(startBlock).type() == FoldingRegion::Begin;
 }
 
+QTextBlock SyntaxHighlighter::findFoldingRegionBegin(const QTextBlock& startBlock) const {
+    if (startsFoldingRegion(startBlock))
+        return startBlock;
+
+    auto block = startBlock.previous();
+    while(block.isValid() && !startsFoldingRegion(block))
+        block = block.previous();
+
+    return block;
+}
+
 QTextBlock SyntaxHighlighter::findFoldingRegionEnd(const QTextBlock& startBlock) const
 {
     const auto region = SyntaxHighlighterPrivate::foldingRegion(startBlock);

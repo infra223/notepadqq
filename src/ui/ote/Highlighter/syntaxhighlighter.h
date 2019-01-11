@@ -79,6 +79,8 @@ public:
      */
     QTextBlock findFoldingRegionEnd(const QTextBlock& startBlock) const;
 
+    QTextBlock findFoldingRegionBegin(const QTextBlock& startBlock) const;
+
     bool isBookmarked(const QTextBlock& block) const;
     void setBookmark(QTextBlock block, bool bookmarked);
     void toggleBookmark(QTextBlock block);
