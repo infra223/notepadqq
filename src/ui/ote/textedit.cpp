@@ -12,6 +12,7 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
 #include <QRegularExpression>
 #include <QScrollBar>

@@ -36,6 +36,7 @@ IWR, University of Heidelberg
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLocale>
+#include <QPainterPath>
 #include <QPrintDialog>
 #include <QPrinter>
 #include <QSet>

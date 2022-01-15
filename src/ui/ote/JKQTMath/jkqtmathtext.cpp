@@ -24,6 +24,7 @@
 #include <QDebug>
 #include <QFontDatabase>
 #include <QFontMetricsF>
+#include <QPainterPath>
 
 #include <typeinfo>
 //#define QColor2String(color) QString(jkqtp_rgbtostring((color).red(), (color).green(), (color).blue(),
