@@ -39,6 +39,10 @@ If you encounter errors make sure to have the necessary libraries installed. For
 For CentOS:
 
     notepadqq$ sudo yum install -y qt5-qtbase-devel qt5-qttools-devel qt5-qtsvg-devel uchardet
+
+For Fedora:
+
+    notepadqq$ sudo dnf install -y qt5-qtbase-devel qt5-qttools-devel qt5-qtsvg-devel uchardet-devel
     
 #### Install
 
